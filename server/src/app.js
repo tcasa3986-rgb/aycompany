@@ -53,7 +53,20 @@ async function seedAdmin() {
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync()
-    .then(seedAdmin)
-    .then(() => app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en http://localhost:${PORT}`)))
-    .catch(err => { console.error('Error al iniciar:', err.message); process.exit(1); });
+async function iniciar(intentos = 5) {
+    for (let i = 1; i <= intentos; i++) {
+        try {
+            await sequelize.authenticate();
+            await sequelize.sync();
+            await seedAdmin();
+            app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
+            return;
+        } catch (err) {
+            console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);
+            if (i === intentos) { console.error('No se pudo conectar a la BD'); process.exit(1); }
+            await new Promise(r => setTimeout(r, 5000));
+        }
+    }
+}
+
+iniciar();
