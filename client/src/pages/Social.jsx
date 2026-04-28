@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import axios from '../api/axios';
 import { MessageCircle, X, Check, CheckCheck, Filter, RefreshCw, Facebook, Instagram, Send } from 'lucide-react';
 
-const REDES = ['todas', 'facebook', 'instagram', 'whatsapp'];
+const REDES = ['todas', 'facebook', 'instagram', 'whatsapp', 'tiktok'];
 const TIPOS = ['todos', 'mensaje', 'comentario'];
 
 const ICONS = {
     facebook:  { bg: '#1877f2', label: 'Facebook',  emoji: '🔵' },
     instagram: { bg: '#e1306c', label: 'Instagram', emoji: '📸' },
-    whatsapp:  { bg: '#25d366', label: 'WhatsApp',  emoji: '🟢' }
+    whatsapp:  { bg: '#25d366', label: 'WhatsApp',  emoji: '🟢' },
+    tiktok:    { bg: '#010101', label: 'TikTok',    emoji: '🎵' }
 };
 
 function timeAgo(fecha) {
@@ -108,8 +109,8 @@ export default function Social() {
                     </div>
 
                     {/* Stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
-                        {['facebook', 'instagram', 'whatsapp'].map(r => {
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
+                        {['facebook', 'instagram', 'whatsapp', 'tiktok'].map(r => {
                             const info = ICONS[r];
                             return (
                                 <div key={r} onClick={() => setFiltroRed(filtroRed === r ? 'todas' : r)} style={{ background: filtroRed === r ? info.bg : '#f9fafb', color: filtroRed === r ? '#fff' : '#374151', borderRadius: 8, padding: '8px 10px', cursor: 'pointer', border: `1px solid ${filtroRed === r ? info.bg : '#e5e7eb'}`, textAlign: 'center', transition: 'all .15s' }}>

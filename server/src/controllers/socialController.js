@@ -246,5 +246,6 @@ exports.stats = async (req, res) => {
     const facebook  = await MensajeSocial.count({ where: { red: 'facebook' } });
     const instagram = await MensajeSocial.count({ where: { red: 'instagram' } });
     const whatsapp  = await MensajeSocial.count({ where: { red: 'whatsapp' } });
-    res.json({ total, noLeidos, facebook, instagram, whatsapp });
+    const tiktok    = await MensajeSocial.count({ where: { red: 'tiktok' } });
+    res.json({ total, noLeidos, facebook, instagram, whatsapp, tiktok });
 };
