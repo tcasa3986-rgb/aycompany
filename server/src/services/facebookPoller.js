@@ -1,7 +1,5 @@
 const { MensajeSocial } = require('../models');
 
-let pageId = null;
-
 async function guardar(datos) {
     if (!datos.mensaje_id) return;
     const existe = await MensajeSocial.findOne({ where: { mensaje_id: datos.mensaje_id } });
@@ -10,11 +8,20 @@ async function guardar(datos) {
 }
 
 async function getPageId(token) {
-    if (pageId) return pageId;
-    const r = await fetch(`https://graph.facebook.com/v21.0/me?fields=id&access_token=${token}`);
-    const data = await r.json();
-    if (data.id) pageId = data.id;
-    return pageId;
+    // Usar variable de entorno si está disponible
+    if (process.env.META_PAGE_ID) return process.env.META_PAGE_ID;
+    // Obtener desde la API como fallback
+    try {
+        const r = await fetch(`https://graph.facebook.com/v21.0/me?fields=id&access_token=${token}`);
+        const data = await r.json();
+        if (data.id) return data.id;
+    } catch (_) {}
+    // Extraer del primer participante "AI Company" en conversaciones
+    const r2 = await fetch(`https://graph.facebook.com/v21.0/me/conversations?fields=participants&access_token=${token}&limit=1`);
+    const conv = await r2.json();
+    const participants = conv.data?.[0]?.participants?.data || [];
+    const page = participants.find(p => p.email?.includes('@facebook.com') && p.name !== 'Cristian');
+    return page?.id || null;
 }
 
 async function pollConversations(token, pid, platform) {
