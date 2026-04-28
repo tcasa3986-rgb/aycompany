@@ -11,8 +11,9 @@ router.post('/webhook/make',  ctrl.recibirMake);
 router.use(auth);
 router.get('/social',              ctrl.listar);
 router.get('/social/stats',        ctrl.stats);
-router.put('/social/:id/leido',    ctrl.marcarLeido);
+router.put('/social/:id/leido',      ctrl.marcarLeido);
 router.put('/social/:id/respondido', ctrl.marcarRespondido);
-router.delete('/social/:id',       ctrl.eliminar);
+router.post('/social/:id/responder', ctrl.responder);
+router.delete('/social/:id',         ctrl.eliminar);
 
 module.exports = router;

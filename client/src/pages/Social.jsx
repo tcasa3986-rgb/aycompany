@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from '../api/axios';
-import { MessageCircle, X, Check, CheckCheck, Filter, RefreshCw, Facebook, Instagram } from 'lucide-react';
+import { MessageCircle, X, Check, CheckCheck, Filter, RefreshCw, Facebook, Instagram, Send } from 'lucide-react';
 
 const REDES = ['todas', 'facebook', 'instagram', 'whatsapp'];
 const TIPOS = ['todos', 'mensaje', 'comentario'];
@@ -27,6 +27,9 @@ export default function Social() {
     const [soloNoLeidos, setSoloNoLeidos] = useState(false);
     const [seleccionado, setSeleccionado] = useState(null);
     const [cargando, setCargando] = useState(false);
+    const [respuesta, setRespuesta] = useState('');
+    const [enviando, setEnviando] = useState(false);
+    const [errorRespuesta, setErrorRespuesta] = useState('');
 
     useEffect(() => { cargar(); }, [filtroRed, filtroTipo, soloNoLeidos]);
 
@@ -66,7 +69,25 @@ export default function Social() {
 
     function abrir(item) {
         setSeleccionado(item);
+        setRespuesta('');
+        setErrorRespuesta('');
         if (!item.leido) marcarLeido(item.id);
+    }
+
+    async function enviarRespuesta() {
+        if (!respuesta.trim() || !seleccionado) return;
+        setEnviando(true);
+        setErrorRespuesta('');
+        try {
+            await axios.post(`/social/${seleccionado.id}/responder`, { texto: respuesta });
+            setRespuesta('');
+            setSeleccionado(s => ({ ...s, respondido: true }));
+            cargar();
+        } catch (err) {
+            setErrorRespuesta(err.response?.data?.error || 'Error al enviar');
+        } finally {
+            setEnviando(false);
+        }
     }
 
     return (
@@ -193,6 +214,33 @@ export default function Social() {
                             </div>
                         )}
                     </div>
+
+                    {/* Caja de respuesta */}
+                    {(seleccionado.red === 'facebook' || seleccionado.red === 'instagram') && (
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: '#fff' }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>
+                                Responder via {ICONS[seleccionado.red]?.label}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <textarea
+                                    value={respuesta}
+                                    onChange={e => setRespuesta(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarRespuesta(); } }}
+                                    placeholder="Escribe tu respuesta… (Enter para enviar)"
+                                    rows={2}
+                                    style={{ flex: 1, resize: 'none', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                                />
+                                <button
+                                    onClick={enviarRespuesta}
+                                    disabled={enviando || !respuesta.trim()}
+                                    style={{ padding: '0 16px', background: enviando || !respuesta.trim() ? '#e5e7eb' : '#6366f1', color: enviando || !respuesta.trim() ? '#9ca3af' : '#fff', border: 'none', borderRadius: 8, cursor: enviando || !respuesta.trim() ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
+                                >
+                                    <Send size={14} /> {enviando ? 'Enviando…' : 'Enviar'}
+                                </button>
+                            </div>
+                            {errorRespuesta && <div style={{ marginTop: 6, fontSize: 12, color: '#ef4444' }}>{errorRespuesta}</div>}
+                        </div>
+                    )}
                 </div>
             )}
 

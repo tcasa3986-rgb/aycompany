@@ -183,6 +183,40 @@ exports.eliminar = async (req, res) => {
     res.json({ ok: true });
 };
 
+exports.responder = async (req, res) => {
+    const { texto } = req.body;
+    if (!texto?.trim()) return res.status(400).json({ error: 'Texto requerido' });
+
+    const msg = await MensajeSocial.findByPk(req.params.id);
+    if (!msg) return res.status(404).json({ error: 'Mensaje no encontrado' });
+
+    try {
+        if (msg.red === 'facebook' || msg.red === 'instagram') {
+            if (!process.env.META_PAGE_TOKEN)
+                return res.status(500).json({ error: 'META_PAGE_TOKEN no configurado. Genera el token en el panel de Meta y agrégalo a Railway.' });
+
+            const r = await fetch('https://graph.facebook.com/v21.0/me/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    access_token: process.env.META_PAGE_TOKEN,
+                    recipient: { id: msg.remitente_id },
+                    message: { text: texto }
+                })
+            });
+            const data = await r.json();
+            if (data.error) return res.status(400).json({ error: data.error.message });
+        } else {
+            return res.status(400).json({ error: `Respuesta directa a ${msg.red} no disponible aún` });
+        }
+
+        await MensajeSocial.update({ respondido: true }, { where: { id: msg.id } });
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 exports.stats = async (req, res) => {
     const total     = await MensajeSocial.count();
     const noLeidos  = await MensajeSocial.count({ where: { leido: false } });
