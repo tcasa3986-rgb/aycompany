@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const ctrl = require('../controllers/metricasController');
+const auth = require('../middlewares/auth');
+router.use(auth);
+router.get('/metricas',          ctrl.listarMetricas);
+router.post('/metricas',         ctrl.crearMetrica);
+router.put('/metricas/:id',      ctrl.actualizarMetrica);
+router.delete('/metricas/:id',   ctrl.eliminarMetrica);
+router.get('/metas',             ctrl.listarMetas);
+router.post('/metas',            ctrl.crearMeta);
+router.put('/metas/:id',         ctrl.actualizarMeta);
+router.delete('/metas/:id',      ctrl.eliminarMeta);
+module.exports = router;

@@ -11,7 +11,8 @@ export default function Licencias() {
   const [modalRenew, setModalRenew] = useState(null);
   const [form, setForm] = useState({ cliente_id: '', producto_id: '', meses: '1' });
   const [mesesRenew, setMesesRenew] = useState('1');
-  const [filtro, setFiltro] = useState('todas');
+  const [filtro,   setFiltro]   = useState('todas');
+  const [negocio,  setNegocio]  = useState('');
 
   const cargar = () => api.get('/licencias').then(r => setLicencias(r.data.data));
   useEffect(() => {
@@ -23,14 +24,14 @@ export default function Licencias() {
   const hoy = new Date();
   const filtradas = licencias.filter(l => {
     const vencida = new Date(l.fecha_vencimiento) < hoy;
-    if (filtro === 'activas')   return l.activo && !vencida;
-    if (filtro === 'vencidas')  return vencida || !l.activo;
+    if (filtro === 'activas')    return l.activo && !vencida;
+    if (filtro === 'vencidas')   return vencida || !l.activo;
     if (filtro === 'por_vencer') {
       const dias = Math.ceil((new Date(l.fecha_vencimiento) - hoy) / 86400000);
       return l.activo && dias >= 0 && dias <= 7;
     }
     return true;
-  });
+  }).filter(l => negocio === '' || String(l.producto_id) === negocio);
 
   async function crear(e) {
     e.preventDefault();
@@ -76,10 +77,17 @@ export default function Licencias() {
         <button onClick={() => setModal(true)} style={btn('#4f46e5')}><Plus size={16} /> Nueva licencia</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         {[['todas', 'Todas'], ['activas', 'Activas'], ['por_vencer', 'Por vencer'], ['vencidas', 'Vencidas/Inactivas']].map(([v, l]) => (
           <button key={v} onClick={() => setFiltro(v)} style={{ padding: '6px 14px', borderRadius: 20, border: 'none', fontWeight: 600, fontSize: '.82rem', background: filtro === v ? '#4f46e5' : '#e2e8f0', color: filtro === v ? '#fff' : '#64748b' }}>{l}</button>
         ))}
+        <div style={{ marginLeft: 'auto' }}>
+          <select value={negocio} onChange={e => setNegocio(e.target.value)}
+            style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '.85rem', color: '#374151', background: '#fff' }}>
+            <option value="">Todos los negocios</option>
+            {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        </div>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.07)', overflow: 'hidden' }}>

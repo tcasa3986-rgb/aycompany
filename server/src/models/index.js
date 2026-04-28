@@ -7,6 +7,9 @@ const Factura  = require('./Factura');
 const EstrategiaMarketing = require('./EstrategiaMarketing');
 const Reunion             = require('./Reunion');
 const IdeaContenido       = require('./IdeaContenido');
+const MetricaMarketing    = require('./MetricaMarketing');
+const MetaMarketing       = require('./MetaMarketing');
+const Evento              = require('./Evento');
 
 Cliente.hasMany(Licencia,  { foreignKey: 'cliente_id',  as: 'licencias' });
 Producto.hasMany(Licencia, { foreignKey: 'producto_id', as: 'licencias' });
@@ -23,4 +26,4 @@ Pago.hasOne(Factura,     { foreignKey: 'pago_id',    as: 'factura' });
 Factura.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
 Factura.belongsTo(Pago,    { foreignKey: 'pago_id',    as: 'pago' });
 
-module.exports = { Usuario, Cliente, Producto, Licencia, Pago, Factura, EstrategiaMarketing, Reunion, IdeaContenido };
+module.exports = { Usuario, Cliente, Producto, Licencia, Pago, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento };

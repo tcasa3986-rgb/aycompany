@@ -34,6 +34,9 @@ app.use('/api/facturas',   require('./routes/facturasRoutes'));
 app.use('/api/marketing',  require('./routes/marketingRoutes'));
 app.use('/api/reuniones',  require('./routes/reunionesRoutes'));
 app.use('/api/contenido',  require('./routes/contenidoRoutes'));
+app.use('/api/metricas',   require('./routes/metricasRoutes'));
+app.use('/api/eventos',    require('./routes/eventosRoutes'));
+app.use('/api/asistente',  require('./routes/asistenteRoutes'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
