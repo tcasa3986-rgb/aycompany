@@ -6,6 +6,7 @@ const path      = require('path');
 const fs        = require('fs');
 const sequelize = require('./config/db');
 const { Usuario } = require('./models');
+const { initBot } = require('./services/plataformaBot');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -67,6 +68,7 @@ async function iniciar(intentos = 5) {
             await sequelize.sync();
             await seedAdmin();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
+            initBot();
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);
