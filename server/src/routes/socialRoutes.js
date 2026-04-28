@@ -1,0 +1,17 @@
+const router = require('express').Router();
+const ctrl   = require('../controllers/socialController');
+const auth   = require('../middlewares/auth');
+
+// Webhook Meta (sin auth — Meta llama directamente)
+router.get( '/webhook/meta', ctrl.verificarWebhook);
+router.post('/webhook/meta', ctrl.recibirWebhook);
+
+// API protegida para la plataforma
+router.use(auth);
+router.get('/social',              ctrl.listar);
+router.get('/social/stats',        ctrl.stats);
+router.put('/social/:id/leido',    ctrl.marcarLeido);
+router.put('/social/:id/respondido', ctrl.marcarRespondido);
+router.delete('/social/:id',       ctrl.eliminar);
+
+module.exports = router;

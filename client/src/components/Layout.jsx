@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle } from 'lucide-react';
 
 const nav = [
   { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
@@ -12,6 +12,7 @@ const nav = [
   { to: '/marketing',  icon: TrendingUp,      label: 'Marketing' },
   { to: '/calendario', icon: Calendar,        label: 'Calendario' },
   { to: '/contenido',  icon: Lightbulb,       label: 'Contenido' },
+  { to: '/social',     icon: MessageCircle,   label: 'Bandeja Social' },
 ];
 
 export default function Layout() {
