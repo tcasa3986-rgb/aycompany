@@ -1,10 +1,12 @@
 const { MensajeSocial } = require('../models');
+const autoResponder = require('./autoResponder');
 
 async function guardar(datos) {
     if (!datos.mensaje_id) return;
     const existe = await MensajeSocial.findOne({ where: { mensaje_id: datos.mensaje_id } });
     if (existe) return;
-    await MensajeSocial.create(datos);
+    const m = await MensajeSocial.create(datos);
+    autoResponder.responder(m).catch(() => {});
 }
 
 async function getPageId(token) {

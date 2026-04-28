@@ -1,6 +1,7 @@
 const { MensajeSocial } = require('../models');
 const { Op } = require('sequelize');
 const telegramService = require('../services/telegramService');
+const autoResponder = require('../services/autoResponder');
 
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'aicompany_webhook_2024';
 
@@ -123,6 +124,9 @@ async function guardar(datos) {
         const msg = `${ico} *Nuevo ${datos.tipo} en ${datos.red}*\n👤 ${datos.remitente || 'Desconocido'}\n💬 ${(datos.contenido || '').slice(0, 200)}`;
         telegramService.enviar(msg).catch(() => {});
     }
+
+    // Auto-responder con IA
+    autoResponder.responder(m).catch(() => {});
 }
 
 // ── Webhook Make.com (POST genérico) ────────────────────────────────────────
