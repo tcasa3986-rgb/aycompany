@@ -1,9 +1,11 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { MetaMarketing, EstrategiaMarketing, IdeaContenido } = require('../models');
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 exports.chat = async (req, res) => {
+    if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurada' });
+    }
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { mensaje, historial = [] } = req.body;
 
     const [metas, estrategias, ideas] = await Promise.all([
