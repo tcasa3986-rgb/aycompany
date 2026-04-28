@@ -216,7 +216,7 @@ export default function Social() {
                     </div>
 
                     {/* Caja de respuesta */}
-                    {(seleccionado.red === 'facebook' || seleccionado.red === 'instagram') && (
+                    {(seleccionado.red === 'facebook' || seleccionado.red === 'instagram' || seleccionado.red === 'whatsapp') && (
                         <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: '#fff' }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>
                                 Responder via {ICONS[seleccionado.red]?.label}

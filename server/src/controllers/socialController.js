@@ -206,8 +206,27 @@ exports.responder = async (req, res) => {
             });
             const data = await r.json();
             if (data.error) return res.status(400).json({ error: data.error.message });
+        } else if (msg.red === 'whatsapp') {
+            if (!process.env.WHATSAPP_TOKEN || !process.env.WHATSAPP_PHONE_ID)
+                return res.status(500).json({ error: 'WHATSAPP_TOKEN o WHATSAPP_PHONE_ID no configurados.' });
+
+            const r = await fetch(`https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+                },
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    to: msg.remitente_id,
+                    type: 'text',
+                    text: { body: texto }
+                })
+            });
+            const data = await r.json();
+            if (data.error) return res.status(400).json({ error: data.error.message });
         } else {
-            return res.status(400).json({ error: `Respuesta directa a ${msg.red} no disponible aún` });
+            return res.status(400).json({ error: `Red ${msg.red} no soportada para respuesta directa` });
         }
 
         await MensajeSocial.update({ respondido: true }, { where: { id: msg.id } });
