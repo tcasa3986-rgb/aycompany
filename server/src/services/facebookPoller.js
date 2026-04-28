@@ -17,7 +17,59 @@ async function getPageId(token) {
     return pageId;
 }
 
-async function pollFacebookMessages() {
+async function pollConversations(token, pid, platform) {
+    const red = platform === 'instagram' ? 'instagram' : 'facebook';
+    const url = platform === 'instagram'
+        ? `https://graph.facebook.com/v21.0/me/conversations?platform=instagram&fields=id,participants&access_token=${token}&limit=25`
+        : `https://graph.facebook.com/v21.0/me/conversations?fields=id,participants&access_token=${token}&limit=25`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if (data.error) {
+        // instagram puede no estar conectado aún — loguear solo si no es error de permiso
+        if (data.error.code !== 190 && data.error.code !== 10) {
+            console.error(`${red} polling error:`, data.error.message);
+        }
+        return;
+    }
+
+    for (const conv of data.data || []) {
+        const mr = await fetch(
+            `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${token}&limit=10`
+        );
+        const msgs = await mr.json();
+        if (msgs.error) continue;
+
+        for (const msg of msgs.data || []) {
+            if (!msg.message) continue;
+            if (msg.from?.id === pid) continue;
+
+            const remitente = conv.participants?.data?.find(p => p.id !== pid);
+            await guardar({
+                red,
+                tipo: 'mensaje',
+                remitente: remitente?.name || remitente?.username || msg.from?.name || msg.from?.id,
+                remitente_id: msg.from?.id,
+                contenido: msg.message,
+                mensaje_id: msg.id,
+                fecha_red: new Date(msg.created_time),
+                raw: JSON.stringify(msg)
+            });
+        }
+    }
+}
+
+async function pollWhatsApp() {
+    const token = process.env.WHATSAPP_TOKEN;
+    const phoneId = process.env.WHATSAPP_PHONE_ID;
+    if (!token || !phoneId) return;
+
+    // WhatsApp Cloud API no soporta polling de mensajes — usa webhooks
+    // Este espacio queda reservado para implementación futura vía webhook
+}
+
+async function pollAll() {
     const token = process.env.META_PAGE_TOKEN;
     if (!token) return;
 
@@ -25,53 +77,21 @@ async function pollFacebookMessages() {
         const pid = await getPageId(token);
         if (!pid) return;
 
-        const r = await fetch(
-            `https://graph.facebook.com/v21.0/me/conversations?fields=id,participants&access_token=${token}&limit=25`
-        );
-        const data = await r.json();
-
-        if (data.error) {
-            console.error('Facebook polling error:', data.error.message);
-            return;
-        }
-
-        for (const conv of data.data || []) {
-            const mr = await fetch(
-                `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${token}&limit=10`
-            );
-            const msgs = await mr.json();
-            if (msgs.error) continue;
-
-            for (const msg of msgs.data || []) {
-                if (!msg.message) continue;
-                if (msg.from?.id === pid) continue; // ignorar mensajes enviados por la página
-
-                const remitente = conv.participants?.data?.find(p => p.id !== pid);
-                await guardar({
-                    red: 'facebook',
-                    tipo: 'mensaje',
-                    remitente: remitente?.name || msg.from?.name || msg.from?.id,
-                    remitente_id: msg.from?.id,
-                    contenido: msg.message,
-                    mensaje_id: msg.id,
-                    fecha_red: new Date(msg.created_time),
-                    raw: JSON.stringify(msg)
-                });
-            }
-        }
+        await pollConversations(token, pid, 'facebook');
+        await pollConversations(token, pid, 'instagram');
     } catch (err) {
-        console.error('Facebook poller error:', err.message);
+        console.error('Social poller error:', err.message);
     }
 }
 
 function startPoller() {
     if (!process.env.META_PAGE_TOKEN) {
-        console.log('⚠️  META_PAGE_TOKEN no configurado — Facebook poller desactivado');
+        console.log('⚠️  META_PAGE_TOKEN no configurado — social poller desactivado');
         return;
     }
-    console.log('🔄 Facebook message poller iniciado (cada 5 min)');
-    pollFacebookMessages(); // ejecutar de inmediato al arrancar
-    setInterval(pollFacebookMessages, 5 * 60 * 1000);
+    console.log('🔄 Social poller iniciado (Facebook + Instagram, cada 5 min)');
+    pollAll();
+    setInterval(pollAll, 5 * 60 * 1000);
 }
 
 module.exports = { startPoller };
