@@ -38,8 +38,9 @@ Emprendedores, pymes y empresas establecidas donde podamos generar impacto real 
 
 async function responder(msg) {
     if (process.env.AUTO_RESPONDER !== 'true') return;
-    if (!process.env.ANTHROPIC_API_KEY) return;
+    if (!process.env.ANTHROPIC_API_KEY) { console.error('🤖 Auto-responder: ANTHROPIC_API_KEY no configurado'); return; }
     if (!msg?.contenido || msg.respondido) return;
+    console.log(`🤖 Auto-responder activado para ${msg.remitente} (${msg.red}): "${msg.contenido?.slice(0, 60)}"`);
 
     try {
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

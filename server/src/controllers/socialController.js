@@ -126,7 +126,7 @@ async function guardar(datos) {
     }
 
     // Auto-responder con IA
-    autoResponder.responder(m).catch(() => {});
+    autoResponder.responder(m).catch(err => console.error('Auto-responder catch:', err.message));
 }
 
 // ── Webhook Make.com (POST genérico) ────────────────────────────────────────

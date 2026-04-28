@@ -6,7 +6,7 @@ async function guardar(datos) {
     const existe = await MensajeSocial.findOne({ where: { mensaje_id: datos.mensaje_id } });
     if (existe) return;
     const m = await MensajeSocial.create(datos);
-    autoResponder.responder(m).catch(() => {});
+    autoResponder.responder(m).catch(err => console.error('Auto-responder poller catch:', err.message));
 }
 
 async function getPageId(token) {
