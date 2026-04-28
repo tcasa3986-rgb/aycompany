@@ -28,15 +28,17 @@ async function getPageId(token) {
 
 async function pollConversations(token, pid, platform) {
     const red = platform === 'instagram' ? 'instagram' : 'facebook';
-    const url = platform === 'instagram'
-        ? `https://graph.facebook.com/v21.0/me/conversations?platform=instagram&fields=id,participants&access_token=${token}&limit=25`
-        : `https://graph.facebook.com/v21.0/me/conversations?fields=id,participants&access_token=${token}&limit=25`;
+    // Solo traer conversaciones actualizadas en los últimos 3 minutos
+    const since = Math.floor((Date.now() - 3 * 60 * 1000) / 1000);
+    const base = platform === 'instagram'
+        ? `https://graph.facebook.com/v21.0/me/conversations?platform=instagram`
+        : `https://graph.facebook.com/v21.0/me/conversations`;
+    const url = `${base}&fields=id,participants,updated_time&access_token=${token}&limit=25&since=${since}`;
 
     const r = await fetch(url);
     const data = await r.json();
 
     if (data.error) {
-        // instagram puede no estar conectado aún — loguear solo si no es error de permiso
         if (data.error.code !== 190 && data.error.code !== 10) {
             console.error(`${red} polling error:`, data.error.message);
         }
@@ -45,7 +47,7 @@ async function pollConversations(token, pid, platform) {
 
     for (const conv of data.data || []) {
         const mr = await fetch(
-            `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${token}&limit=10`
+            `https://graph.facebook.com/v21.0/${conv.id}/messages?fields=id,message,from,created_time&access_token=${token}&limit=5`
         );
         const msgs = await mr.json();
         if (msgs.error) continue;
@@ -98,9 +100,9 @@ function startPoller() {
         console.log('⚠️  META_PAGE_TOKEN no configurado — social poller desactivado');
         return;
     }
-    console.log('🔄 Social poller iniciado (Facebook + Instagram, cada 5 min)');
+    console.log('🔄 Social poller iniciado (Facebook + Instagram, cada 1 min)');
     pollAll();
-    setInterval(pollAll, 5 * 60 * 1000);
+    setInterval(pollAll, 60 * 1000);
 }
 
 module.exports = { startPoller };
