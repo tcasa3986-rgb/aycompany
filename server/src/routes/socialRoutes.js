@@ -2,9 +2,10 @@ const router = require('express').Router();
 const ctrl   = require('../controllers/socialController');
 const auth   = require('../middlewares/auth');
 
-// Webhook Meta (sin auth — Meta llama directamente)
-router.get( '/webhook/meta', ctrl.verificarWebhook);
-router.post('/webhook/meta', ctrl.recibirWebhook);
+// Webhooks (sin auth — llamados externamente)
+router.get( '/webhook/meta',  ctrl.verificarWebhook);
+router.post('/webhook/meta',  ctrl.recibirWebhook);
+router.post('/webhook/make',  ctrl.recibirMake);
 
 // API protegida para la plataforma
 router.use(auth);

@@ -125,6 +125,34 @@ async function guardar(datos) {
     }
 }
 
+// ── Webhook Make.com (POST genérico) ────────────────────────────────────────
+exports.recibirMake = async (req, res) => {
+    const secret = req.headers['x-make-secret'] || req.body.secret;
+    if (process.env.MAKE_SECRET && secret !== process.env.MAKE_SECRET) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    res.sendStatus(200);
+    try {
+        // Make puede enviar un array o un objeto
+        const eventos = Array.isArray(req.body) ? req.body : [req.body];
+        for (const ev of eventos) {
+            await guardar({
+                red:          ev.red || ev.plataforma || 'desconocida',
+                tipo:         ev.tipo || 'mensaje',
+                remitente:    ev.remitente || ev.nombre || ev.from_name || ev.username || 'Desconocido',
+                remitente_id: ev.remitente_id || ev.from_id || ev.user_id || '',
+                contenido:    ev.contenido || ev.mensaje || ev.text || ev.message || ev.comment || '',
+                post_id:      ev.post_id || ev.media_id || '',
+                mensaje_id:   ev.mensaje_id || ev.id || String(Date.now()),
+                fecha_red:    ev.fecha || ev.timestamp ? new Date(ev.fecha || ev.timestamp) : new Date(),
+                raw:          JSON.stringify(ev)
+            });
+        }
+    } catch (err) {
+        console.error('Error webhook Make:', err.message);
+    }
+};
+
 // ── API para la plataforma ──────────────────────────────────────────────────
 exports.listar = async (req, res) => {
     const { red, tipo, leido, page = 1 } = req.query;
