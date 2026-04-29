@@ -5,6 +5,79 @@ const autoResponder = require('../services/autoResponder');
 
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'aicompany_webhook_2024';
 
+// ── Helpers de audio ────────────────────────────────────────────────────────
+async function descargarMediaWA(mediaId) {
+    const token = process.env.WHATSAPP_TOKEN;
+    if (!token) throw new Error('WHATSAPP_TOKEN no configurado');
+    const info = await (await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    })).json();
+    if (!info.url) throw new Error('Sin URL para media: ' + JSON.stringify(info));
+    const buf = await (await fetch(info.url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    })).arrayBuffer();
+    return { buffer: Buffer.from(buf), mimeType: info.mime_type || 'audio/ogg' };
+}
+
+async function transcribirAudio(buffer, mimeType) {
+    if (!process.env.OPENAI_API_KEY) return null;
+    const cleanMime = mimeType.split(';')[0].trim();
+    const ext = cleanMime.includes('ogg') ? 'ogg'
+        : cleanMime.includes('webm') ? 'webm'
+        : cleanMime.includes('mp4') ? 'mp4'
+        : cleanMime.includes('mpeg') ? 'mp3'
+        : 'ogg';
+    const blob = new Blob([buffer], { type: cleanMime });
+    const form = new FormData();
+    form.append('file', blob, `audio.${ext}`);
+    form.append('model', 'whisper-1');
+    form.append('language', 'es');
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
+        body: form
+    });
+    const data = await res.json();
+    if (data.error) { console.error('Whisper error:', data.error.message); return null; }
+    return data.text?.trim() || null;
+}
+
+async function extraerContenidoMensaje(msg, red) {
+    if (msg.type === 'text') return msg.text?.body || '';
+
+    if (msg.type === 'audio' || msg.type === 'voice') {
+        const audioId = msg.audio?.id || msg.voice?.id;
+        if (audioId && red === 'whatsapp') {
+            try {
+                const { buffer, mimeType } = await descargarMediaWA(audioId);
+                const tx = await transcribirAudio(buffer, mimeType);
+                if (tx) { console.log(`🎤 Audio transcrito (${red}): "${tx.slice(0, 60)}"`); return `[Audio]: ${tx}`; }
+            } catch (e) { console.error('Error descargando audio WA:', e.message); }
+        }
+        return '[Audio de voz]';
+    }
+
+    return msg.type || '[adjunto]';
+}
+
+async function extraerContenidoEvento(event) {
+    if (event.message.text) return event.message.text;
+    const att = event.message.attachments?.[0];
+    if (!att) return '[adjunto]';
+    if (att.type === 'audio') {
+        try {
+            const audioRes = await fetch(att.payload.url);
+            if (audioRes.ok) {
+                const buffer = Buffer.from(await audioRes.arrayBuffer());
+                const tx = await transcribirAudio(buffer, 'audio/mp4');
+                if (tx) { console.log(`🎤 Audio transcrito (fb/ig): "${tx.slice(0, 60)}"`); return `[Audio]: ${tx}`; }
+            }
+        } catch (e) { console.error('Error audio FB/IG:', e.message); }
+        return '[Audio de voz]';
+    }
+    return `[${att.type}]`;
+}
+
 // ── Verificación del webhook (GET) ──────────────────────────────────────────
 exports.verificarWebhook = (req, res) => {
     const mode      = req.query['hub.mode'];
@@ -30,7 +103,7 @@ exports.recibirWebhook = async (req, res) => {
                         red: 'facebook', tipo: 'mensaje',
                         remitente: event.sender?.id,
                         remitente_id: event.sender?.id,
-                        contenido: event.message.text || '[adjunto]',
+                        contenido: await extraerContenidoEvento(event),
                         mensaje_id: event.message.mid,
                         fecha_red: new Date(event.timestamp),
                         raw: JSON.stringify(event)
@@ -61,7 +134,7 @@ exports.recibirWebhook = async (req, res) => {
                         red: 'instagram', tipo: 'mensaje',
                         remitente: event.sender?.id,
                         remitente_id: event.sender?.id,
-                        contenido: event.message.text || '[adjunto]',
+                        contenido: await extraerContenidoEvento(event),
                         mensaje_id: event.message.mid,
                         fecha_red: new Date(event.timestamp),
                         raw: JSON.stringify(event)
@@ -95,7 +168,7 @@ exports.recibirWebhook = async (req, res) => {
                             red: 'whatsapp', tipo: 'mensaje',
                             remitente: contacto?.profile?.name || msg.from,
                             remitente_id: msg.from,
-                            contenido: msg.text?.body || msg.type || '[adjunto]',
+                            contenido: await extraerContenidoMensaje(msg, 'whatsapp'),
                             mensaje_id: msg.id,
                             fecha_red: new Date(msg.timestamp * 1000),
                             raw: JSON.stringify(msg)
@@ -170,6 +243,17 @@ exports.listar = async (req, res) => {
         where, order: [['createdAt', 'DESC']], limit, offset
     });
     res.json({ items: rows, total: count, pagina: Number(page) });
+};
+
+exports.conversacion = async (req, res) => {
+    const { remitente_id, red } = req.query;
+    if (!remitente_id) return res.status(400).json({ error: 'remitente_id requerido' });
+    const where = { remitente_id };
+    if (red) where.red = red;
+    const mensajes = await MensajeSocial.findAll({
+        where, order: [['createdAt', 'ASC']]
+    });
+    res.json(mensajes);
 };
 
 exports.marcarLeido = async (req, res) => {

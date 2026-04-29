@@ -1,5 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
-const { MensajeSocial } = require('../models');
+const { MensajeSocial, Reunion } = require('../models');
+const { Op } = require('sequelize');
 
 const SYSTEM_PROMPT = `Eres el asistente virtual de AI Company, una agencia de marketing digital, inteligencia artificial y automatización empresarial con sede en Bogotá, Colombia. Representas a Cristian Gutiérrez y al equipo de AI Company.
 
@@ -34,25 +35,125 @@ Emprendedores, pymes y empresas establecidas donde podamos generar impacto real 
 3. No presiones, pero sé claro: la reunión es el primer paso para trabajar juntos.
 4. Si no sabes algo específico del negocio del cliente, pregunta amablemente.
 5. Respuestas cortas y naturales — máximo 3-4 oraciones. No des listas largas ni párrafos eternos en el primer mensaje.
-6. Si el cliente está interesado, ofrece agendar una videollamada o reunión.`;
+6. Cuando el cliente muestre interés en reunirse, usa la herramienta ver_disponibilidad para consultar los horarios disponibles y luego propón opciones concretas.
+7. Cuando el cliente confirme una fecha y hora, usa agendar_reunion para reservar en el calendario. Confirma siempre con el cliente antes de agendar.
+8. Si el mensaje es exactamente "[Audio de voz]", el cliente envió un audio que no pudo transcribirse. Responde con amabilidad: recibiste su mensaje de voz pero necesitas que te escriba para poder ayudarle mejor.
+9. Si el mensaje empieza con "[Audio]: ", lo que sigue es la transcripción automática de un audio de voz. Responde al contenido transcrito de manera completamente natural, sin mencionar que fue un audio ni que fue transcrito.`;
+
+const TOOLS = [
+    {
+        name: 'ver_disponibilidad',
+        description: 'Consulta las reuniones ya agendadas en los próximos 14 días para conocer la disponibilidad del equipo. Úsala cuando el cliente quiera reunirse para poder ofrecerle horarios disponibles.',
+        input_schema: { type: 'object', properties: {}, required: [] }
+    },
+    {
+        name: 'agendar_reunion',
+        description: 'Agenda una reunión con el cliente en el calendario interno. Úsala solo cuando el cliente haya confirmado explícitamente una fecha y hora específica.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                nombre_cliente: { type: 'string', description: 'Nombre completo o como se presenta el cliente' },
+                fecha: { type: 'string', description: 'Fecha y hora en formato ISO 8601, ejemplo: 2026-05-10T10:00:00' },
+                duracion: { type: 'number', description: 'Duración en minutos (por defecto 60)' },
+                descripcion: { type: 'string', description: 'Resumen del negocio/necesidad del cliente para preparar la reunión' }
+            },
+            required: ['nombre_cliente', 'fecha']
+        }
+    }
+];
+
+async function ejecutarTool(nombre, input) {
+    if (nombre === 'ver_disponibilidad') {
+        const desde = new Date();
+        const hasta = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+        const reuniones = await Reunion.findAll({
+            where: { fecha: { [Op.between]: [desde, hasta] }, estado: 'pendiente' },
+            order: [['fecha', 'ASC']]
+        });
+        if (reuniones.length === 0) {
+            return 'No hay reuniones agendadas en los próximos 14 días. Disponibilidad completa de lunes a viernes, 9am a 6pm hora Colombia.';
+        }
+        const ocupados = reuniones.map(r => {
+            const f = new Date(r.fecha);
+            return `- ${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })} (${r.duracion} min)`;
+        }).join('\n');
+        return `Horarios ya ocupados:\n${ocupados}\n\nDisponibilidad: lunes a viernes, 9am–6pm hora Colombia, excepto los anteriores.`;
+    }
+
+    if (nombre === 'agendar_reunion') {
+        const { nombre_cliente, fecha, duracion = 60, descripcion = '' } = input;
+        const reunion = await Reunion.create({
+            titulo: `Reunión con ${nombre_cliente}`,
+            descripcion: descripcion || 'Cliente agendado desde chat',
+            fecha: new Date(fecha),
+            duracion,
+            participantes: nombre_cliente,
+            estado: 'pendiente'
+        });
+        const f = new Date(fecha);
+        const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+        console.log(`📅 Reunión agendada: ${nombre_cliente} — ${fechaTexto}`);
+        return `Reunión agendada exitosamente para el ${fechaTexto}. ID: ${reunion.id}.`;
+    }
+
+    return 'Herramienta no reconocida.';
+}
 
 async function responder(msg) {
-    if (process.env.AUTO_RESPONDER !== 'true') return;
+    console.log(`🤖 Auto-responder llamado — red=${msg?.red} AUTO_RESPONDER=${process.env.AUTO_RESPONDER} respondido=${msg?.respondido}`);
+    if (process.env.AUTO_RESPONDER !== 'true') { console.log('🤖 Auto-responder desactivado (AUTO_RESPONDER != true)'); return; }
     if (!process.env.ANTHROPIC_API_KEY) { console.error('🤖 Auto-responder: ANTHROPIC_API_KEY no configurado'); return; }
-    if (!msg?.contenido || msg.respondido) return;
+    if (!msg?.contenido) { console.log('🤖 Auto-responder: mensaje sin contenido'); return; }
+    if (msg.respondido) { console.log('🤖 Auto-responder: mensaje ya respondido, saltando'); return; }
     console.log(`🤖 Auto-responder activado para ${msg.remitente} (${msg.red}): "${msg.contenido?.slice(0, 60)}"`);
 
     try {
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-        const aiRes = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 300,
-            system: SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: msg.contenido }]
+        // Historial de conversación del mismo remitente
+        const historial = await MensajeSocial.findAll({
+            where: { remitente_id: msg.remitente_id, red: msg.red, id: { [Op.lt]: msg.id } },
+            order: [['createdAt', 'ASC']],
+            limit: 20
         });
 
-        const texto = aiRes.content[0]?.text?.trim();
+        const messages = [];
+        for (const m of historial) {
+            if (m.contenido && m.respuesta) {
+                messages.push({ role: 'user', content: m.contenido });
+                messages.push({ role: 'assistant', content: m.respuesta });
+            }
+        }
+        messages.push({ role: 'user', content: msg.contenido });
+
+        // Bucle de tool use
+        let response = await anthropic.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 500,
+            system: SYSTEM_PROMPT,
+            tools: TOOLS,
+            messages
+        });
+
+        while (response.stop_reason === 'tool_use') {
+            const toolBlock = response.content.find(b => b.type === 'tool_use');
+            console.log(`🔧 Tool: ${toolBlock.name}`, JSON.stringify(toolBlock.input));
+            const resultado = await ejecutarTool(toolBlock.name, toolBlock.input);
+            console.log(`🔧 Resultado: ${resultado.slice(0, 100)}`);
+
+            messages.push({ role: 'assistant', content: response.content });
+            messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: toolBlock.id, content: resultado }] });
+
+            response = await anthropic.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 500,
+                system: SYSTEM_PROMPT,
+                tools: TOOLS,
+                messages
+            });
+        }
+
+        const texto = response.content.find(b => b.type === 'text')?.text?.trim();
         if (!texto) return;
 
         let enviado = false;
@@ -74,10 +175,7 @@ async function responder(msg) {
         } else if (msg.red === 'whatsapp' && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
             const r = await fetch(`https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}` },
                 body: JSON.stringify({
                     messaging_product: 'whatsapp',
                     to: msg.remitente_id,
@@ -91,7 +189,7 @@ async function responder(msg) {
         }
 
         if (enviado) {
-            await MensajeSocial.update({ respondido: true }, { where: { id: msg.id } });
+            await MensajeSocial.update({ respondido: true, respuesta: texto }, { where: { id: msg.id } });
             console.log(`🤖 Auto-respuesta enviada a ${msg.remitente} (${msg.red}): "${texto.slice(0, 60)}..."`);
         }
     } catch (err) {
