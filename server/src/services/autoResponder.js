@@ -126,11 +126,15 @@ async function responder(msg) {
         }
         messages.push({ role: 'user', content: msg.contenido });
 
+        // Inyectar fecha actual para que el bot calcule correctamente "este jueves", "mañana", etc.
+        const hoy = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const systemConFecha = SYSTEM_PROMPT + `\n\n## Fecha actual\nHoy es ${hoy}. Usa esta fecha para interpretar referencias relativas del cliente como "este jueves", "mañana" o "la próxima semana".`;
+
         // Bucle de tool use
         let response = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 500,
-            system: SYSTEM_PROMPT,
+            system: systemConFecha,
             tools: TOOLS,
             messages
         });
@@ -147,7 +151,7 @@ async function responder(msg) {
             response = await anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 500,
-                system: SYSTEM_PROMPT,
+                system: systemConFecha,
                 tools: TOOLS,
                 messages
             });
