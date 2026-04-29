@@ -20,7 +20,10 @@ async function descargarMediaWA(mediaId) {
 }
 
 async function transcribirAudio(buffer, mimeType) {
-    if (!process.env.OPENAI_API_KEY) return null;
+    if (!process.env.OPENAI_API_KEY) {
+        console.warn('🔇 OPENAI_API_KEY no configurado — audio sin transcripción');
+        return null;
+    }
     const cleanMime = mimeType.split(';')[0].trim();
     const ext = cleanMime.includes('ogg') ? 'ogg'
         : cleanMime.includes('webm') ? 'webm'
@@ -47,11 +50,14 @@ async function extraerContenidoMensaje(msg, red) {
 
     if (msg.type === 'audio' || msg.type === 'voice') {
         const audioId = msg.audio?.id || msg.voice?.id;
+        console.log(`🎤 Audio WA recibido — ID: ${audioId}, tipo: ${msg.type}`);
         if (audioId && red === 'whatsapp') {
             try {
                 const { buffer, mimeType } = await descargarMediaWA(audioId);
+                console.log(`🎤 Audio descargado: ${buffer.length} bytes, mime: ${mimeType}`);
                 const tx = await transcribirAudio(buffer, mimeType);
-                if (tx) { console.log(`🎤 Audio transcrito (${red}): "${tx.slice(0, 60)}"`); return `[Audio]: ${tx}`; }
+                if (tx) { console.log(`🎤 Audio transcrito (${red}): "${tx.slice(0, 80)}"`); return `[Audio]: ${tx}`; }
+                console.warn('🎤 Transcripción vacía o nula');
             } catch (e) { console.error('Error descargando audio WA:', e.message); }
         }
         return '[Audio de voz]';
