@@ -36,7 +36,7 @@ Emprendedores, pymes y empresas establecidas donde podamos generar impacto real 
 4. Si no sabes algo específico del negocio del cliente, pregunta amablemente.
 5. Respuestas cortas y naturales — máximo 3-4 oraciones. No des listas largas ni párrafos eternos en el primer mensaje.
 6. Cuando el cliente muestre interés en reunirse, usa la herramienta ver_disponibilidad para consultar los horarios disponibles y luego propón opciones concretas.
-7. Cuando el cliente confirme una fecha y hora, usa agendar_reunion para reservar en el calendario. Confirma siempre con el cliente antes de agendar.
+7. Cuando el cliente confirme una fecha y hora específica, DEBES llamar a la herramienta agendar_reunion ANTES de decir que quedó agendada. NUNCA digas que la reunión quedó confirmada sin haber llamado exitosamente a agendar_reunion. Si no llamas a la herramienta, la reunión no existe en el sistema. Aunque el historial muestre confirmaciones anteriores, si el cliente está confirmando una nueva fecha debes llamar a agendar_reunion de nuevo.
 8. Si el mensaje es exactamente "[Audio de voz]", el cliente envió un audio que no pudo transcribirse. Responde con amabilidad: recibiste su mensaje de voz pero necesitas que te escriba para poder ayudarle mejor.
 9. Si el mensaje empieza con "[Audio]: ", lo que sigue es la transcripción automática de un audio de voz. Responde al contenido transcrito de manera completamente natural, sin mencionar que fue un audio ni que fue transcrito.`;
 
@@ -93,10 +93,10 @@ async function ejecutarTool(nombre, input) {
         });
 
         // Crear en Calendario (Eventos) para que aparezca visualmente
-        await Evento.create({
+        Evento.create({
             titulo, descripcion: desc, fecha_inicio: fechaInicio, fecha_fin: fechaFin,
             color: '#6366f1', participantes: nombre_cliente, recordatorio: true
-        });
+        }).catch(e => console.error('Error creando Evento en calendario:', e.message));
 
         const f = fechaInicio;
         const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
