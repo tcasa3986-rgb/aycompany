@@ -118,11 +118,17 @@ async function responder(msg) {
     try {
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-        // Historial de conversación del mismo remitente
+        // Historial reciente (últimas 48 h) para evitar confusión con conversaciones viejas
+        const desde48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
         const historial = await MensajeSocial.findAll({
-            where: { remitente_id: msg.remitente_id, red: msg.red, id: { [Op.lt]: msg.id } },
+            where: {
+                remitente_id: msg.remitente_id,
+                red: msg.red,
+                id: { [Op.lt]: msg.id },
+                createdAt: { [Op.gte]: desde48h }
+            },
             order: [['createdAt', 'ASC']],
-            limit: 20
+            limit: 10
         });
 
         const messages = [];
@@ -140,7 +146,7 @@ async function responder(msg) {
 
         // Bucle de tool use
         let response = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'claude-sonnet-4-6',
             max_tokens: 500,
             system: systemConFecha,
             tools: TOOLS,
@@ -157,7 +163,7 @@ async function responder(msg) {
             messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: toolBlock.id, content: resultado }] });
 
             response = await anthropic.messages.create({
-                model: 'claude-haiku-4-5-20251001',
+                model: 'claude-sonnet-4-6',
                 max_tokens: 500,
                 system: systemConFecha,
                 tools: TOOLS,
