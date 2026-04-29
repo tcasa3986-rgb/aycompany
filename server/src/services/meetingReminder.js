@@ -19,8 +19,8 @@ async function checkReminders() {
 
     for (const r of reuniones) {
         const f = new Date(r.fecha);
-        const horaTexto = f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-        const fechaTexto = f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+        const horaTexto = f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
+        const fechaTexto = f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Bogota' });
         const msg = `⏰ *Reunión en 30 minutos*\n👤 ${r.participantes || 'Cliente'}\n📅 ${fechaTexto} a las ${horaTexto}\n📝 ${(r.descripcion || '').slice(0, 120)}`;
         await telegramService.enviar(msg).catch(e => console.error('Reminder Telegram error:', e.message));
         await r.update({ recordatorio_enviado: true });

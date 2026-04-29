@@ -83,7 +83,10 @@ async function ejecutarTool(nombre, input, msgCtx) {
 
     if (nombre === 'agendar_reunion') {
         const { nombre_cliente, fecha, duracion = 60, descripcion = '' } = input;
-        const fechaInicio = new Date(fecha);
+        // El bot genera hora Colombia (UTC-5). El servidor es UTC.
+        // Sumamos 5h para almacenar en UTC correctamente.
+        const COLOMBIA_MS = 5 * 60 * 60 * 1000;
+        const fechaInicio = new Date(new Date(fecha).getTime() + COLOMBIA_MS);
         const fechaFin    = new Date(fechaInicio.getTime() + duracion * 60000);
         const titulo      = `Reunión con ${nombre_cliente}`;
         const desc        = descripcion || 'Cliente agendado desde chat';
@@ -100,7 +103,7 @@ async function ejecutarTool(nombre, input, msgCtx) {
         }).catch(e => console.error('Error creando Evento en calendario:', e.message));
 
         const f = fechaInicio;
-        const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+        const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Bogota' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })}`;
         console.log(`📅 Reunión agendada: ${nombre_cliente} — ${fechaTexto}`);
 
         // Alerta Telegram al agendar

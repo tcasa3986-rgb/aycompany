@@ -8,9 +8,25 @@ const COLORES = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4
 
 const emptyEvento = { titulo: '', descripcion: '', fecha_inicio: '', fecha_fin: '', todo_el_dia: false, color: '#6366f1', recordatorio: false, participantes: '', link: '' };
 
+const COLOMBIA_MS = 5 * 60 * 60 * 1000; // UTC-5
+
 function formatHora(fecha) {
     if (!fecha) return '';
-    return new Date(fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    return new Date(fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
+}
+
+// Convierte '2026-05-01T16:00' (hora Colombia del input) a ISO con offset
+function localToISO(str) {
+    if (!str || str.includes('+') || str.includes('-05')) return str;
+    return str.length >= 16 ? str.slice(0, 16) + ':00-05:00' : str;
+}
+
+// Convierte ISO UTC guardado en DB a hora Colombia para el input
+function isoToLocal(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const col = new Date(d.getTime() - COLOMBIA_MS);
+    return col.toISOString().slice(0, 16);
 }
 
 function isSameDay(d1, d2) {
@@ -43,8 +59,11 @@ export default function Calendario() {
         e.preventDefault();
         const payload = { ...form };
         if (form.todo_el_dia) {
-            payload.fecha_inicio = form.fecha_inicio + 'T00:00:00';
-            payload.fecha_fin = form.fecha_inicio + 'T23:59:59';
+            payload.fecha_inicio = form.fecha_inicio + 'T00:00:00-05:00';
+            payload.fecha_fin    = form.fecha_inicio + 'T23:59:59-05:00';
+        } else {
+            payload.fecha_inicio = localToISO(form.fecha_inicio);
+            payload.fecha_fin    = localToISO(form.fecha_fin);
         }
         if (editId) await axios.put(`/eventos/${editId}`, payload);
         else await axios.post('/eventos', payload);
@@ -66,8 +85,8 @@ export default function Calendario() {
     function editarEvento(ev) {
         setForm({
             titulo: ev.titulo, descripcion: ev.descripcion || '',
-            fecha_inicio: ev.fecha_inicio?.slice(0, 16) || '',
-            fecha_fin: ev.fecha_fin?.slice(0, 16) || '',
+            fecha_inicio: isoToLocal(ev.fecha_inicio),
+            fecha_fin:    isoToLocal(ev.fecha_fin),
             todo_el_dia: ev.todo_el_dia || false, color: ev.color || '#6366f1',
             recordatorio: ev.recordatorio || false,
             participantes: ev.participantes || '', link: ev.link || ''
