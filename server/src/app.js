@@ -7,7 +7,8 @@ const fs        = require('fs');
 const sequelize = require('./config/db');
 const { Usuario } = require('./models');
 const { initBot } = require('./services/plataformaBot');
-const { startPoller } = require('./services/facebookPoller');
+const { startPoller }   = require('./services/facebookPoller');
+const { startReminder } = require('./services/meetingReminder');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -71,6 +72,7 @@ async function iniciar(intentos = 5) {
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
             initBot();
             startPoller();
+            startReminder();
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);

@@ -11,6 +11,8 @@ module.exports = sequelize.define('MensajeSocial', {
     mensaje_id:  { type: DataTypes.STRING(200) },
     leido:       { type: DataTypes.BOOLEAN, defaultValue: false },
     respondido:  { type: DataTypes.BOOLEAN, defaultValue: false },
+    respuesta:   { type: DataTypes.TEXT },
+    etiqueta:    { type: DataTypes.STRING(100) },
     fecha_red:   { type: DataTypes.DATE },
     raw:         { type: DataTypes.TEXT }
 }, { tableName: 'mensajes_social', timestamps: true });

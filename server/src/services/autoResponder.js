@@ -1,6 +1,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { MensajeSocial, Reunion, Evento } = require('../models');
 const { Op } = require('sequelize');
+const telegramService = require('./telegramService');
 
 const SYSTEM_PROMPT = `Eres el asistente virtual de AI Company, una agencia de marketing digital, inteligencia artificial y automatización empresarial con sede en Bogotá, Colombia. Representas a Cristian Gutiérrez y al equipo de AI Company.
 
@@ -62,7 +63,7 @@ const TOOLS = [
     }
 ];
 
-async function ejecutarTool(nombre, input) {
+async function ejecutarTool(nombre, input, msgCtx) {
     if (nombre === 'ver_disponibilidad') {
         const desde = new Date();
         const hasta = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -92,7 +93,7 @@ async function ejecutarTool(nombre, input) {
             titulo, descripcion: desc, fecha: fechaInicio, duracion, participantes: nombre_cliente, estado: 'pendiente'
         });
 
-        // Crear en Calendario (Eventos) para que aparezca visualmente
+        // Crear en Calendario
         Evento.create({
             titulo, descripcion: desc, fecha_inicio: fechaInicio, fecha_fin: fechaFin,
             color: '#6366f1', participantes: nombre_cliente, recordatorio: true
@@ -101,6 +102,21 @@ async function ejecutarTool(nombre, input) {
         const f = fechaInicio;
         const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
         console.log(`📅 Reunión agendada: ${nombre_cliente} — ${fechaTexto}`);
+
+        // Alerta Telegram al agendar
+        if (process.env.PLATAFORMA_TELEGRAM_TOKEN && process.env.PLATAFORMA_TELEGRAM_CHAT_ID) {
+            const tgMsg = `📅 *Nueva reunión agendada*\n👤 ${nombre_cliente}\n🕐 ${fechaTexto}\n📝 ${desc.slice(0, 120)}`;
+            telegramService.enviar(tgMsg).catch(() => {});
+        }
+
+        // Etiquetar al contacto en la bandeja
+        if (msgCtx?.remitente_id && msgCtx?.red) {
+            MensajeSocial.update(
+                { etiqueta: 'Reunión agendada' },
+                { where: { remitente_id: msgCtx.remitente_id, red: msgCtx.red } }
+            ).catch(() => {});
+        }
+
         return `Reunión agendada exitosamente para el ${fechaTexto}. ID: ${reunion.id}.`;
     }
 
@@ -156,7 +172,7 @@ async function responder(msg) {
         while (response.stop_reason === 'tool_use') {
             const toolBlock = response.content.find(b => b.type === 'tool_use');
             console.log(`🔧 Tool: ${toolBlock.name}`, JSON.stringify(toolBlock.input));
-            const resultado = await ejecutarTool(toolBlock.name, toolBlock.input);
+            const resultado = await ejecutarTool(toolBlock.name, toolBlock.input, msg);
             console.log(`🔧 Resultado: ${resultado.slice(0, 100)}`);
 
             messages.push({ role: 'assistant', content: response.content });

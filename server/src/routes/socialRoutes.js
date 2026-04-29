@@ -9,8 +9,9 @@ router.post('/webhook/make',  ctrl.recibirMake);
 
 // API protegida para la plataforma
 router.use(auth);
-router.get('/social',              ctrl.listar);
-router.get('/social/stats',        ctrl.stats);
+router.get('/social',                ctrl.listar);
+router.get('/social/stats',          ctrl.stats);
+router.get('/social/conversacion',   ctrl.conversacion);
 router.put('/social/:id/leido',      ctrl.marcarLeido);
 router.put('/social/:id/respondido', ctrl.marcarRespondido);
 router.post('/social/:id/responder', ctrl.responder);

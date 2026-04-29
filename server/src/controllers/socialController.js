@@ -196,14 +196,6 @@ async function guardar(datos) {
 
     const m = await MensajeSocial.create(datos);
 
-    // Notificar por Telegram si está configurado
-    if (process.env.PLATAFORMA_TELEGRAM_TOKEN && process.env.PLATAFORMA_TELEGRAM_CHAT_ID) {
-        const iconos = { facebook: '🔵', instagram: '📸', whatsapp: '🟢' };
-        const ico = iconos[datos.red] || '💬';
-        const msg = `${ico} *Nuevo ${datos.tipo} en ${datos.red}*\n👤 ${datos.remitente || 'Desconocido'}\n💬 ${(datos.contenido || '').slice(0, 200)}`;
-        telegramService.enviar(msg).catch(() => {});
-    }
-
     // Auto-responder con IA
     autoResponder.responder(m).catch(err => console.error('Auto-responder catch:', err.message));
 }

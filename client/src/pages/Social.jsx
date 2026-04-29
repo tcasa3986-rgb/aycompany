@@ -43,7 +43,20 @@ export default function Social() {
     const [respuesta, setRespuesta]       = useState('');
     const [enviando, setEnviando]         = useState(false);
     const [errorResp, setErrorResp]       = useState('');
-    const chatRef = useRef(null);
+    const chatRef   = useRef(null);
+    const estaAbajo = useRef(true);
+
+    function onChatScroll() {
+        const el = chatRef.current;
+        if (!el) return;
+        estaAbajo.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    }
+
+    function scrollAbajo(forzar = false) {
+        if (forzar || estaAbajo.current) {
+            setTimeout(() => chatRef.current?.scrollTo({ top: 99999, behavior: 'smooth' }), 60);
+        }
+    }
 
     useEffect(() => { cargar(); }, [filtroRed, filtroTipo, soloNoLeidos]);
 
@@ -68,12 +81,13 @@ export default function Social() {
         items.forEach(item => {
             const key = `${item.red}:${item.remitente_id}`;
             if (!map[key]) {
-                map[key] = { key, remitente_id: item.remitente_id, remitente: item.remitente, red: item.red, ultimoMensaje: item, noLeidos: 0 };
+                map[key] = { key, remitente_id: item.remitente_id, remitente: item.remitente, red: item.red, ultimoMensaje: item, noLeidos: 0, etiqueta: null };
             } else if (new Date(item.createdAt) > new Date(map[key].ultimoMensaje.createdAt)) {
                 map[key].ultimoMensaje = item;
                 if (item.remitente) map[key].remitente = item.remitente;
             }
             if (!item.leido) map[key].noLeidos++;
+            if (item.etiqueta) map[key].etiqueta = item.etiqueta;
         });
         return Object.values(map).sort((a, b) =>
             new Date(b.ultimoMensaje.createdAt) - new Date(a.ultimoMensaje.createdAt)
@@ -88,9 +102,9 @@ export default function Social() {
             params: { remitente_id: c.remitente_id, red: c.red }
         });
         setConversacion(data);
-        // Marcar no leídos como leídos
         data.filter(m => !m.leido).forEach(m => axios.put(`/social/${m.id}/leido`).catch(() => {}));
-        setTimeout(() => chatRef.current?.scrollTo({ top: 99999, behavior: 'smooth' }), 100);
+        estaAbajo.current = true;
+        scrollAbajo(true);
         cargar();
     }
 
@@ -107,7 +121,7 @@ export default function Social() {
                 params: { remitente_id: contacto.remitente_id, red: contacto.red }
             });
             setConversacion(data);
-            setTimeout(() => chatRef.current?.scrollTo({ top: 99999, behavior: 'smooth' }), 100);
+            scrollAbajo(true);
             cargar();
         } catch (err) {
             setErrorResp(err.response?.data?.error || 'Error al enviar');
@@ -203,6 +217,11 @@ export default function Social() {
                                             ? `🎤 ${c.ultimoMensaje.contenido.slice(9, 48)}…`
                                             : c.ultimoMensaje.contenido?.slice(0, 50))}
                                 </div>
+                                {c.etiqueta && (
+                                    <div style={{ fontSize: 10, color: '#6366f1', background: '#ede9fe', borderRadius: 10, padding: '1px 7px', marginTop: 3, display: 'inline-block', fontWeight: 600 }}>
+                                        📅 {c.etiqueta}
+                                    </div>
+                                )}
                             </div>
                             {c.noLeidos > 0 && (
                                 <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#6366f1', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -216,7 +235,7 @@ export default function Social() {
 
             {/* ── Panel derecho: conversación ── */}
             {contacto ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
                     {/* Header conversación */}
                     <div style={{ padding: '12px 18px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
@@ -235,7 +254,7 @@ export default function Social() {
                     </div>
 
                     {/* Mensajes */}
-                    <div ref={chatRef} style={{ flex: 1, padding: '14px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, background: '#f9fafb' }}>
+                    <div ref={chatRef} onScroll={onChatScroll} style={{ flex: 1, padding: '14px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, background: '#f9fafb' }}>
                         {conversacion.length === 0 && (
                             <div style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', marginTop: 60 }}>Cargando…</div>
                         )}

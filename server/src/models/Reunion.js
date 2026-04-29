@@ -8,5 +8,6 @@ module.exports = sequelize.define('Reunion', {
     duracion:      { type: DataTypes.INTEGER, defaultValue: 60 },
     participantes: { type: DataTypes.TEXT },
     link:          { type: DataTypes.STRING(500) },
-    estado:        { type: DataTypes.ENUM('pendiente', 'completada', 'cancelada'), defaultValue: 'pendiente' }
+    estado:        { type: DataTypes.ENUM('pendiente', 'completada', 'cancelada'), defaultValue: 'pendiente' },
+    recordatorio_enviado: { type: DataTypes.BOOLEAN, defaultValue: false }
 }, { tableName: 'reuniones', timestamps: true });

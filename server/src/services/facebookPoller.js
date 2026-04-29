@@ -30,17 +30,16 @@ async function pollConversations(token, pid, platform) {
     const red = platform === 'instagram' ? 'instagram' : 'facebook';
     // Solo traer conversaciones actualizadas en los últimos 3 minutos
     const since = Math.floor((Date.now() - 3 * 60 * 1000) / 1000);
-    const base = platform === 'instagram'
-        ? `https://graph.facebook.com/v21.0/me/conversations?platform=instagram`
-        : `https://graph.facebook.com/v21.0/me/conversations`;
-    const url = `${base}&fields=id,participants,updated_time&access_token=${token}&limit=25&since=${since}`;
+    const url = platform === 'instagram'
+        ? `https://graph.facebook.com/v21.0/${pid}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${token}&limit=25&since=${since}`
+        : `https://graph.facebook.com/v21.0/${pid}/conversations?fields=id,participants,updated_time&access_token=${token}&limit=25&since=${since}`;
 
     const r = await fetch(url);
     const data = await r.json();
 
     if (data.error) {
         if (data.error.code !== 190 && data.error.code !== 10) {
-            console.error(`${red} polling error:`, data.error.message);
+            console.error(`${red} polling error [${data.error.code}]:`, data.error.message);
         }
         return;
     }
