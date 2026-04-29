@@ -39,9 +39,8 @@ app.use('/api/contenido',  require('./routes/contenidoRoutes'));
 app.use('/api/metricas',   require('./routes/metricasRoutes'));
 app.use('/api/eventos',    require('./routes/eventosRoutes'));
 app.use('/api/asistente',  require('./routes/asistenteRoutes'));
-app.use('/api',            require('./routes/socialRoutes'));
-
 app.get('/api/health', (_, res) => res.json({ ok: true }));
+app.use('/api',            require('./routes/socialRoutes'));
 
 // En producción redirigir todo lo demás al index.html del React
 if (isProd) {
@@ -67,7 +66,7 @@ async function iniciar(intentos = 5) {
     for (let i = 1; i <= intentos; i++) {
         try {
             await sequelize.authenticate();
-            await sequelize.sync();
+            await sequelize.sync({ alter: true });
             await seedAdmin();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
             initBot();
