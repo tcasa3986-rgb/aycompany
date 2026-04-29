@@ -1,5 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
-const { MensajeSocial, Reunion } = require('../models');
+const { MensajeSocial, Reunion, Evento } = require('../models');
 const { Op } = require('sequelize');
 
 const SYSTEM_PROMPT = `Eres el asistente virtual de AI Company, una agencia de marketing digital, inteligencia artificial y automatización empresarial con sede en Bogotá, Colombia. Representas a Cristian Gutiérrez y al equipo de AI Company.
@@ -82,16 +82,24 @@ async function ejecutarTool(nombre, input) {
 
     if (nombre === 'agendar_reunion') {
         const { nombre_cliente, fecha, duracion = 60, descripcion = '' } = input;
+        const fechaInicio = new Date(fecha);
+        const fechaFin    = new Date(fechaInicio.getTime() + duracion * 60000);
+        const titulo      = `Reunión con ${nombre_cliente}`;
+        const desc        = descripcion || 'Cliente agendado desde chat';
+
+        // Crear en Reuniones
         const reunion = await Reunion.create({
-            titulo: `Reunión con ${nombre_cliente}`,
-            descripcion: descripcion || 'Cliente agendado desde chat',
-            fecha: new Date(fecha),
-            duracion,
-            participantes: nombre_cliente,
-            estado: 'pendiente'
+            titulo, descripcion: desc, fecha: fechaInicio, duracion, participantes: nombre_cliente, estado: 'pendiente'
         });
-        const f = new Date(fecha);
-        const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Crear en Calendario (Eventos) para que aparezca visualmente
+        await Evento.create({
+            titulo, descripcion: desc, fecha_inicio: fechaInicio, fecha_fin: fechaFin,
+            color: '#6366f1', participantes: nombre_cliente, recordatorio: true
+        });
+
+        const f = fechaInicio;
+        const fechaTexto = `${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
         console.log(`📅 Reunión agendada: ${nombre_cliente} — ${fechaTexto}`);
         return `Reunión agendada exitosamente para el ${fechaTexto}. ID: ${reunion.id}.`;
     }
