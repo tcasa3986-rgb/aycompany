@@ -52,7 +52,7 @@ export default function Layout() {
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, overflow: 'auto' }}>
+      <main style={{ flex: 1, overflow: 'auto', position: 'relative', minHeight: 0 }}>
         <Outlet />
       </main>
     </div>

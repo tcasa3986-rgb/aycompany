@@ -133,7 +133,7 @@ export default function Social() {
     const esActivo = (c) => contacto?.remitente_id === c.remitente_id && contacto?.red === c.red;
 
     return (
-        <div style={{ display: 'flex', height: '100%', background: '#f9fafb' }}>
+        <div style={{ display: 'flex', position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: '#f9fafb' }}>
 
             {/* ── Panel izquierdo: lista de contactos ── */}
             <div style={{ width: contacto ? 300 : '100%', flexShrink: 0, borderRight: contacto ? '1px solid #e5e7eb' : 'none', display: 'flex', flexDirection: 'column', background: '#fff' }}>
