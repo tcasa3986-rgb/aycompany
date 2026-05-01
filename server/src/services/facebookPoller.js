@@ -86,7 +86,7 @@ async function pollAll() {
         if (!pid) return;
 
         await pollConversations(token, pid, 'facebook');
-        await pollConversations(token, pid, 'instagram');
+        // Instagram no soporta polling sin app review — usa webhooks
     } catch (err) {
         console.error('Social poller error:', err.message);
     }
