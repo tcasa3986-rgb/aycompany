@@ -8,7 +8,8 @@ const sequelize = require('./config/db');
 const { Usuario } = require('./models');
 const { initBot } = require('./services/plataformaBot');
 const { startPoller }   = require('./services/facebookPoller');
-const { startReminder } = require('./services/meetingReminder');
+const { startReminder }  = require('./services/meetingReminder');
+const { startFollowUp }  = require('./services/followUpService');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -73,6 +74,7 @@ async function iniciar(intentos = 5) {
             initBot();
             startPoller();
             startReminder();
+            startFollowUp();
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);
