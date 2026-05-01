@@ -13,7 +13,9 @@ module.exports = sequelize.define('MensajeSocial', {
     respondido:  { type: DataTypes.BOOLEAN, defaultValue: false },
     respuesta:   { type: DataTypes.TEXT },
     etiqueta:    { type: DataTypes.STRING(100) },
-    seguimiento_enviado: { type: DataTypes.BOOLEAN, defaultValue: false },
+    seguimiento_enviado:    { type: DataTypes.BOOLEAN, defaultValue: false },
+    seguimiento_enviado_at: { type: DataTypes.DATE },
+    segundo_seguimiento:    { type: DataTypes.BOOLEAN, defaultValue: false },
     fecha_red:   { type: DataTypes.DATE },
     raw:         { type: DataTypes.TEXT }
 }, { tableName: 'mensajes_social', timestamps: true });
