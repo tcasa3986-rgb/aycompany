@@ -71,7 +71,17 @@ async function generarYEnviar(msg, historial, prompt) {
         if (!data.error) enviado = true;
         else console.error('Follow-up WA error:', data.error.message);
 
-    } else if ((msg.red === 'facebook' || msg.red === 'instagram') && process.env.META_PAGE_TOKEN) {
+    } else if (msg.red === 'instagram' && process.env.META_IG_TOKEN) {
+        const r = await fetch('https://graph.facebook.com/v21.0/me/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: process.env.META_IG_TOKEN, recipient: { id: msg.remitente_id }, message: { text: texto } })
+        });
+        const data = await r.json();
+        if (!data.error) enviado = true;
+        else console.error('Follow-up IG error:', data.error.message);
+
+    } else if (msg.red === 'facebook' && process.env.META_PAGE_TOKEN) {
         const r = await fetch('https://graph.facebook.com/v21.0/me/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -79,7 +89,7 @@ async function generarYEnviar(msg, historial, prompt) {
         });
         const data = await r.json();
         if (!data.error) enviado = true;
-        else console.error('Follow-up FB/IG error:', data.error.message);
+        else console.error('Follow-up FB error:', data.error.message);
     }
 
     if (enviado) {
