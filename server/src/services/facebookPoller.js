@@ -38,9 +38,7 @@ async function pollConversations(token, pid, platform) {
     const data = await r.json();
 
     if (data.error) {
-        if (data.error.code !== 190 && data.error.code !== 10) {
-            console.error(`${red} polling error [${data.error.code}]:`, data.error.message);
-        }
+        console.error(`${red} polling error [${data.error.code}]:`, data.error.message);
         return;
     }
 
