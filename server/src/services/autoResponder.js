@@ -214,21 +214,7 @@ async function responder(msg) {
 
         let enviado = false;
 
-        if (msg.red === 'instagram' && process.env.META_IG_TOKEN) {
-            const r = await fetch('https://graph.facebook.com/v21.0/me/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    access_token: process.env.META_IG_TOKEN,
-                    recipient: { id: msg.remitente_id },
-                    message: { text: texto }
-                })
-            });
-            const data = await r.json();
-            if (!data.error) enviado = true;
-            else console.error('Auto-responder IG error:', data.error.message);
-
-        } else if (msg.red === 'facebook' && process.env.META_PAGE_TOKEN) {
+        if ((msg.red === 'facebook' || msg.red === 'instagram') && process.env.META_PAGE_TOKEN) {
             const r = await fetch('https://graph.facebook.com/v21.0/me/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -240,7 +226,7 @@ async function responder(msg) {
             });
             const data = await r.json();
             if (!data.error) enviado = true;
-            else console.error('Auto-responder FB error:', data.error.message);
+            else console.error(`Auto-responder ${msg.red} error:`, data.error.message);
 
         } else if (msg.red === 'whatsapp' && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
             const r = await fetch(`https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
