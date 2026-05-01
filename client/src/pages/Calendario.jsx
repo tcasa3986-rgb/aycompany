@@ -185,7 +185,7 @@ export default function Calendario() {
                                     const esHoy = fecha && isSameDay(fecha, hoy);
                                     const esSel = fecha && diaSeleccionado && isSameDay(fecha, diaSeleccionado);
                                     return (
-                                        <div key={i} onClick={() => { if (fecha) { setDiaSeleccionado(fecha); abrirModal(fecha); } }} style={{ minHeight: 90, padding: '6px 8px', borderRight: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6', cursor: fecha ? 'pointer' : 'default', background: esSel ? '#ede9fe' : fecha ? '#fff' : '#fafafa', transition: 'background .1s' }}>
+                                        <div key={i} onClick={() => { if (fecha) { setDiaSeleccionado(fecha); abrirModal(fecha); } }} style={{ height: 110, padding: '6px 8px', borderRight: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6', cursor: fecha ? 'pointer' : 'default', background: esSel ? '#ede9fe' : fecha ? '#fff' : '#fafafa', transition: 'background .1s', overflow: 'hidden' }}>
                                             {fecha && (
                                                 <>
                                                     <div style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: esHoy ? '#6366f1' : 'transparent', color: esHoy ? '#fff' : '#111', fontWeight: esHoy ? 700 : 400, fontSize: 13, marginBottom: 4 }}>

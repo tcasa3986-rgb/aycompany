@@ -25,9 +25,9 @@ export default function Layout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
-      <aside style={{ width: 220, background: '#1e1b4b', color: '#fff', display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0 }}>
+      <aside style={{ width: 220, background: '#1e1b4b', color: '#fff', display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0, overflowY: 'auto' }}>
         <div style={{ padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,.1)' }}>
           <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#a5b4fc' }}>⚡ Mi Plataforma</div>
           <div style={{ fontSize: '.78rem', color: '#94a3b8', marginTop: 4 }}>{user?.nombre}</div>
