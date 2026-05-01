@@ -137,18 +137,16 @@ async function responder(msg) {
     try {
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-        // Historial reciente (últimas 48 h) para evitar confusión con conversaciones viejas
-        const desde48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
         const historial = await MensajeSocial.findAll({
             where: {
                 remitente_id: msg.remitente_id,
                 red: msg.red,
-                id: { [Op.lt]: msg.id },
-                createdAt: { [Op.gte]: desde48h }
+                id: { [Op.lt]: msg.id }
             },
-            order: [['createdAt', 'ASC']],
-            limit: 10
+            order: [['createdAt', 'DESC']],
+            limit: 40
         });
+        historial.reverse();
 
         const messages = [];
         for (const m of historial) {
