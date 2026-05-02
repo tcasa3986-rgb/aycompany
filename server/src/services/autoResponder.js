@@ -253,4 +253,48 @@ async function responder(msg) {
     }
 }
 
-module.exports = { responder };
+// Genera respuesta sin enviarla — para uso síncrono (Make, etc.)
+async function generarRespuesta(msg) {
+    if (!process.env.ANTHROPIC_API_KEY) return null;
+    if (!msg?.contenido) return null;
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const historial = await MensajeSocial.findAll({
+        where: { remitente_id: msg.remitente_id, red: msg.red, id: { [Op.lt]: msg.id } },
+        order: [['createdAt', 'DESC']], limit: 40
+    });
+    historial.reverse();
+
+    const messages = [];
+    for (const m of historial) {
+        if (m.contenido && m.respuesta) {
+            messages.push({ role: 'user', content: m.contenido });
+            messages.push({ role: 'assistant', content: m.respuesta });
+        }
+    }
+    messages.push({ role: 'user', content: msg.contenido });
+
+    const hoy = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const systemConFecha = SYSTEM_PROMPT + `\n\n## Fecha actual\nHoy es ${hoy}.`;
+
+    let response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6', max_tokens: 500,
+        system: systemConFecha, tools: TOOLS, messages
+    });
+
+    while (response.stop_reason === 'tool_use') {
+        const toolBlock = response.content.find(b => b.type === 'tool_use');
+        const resultado = await ejecutarTool(toolBlock.name, toolBlock.input, msg);
+        messages.push({ role: 'assistant', content: response.content });
+        messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: toolBlock.id, content: resultado }] });
+        response = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6', max_tokens: 500,
+            system: systemConFecha, tools: TOOLS, messages
+        });
+    }
+
+    return response.content.find(b => b.type === 'text')?.text?.trim() || null;
+}
+
+module.exports = { responder, generarRespuesta };

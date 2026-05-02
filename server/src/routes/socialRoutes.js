@@ -5,7 +5,8 @@ const auth   = require('../middlewares/auth');
 // Webhooks (sin auth — llamados externamente)
 router.get( '/webhook/meta',  ctrl.verificarWebhook);
 router.post('/webhook/meta',  ctrl.recibirWebhook);
-router.post('/webhook/make',  ctrl.recibirMake);
+router.post('/webhook/make',       ctrl.recibirMake);
+router.post('/webhook/make/reply', ctrl.responderMake);
 
 // API protegida para la plataforma
 router.use(auth);

@@ -200,6 +200,43 @@ async function guardar(datos) {
     autoResponder.responder(m).catch(err => console.error('Auto-responder catch:', err.message));
 }
 
+// ── Endpoint síncrono para Make: recibe mensaje, devuelve respuesta de Claude ─
+exports.responderMake = async (req, res) => {
+    const secret = req.headers['x-make-secret'] || req.body.secret;
+    if (process.env.MAKE_SECRET && secret !== process.env.MAKE_SECRET) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+        const ev = req.body;
+        const datos = {
+            red:          ev.red || ev.plataforma || 'instagram',
+            tipo:         ev.tipo || 'mensaje',
+            remitente:    ev.remitente || ev.nombre || ev.username || 'Desconocido',
+            remitente_id: ev.remitente_id || ev.from_id || ev.user_id || '',
+            contenido:    ev.contenido || ev.mensaje || ev.text || ev.message || '',
+            post_id:      ev.post_id || ev.media_id || '',
+            mensaje_id:   ev.mensaje_id || ev.id || String(Date.now()),
+            fecha_red:    new Date(),
+            raw:          JSON.stringify(ev)
+        };
+        const existe = await MensajeSocial.findOne({ where: { mensaje_id: datos.mensaje_id } });
+        if (existe) return res.json({ respuesta: null, duplicado: true });
+
+        const m = await MensajeSocial.create(datos);
+        const respuesta = await autoResponder.generarRespuesta(m);
+
+        if (respuesta) {
+            await m.update({ respondido: true, respuesta });
+            console.log(`🤖 Make síncrono (${datos.red}) → ${datos.remitente}: "${respuesta.slice(0, 60)}"`);
+        }
+
+        res.json({ respuesta: respuesta || null });
+    } catch (err) {
+        console.error('Error responderMake:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 // ── Webhook Make.com (POST genérico) ────────────────────────────────────────
 exports.recibirMake = async (req, res) => {
     const secret = req.headers['x-make-secret'] || req.body.secret;
