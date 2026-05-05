@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express   = require('express');
 const cors      = require('cors');
+const helmet    = require('helmet');
+const rateLimit = require('express-rate-limit');
 const bcrypt    = require('bcryptjs');
 const path      = require('path');
 const fs        = require('fs');
@@ -14,11 +16,60 @@ const { startFollowUp }  = require('./services/followUpService');
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
+// ── Seguridad: cabeceras HTTP ────────────────────────────────────────────────
+app.use(helmet({
+    contentSecurityPolicy: false, // desactivado para no romper el frontend React
+    crossOriginEmbedderPolicy: false
+}));
+
+// ── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = isProd
+    ? [process.env.ALLOWED_ORIGIN || 'https://mi-plataforma-production.up.railway.app']
+    : ['http://localhost:4000', 'http://localhost:5173'];
+
 app.use(cors({
-    origin: isProd ? '*' : ['http://localhost:4000'],
+    origin: (origin, cb) => {
+        // Permitir sin origin (mobile apps, Postman, webhooks server-to-server)
+        if (!origin) return cb(null, true);
+        if (allowedOrigins.includes(origin)) return cb(null, true);
+        cb(new Error('CORS: origen no permitido'));
+    },
     credentials: true
 }));
-app.use(express.json());
+
+// ── Límite de tamaño de peticiones ───────────────────────────────────────────
+app.use(express.json({ limit: '2mb' }));
+
+// ── Rate limiting global ──────────────────────────────────────────────────────
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, msg: 'Demasiadas peticiones, intenta en 15 minutos' }
+});
+app.use('/api', globalLimiter);
+
+// ── Rate limiting estricto para autenticación ─────────────────────────────────
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, msg: 'Demasiados intentos de inicio de sesión, espera 15 minutos' },
+    skipSuccessfulRequests: true
+});
+app.use('/api/auth/login', authLimiter);
+
+// ── Rate limiting para webhooks externos (más permisivo) ─────────────────────
+const webhookLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { ok: false, msg: 'Límite de webhook alcanzado' }
+});
+app.use('/api/webhook', webhookLimiter);
 
 // En producción servir el frontend compilado
 if (isProd) {
@@ -43,6 +94,13 @@ app.use('/api/eventos',    require('./routes/eventosRoutes'));
 app.use('/api/asistente',  require('./routes/asistenteRoutes'));
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 app.use('/api',            require('./routes/socialRoutes'));
+
+// ── Manejador global de errores (no exponer stack en producción) ──────────────
+app.use((err, req, res, next) => {
+    if (err.message?.includes('CORS')) return res.status(403).json({ ok: false, msg: 'Origen no permitido' });
+    console.error('Error no manejado:', err.message);
+    res.status(500).json({ ok: false, msg: isProd ? 'Error interno del servidor' : err.message });
+});
 
 // En producción redirigir todo lo demás al index.html del React
 if (isProd) {
