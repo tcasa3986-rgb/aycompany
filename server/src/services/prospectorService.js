@@ -2,56 +2,54 @@ const axios = require('axios');
 const { Lead } = require('../models');
 const { Op } = require('sequelize');
 
-// ── GOOGLE PLACES ─────────────────────────────────────────────────────────────
+// ── GOOGLE PLACES (New API) ───────────────────────────────────────────────────
 async function buscarEnGooglePlaces({ categoria, ciudad, pais = 'Colombia', maxResultados = 20 }) {
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
     if (!apiKey) throw new Error('GOOGLE_PLACES_API_KEY no configurada');
 
-    const query = encodeURIComponent(`${categoria} en ${ciudad}, ${pais}`);
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&language=es&key=${apiKey}`;
-
     const leads = [];
-    let nextPageToken = null;
+    let pageToken = null;
     let paginas = 0;
 
     do {
-        const urlPagina = nextPageToken
-            ? `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${nextPageToken}&key=${apiKey}`
-            : url;
+        const body = {
+            textQuery: `${categoria} en ${ciudad}, ${pais}`,
+            languageCode: 'es',
+            maxResultCount: Math.min(maxResultados - leads.length, 20),
+        };
+        if (pageToken) body.pageToken = pageToken;
 
-        const { data } = await axios.get(urlPagina);
-        if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-            throw new Error(`Google Places error: ${data.status} — ${data.error_message || ''}`);
-        }
+        const { data } = await axios.post(
+            'https://places.googleapis.com/v1/places:searchText',
+            body,
+            {
+                headers: {
+                    'X-Goog-Api-Key': apiKey,
+                    'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,nextPageToken',
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
 
-        for (const lugar of (data.results || [])) {
+        for (const lugar of (data.places || [])) {
             if (leads.length >= maxResultados) break;
-
-            // Obtener detalles para conseguir teléfono y web
-            let telefono = null;
-            let website  = null;
-            try {
-                const det = await axios.get(
-                    `https://maps.googleapis.com/maps/api/place/details/json?place_id=${lugar.place_id}&fields=formatted_phone_number,website&key=${apiKey}`
-                );
-                telefono = det.data.result?.formatted_phone_number || null;
-                website  = det.data.result?.website || null;
-            } catch { /* detalles opcionales */ }
-
+            const nombre   = lugar.displayName?.text || 'Sin nombre';
+            const telefono = lugar.nationalPhoneNumber || null;
+            const website  = lugar.websiteUri || null;
             leads.push({
-                nombre:   lugar.name,
-                empresa:  lugar.name,
+                nombre,
+                empresa:  nombre,
                 telefono: telefono ? telefono.replace(/\s/g, '') : null,
                 email:    null,
                 fuente:   'google_places',
-                notas:    `${categoria} en ${ciudad}. Dirección: ${lugar.formatted_address || ''}${website ? '. Web: ' + website : ''}`,
+                notas:    `${categoria} en ${ciudad}. Dirección: ${lugar.formattedAddress || ''}${website ? '. Web: ' + website : ''}`,
             });
         }
 
-        nextPageToken = data.next_page_token || null;
+        pageToken = data.nextPageToken || null;
         paginas++;
-        if (nextPageToken && leads.length < maxResultados) await new Promise(r => setTimeout(r, 2000));
-    } while (nextPageToken && leads.length < maxResultados && paginas < 3);
+        if (pageToken && leads.length < maxResultados) await new Promise(r => setTimeout(r, 2000));
+    } while (pageToken && leads.length < maxResultados && paginas < 3);
 
     return leads;
 }
