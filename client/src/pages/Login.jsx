@@ -28,8 +28,8 @@ export default function Login() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}>
       <div style={{ background: '#fff', borderRadius: 16, padding: '40px 36px', width: 380, boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: '2.5rem' }}>⚡</div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e1b4b', marginTop: 8 }}>Mi Plataforma</h1>
+          <img src="/logo-ai-company.png" alt="AI Company" style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 8 }} onError={e => { e.target.style.display = 'none'; }} />
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e1b4b', marginTop: 4, letterSpacing: '-0.5px' }}>AI Company</h1>
           <p style={{ color: '#64748b', fontSize: '.88rem', marginTop: 4 }}>Panel de administración</p>
         </div>
         <form onSubmit={handleSubmit}>

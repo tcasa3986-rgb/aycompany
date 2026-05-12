@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle, UserPlus, Bot } from 'lucide-react';
 
 const nav = [
   { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
@@ -13,6 +13,8 @@ const nav = [
   { to: '/calendario', icon: Calendar,        label: 'Calendario' },
   { to: '/contenido',  icon: Lightbulb,       label: 'Contenido' },
   { to: '/social',     icon: MessageCircle,   label: 'Bandeja Social' },
+  { to: '/leads',      icon: UserPlus,        label: 'Leads' },
+  { to: '/agente',     icon: Bot,             label: 'Agente IA' },
 ];
 
 export default function Layout() {
@@ -29,7 +31,11 @@ export default function Layout() {
       {/* Sidebar */}
       <aside style={{ width: 220, background: '#1e1b4b', color: '#fff', display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0, overflowY: 'auto' }}>
         <div style={{ padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#a5b4fc' }}>⚡ Mi Plataforma</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Logo AI Company */}
+            <img src="/logo-ai-company.png" alt="AI Company" style={{ width: 32, height: 32, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#a5b4fc' }}>AI Company</div>
+          </div>
           <div style={{ fontSize: '.78rem', color: '#94a3b8', marginTop: 4 }}>{user?.nombre}</div>
         </div>
         <nav style={{ flex: 1, padding: '12px 0' }}>

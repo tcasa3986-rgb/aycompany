@@ -13,6 +13,8 @@ import Marketing      from './pages/Marketing';
 import Calendario     from './pages/Calendario';
 import Contenido      from './pages/Contenido';
 import Social         from './pages/Social';
+import Leads          from './pages/Leads';
+import Agente         from './pages/Agente';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="calendario" element={<Calendario />} />
           <Route path="contenido"  element={<Contenido />} />
           <Route path="social"     element={<Social />} />
+          <Route path="leads"      element={<Leads />} />
+          <Route path="agente"     element={<Agente />} />
         </Route>
       </Routes>
     </BrowserRouter>
