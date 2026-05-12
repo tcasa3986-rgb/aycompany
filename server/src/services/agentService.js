@@ -1,5 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
-const { Lead, AgentActividad, AgenteConfig, Reunion } = require('../models');
+const { Lead, AgentActividad, AgenteConfig, Reunion, MensajeSocial } = require('../models');
 const whatsapp = require('./whatsappService');
 const { enviarEmail } = require('./emailService');
 
@@ -155,6 +155,15 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
                     resultado: waError ? `Error: ${waError}` : null,
                     tokens_usados: tokensUsados
                 });
+                // Registrar en Bandeja Social para verlo como conversación
+                await MensajeSocial.create({
+                    red: 'whatsapp', tipo: 'mensaje',
+                    remitente: lead.nombre || lead.empresa,
+                    remitente_id: lead.telefono,
+                    contenido: null,
+                    respuesta: input.mensaje,
+                    leido: true, respondido: true,
+                }).catch(() => {});
             }
             // Email automático si tiene correo
             if (lead.email && config.gmail_user && config.gmail_app_password) {
