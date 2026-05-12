@@ -1,20 +1,21 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle, UserPlus, Bot } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle, UserPlus, Bot, Radar } from 'lucide-react';
 
 const nav = [
-  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/clientes',   icon: Users,           label: 'Clientes' },
-  { to: '/productos',  icon: Package,         label: 'Productos' },
-  { to: '/licencias',  icon: Key,             label: 'Licencias' },
-  { to: '/pagos',      icon: CreditCard,      label: 'Pagos' },
-  { to: '/facturas',   icon: FileText,        label: 'Facturas' },
-  { to: '/marketing',  icon: TrendingUp,      label: 'Marketing' },
-  { to: '/calendario', icon: Calendar,        label: 'Calendario' },
-  { to: '/contenido',  icon: Lightbulb,       label: 'Contenido' },
-  { to: '/social',     icon: MessageCircle,   label: 'Bandeja Social' },
-  { to: '/leads',      icon: UserPlus,        label: 'Leads' },
-  { to: '/agente',     icon: Bot,             label: 'Agente IA' },
+  { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/clientes',    icon: Users,            label: 'Clientes' },
+  { to: '/productos',   icon: Package,          label: 'Productos' },
+  { to: '/licencias',   icon: Key,              label: 'Licencias' },
+  { to: '/pagos',       icon: CreditCard,       label: 'Pagos' },
+  { to: '/facturas',    icon: FileText,         label: 'Facturas' },
+  { to: '/marketing',   icon: TrendingUp,       label: 'Marketing' },
+  { to: '/calendario',  icon: Calendar,         label: 'Calendario' },
+  { to: '/contenido',   icon: Lightbulb,        label: 'Contenido' },
+  { to: '/social',      icon: MessageCircle,    label: 'Bandeja Social' },
+  { to: '/prospector',  icon: Radar,            label: 'Prospector' },
+  { to: '/leads',       icon: UserPlus,         label: 'Leads' },
+  { to: '/agente',      icon: Bot,              label: 'Agente IA' },
 ];
 
 export default function Layout() {

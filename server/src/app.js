@@ -13,6 +13,7 @@ const { startPoller }   = require('./services/facebookPoller');
 const { startReminder }  = require('./services/meetingReminder');
 const { startFollowUp }  = require('./services/followUpService');
 const { iniciarScheduler } = require('./services/agentScheduler');
+const { iniciarProspectorScheduler } = require('./services/prospectorScheduler');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -93,8 +94,9 @@ app.use('/api/contenido',  require('./routes/contenidoRoutes'));
 app.use('/api/metricas',   require('./routes/metricasRoutes'));
 app.use('/api/eventos',    require('./routes/eventosRoutes'));
 app.use('/api/asistente',  require('./routes/asistenteRoutes'));
-app.use('/api/leads',      require('./routes/leadsRoutes'));
-app.use('/api/agente',     require('./routes/agenteRoutes'));
+app.use('/api/leads',       require('./routes/leadsRoutes'));
+app.use('/api/agente',      require('./routes/agenteRoutes'));
+app.use('/api/prospector',  require('./routes/prospectorRoutes'));
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 app.use('/api',            require('./routes/socialRoutes'));
 
@@ -137,6 +139,7 @@ async function iniciar(intentos = 5) {
             startReminder();
             startFollowUp();
             iniciarScheduler();
+            iniciarProspectorScheduler();
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);

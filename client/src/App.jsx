@@ -15,6 +15,7 @@ import Contenido      from './pages/Contenido';
 import Social         from './pages/Social';
 import Leads          from './pages/Leads';
 import Agente         from './pages/Agente';
+import Prospector     from './pages/Prospector';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="social"     element={<Social />} />
           <Route path="leads"      element={<Leads />} />
           <Route path="agente"     element={<Agente />} />
+          <Route path="prospector" element={<Prospector />} />
         </Route>
       </Routes>
     </BrowserRouter>
