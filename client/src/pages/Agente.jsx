@@ -15,7 +15,8 @@ const configVacia = {
     activo: false, nombre_agente: 'Cristian', nombre_empresa: 'AI Company',
     descripcion_saas: 'AI Company es una empresa de desarrollo de software a medida. Creamos sistemas personalizados para negocios, automatizaciones de procesos y somos agencia de marketing digital.',
     dias_seguimiento_1: 2, dias_seguimiento_2: 5, max_intentos: 3,
-    horario_inicio: 8, horario_fin: 18
+    horario_inicio: 8, horario_fin: 18,
+    gmail_user: '', gmail_app_password: '',
 };
 
 export default function Agente() {
@@ -129,7 +130,23 @@ export default function Agente() {
                     </div>
 
                     <div style={{ marginTop: 14, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 14px', fontSize: '.83rem', color: '#16a34a' }}>
-                        📅 Las reuniones se agendan automáticamente en el <strong>Calendario interno</strong> de AI Company — sin necesidad de Calendly.
+                        Las reuniones se agendan automáticamente en el <strong>Calendario interno</strong> de AI Company — sin necesidad de Calendly.
+                    </div>
+
+                    <h4 style={{ margin: '20px 0 12px', color: '#475569', fontSize: '.9rem', fontWeight: 700 }}>Correo electrónico (Gmail)</h4>
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', fontSize: '.82rem', color: '#92400e', marginBottom: 12 }}>
+                        Necesitas una <strong>App Password</strong> de Google (no tu contraseña normal).<br/>
+                        Ve a <strong>myaccount.google.com → Seguridad → Verificación en 2 pasos → Contraseñas de aplicación</strong> y genera una para "Correo".
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div>
+                            <label style={lbl}>Correo Gmail</label>
+                            <input value={config.gmail_user || ''} onChange={e => setConfig(c => ({ ...c, gmail_user: e.target.value }))} style={inp} placeholder="tucorreo@gmail.com" type="email" />
+                        </div>
+                        <div>
+                            <label style={lbl}>App Password (16 caracteres)</label>
+                            <input value={config.gmail_app_password || ''} onChange={e => setConfig(c => ({ ...c, gmail_app_password: e.target.value }))} style={inp} placeholder="xxxx xxxx xxxx xxxx" type="password" />
+                        </div>
                     </div>
 
                     <h4 style={{ margin: '20px 0 12px', color: '#475569', fontSize: '.9rem', fontWeight: 700 }}>Comportamiento del agente</h4>

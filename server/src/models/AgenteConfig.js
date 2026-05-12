@@ -13,6 +13,8 @@ const AgenteConfig = sequelize.define('AgenteConfig', {
     max_intentos:       { type: DataTypes.INTEGER, defaultValue: 3 },
     horario_inicio:     { type: DataTypes.INTEGER, defaultValue: 8 },
     horario_fin:        { type: DataTypes.INTEGER, defaultValue: 18 },
+    gmail_user:         { type: DataTypes.STRING(200), allowNull: true },
+    gmail_app_password: { type: DataTypes.STRING(200), allowNull: true },
 }, { tableName: 'agente_config', timestamps: false });
 
 module.exports = AgenteConfig;

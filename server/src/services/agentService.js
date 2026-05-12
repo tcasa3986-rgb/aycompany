@@ -1,6 +1,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { Lead, AgentActividad, AgenteConfig, Reunion } = require('../models');
 const whatsapp = require('./whatsappService');
+const { enviarEmail } = require('./emailService');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -46,6 +47,18 @@ const TOOLS = [
         }
     },
     {
+        name: 'enviar_email',
+        description: 'Enviar un correo electrónico al lead cuando tiene email disponible. Úsalo como canal adicional al WhatsApp o cuando no hay teléfono.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                asunto:  { type: 'string', description: 'Asunto del correo. Corto, directo, sin spam words.' },
+                cuerpo:  { type: 'string', description: 'Cuerpo del correo. Máximo 4 oraciones. Tono natural y colombiano.' }
+            },
+            required: ['asunto', 'cuerpo']
+        }
+    },
+    {
         name: 'no_hacer_nada',
         description: 'No realizar ninguna acción. Usar cuando no es el momento correcto.',
         input_schema: {
@@ -86,6 +99,7 @@ REGLAS:
 - Si el lead muestra interés: propone la reunión preguntando qué día y hora le queda bien.
 - Cuando el lead confirme fecha y hora: usa agendar_reunion para crearla en el calendario.
 - Si ya van ${config.max_intentos}+ intentos sin respuesta: usa actualizar_estado con sin_respuesta.
+- Canal: usa WhatsApp si hay teléfono, email si hay email. Si hay ambos, usa WhatsApp primero.
 - Personaliza SIEMPRE con el nombre y empresa del lead.
 - Tono: cercano, profesional, colombiano. Sin formalidades excesivas.
 - Nunca digas que eres un bot o IA.
@@ -187,6 +201,36 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
             await AgentActividad.create({
                 lead_id: lead.id, tipo: 'decision_agente', canal: 'sistema',
                 mensaje: `Estado → ${input.estado}${input.nota ? '. ' + input.nota : ''}`, tokens_usados: tokensUsados
+            });
+        }
+
+        if (name === 'enviar_email') {
+            let emailError = null;
+            try {
+                await enviarEmail({
+                    gmailUser:    config.gmail_user,
+                    gmailPass:    config.gmail_app_password,
+                    nombreAgente: config.nombre_agente || 'Cristian',
+                    nombreEmpresa: config.nombre_empresa || 'AI Company',
+                    to:      lead.email,
+                    subject: input.asunto,
+                    body:    input.cuerpo,
+                });
+            } catch (e) {
+                emailError = e.message;
+                console.error(`[Agente] Email error lead ${lead.id}:`, e.message);
+            }
+            await Lead.update(
+                { ultimo_contacto: new Date(), intentos_contacto: lead.intentos_contacto + 1, estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado },
+                { where: { id: lead.id } }
+            );
+            await AgentActividad.create({
+                lead_id: lead.id,
+                tipo: emailError ? 'error' : 'mensaje_enviado',
+                canal: 'email',
+                mensaje: `[${input.asunto}] ${input.cuerpo}`,
+                resultado: emailError ? `Error al enviar: ${emailError}` : null,
+                tokens_usados: tokensUsados,
             });
         }
 
