@@ -12,8 +12,8 @@ const TIPOS_COLOR = {
 };
 
 const configVacia = {
-    activo: false, nombre_agente: 'Asistente de ventas', nombre_empresa: '',
-    descripcion_saas: '', calendly_link: '',
+    activo: false, nombre_agente: 'Cristian', nombre_empresa: 'AI Company',
+    descripcion_saas: 'AI Company es una empresa de desarrollo de software a medida. Creamos sistemas personalizados para negocios, automatizaciones de procesos y somos agencia de marketing digital.',
     dias_seguimiento_1: 2, dias_seguimiento_2: 5, max_intentos: 3,
     horario_inicio: 8, horario_fin: 18
 };
@@ -124,9 +124,8 @@ export default function Agente() {
                         <textarea value={config.descripcion_saas} onChange={e => setConfig(c => ({ ...c, descripcion_saas: e.target.value }))} style={{ ...inp, height: 90, resize: 'vertical' }} placeholder="Ej: Sistema de gestión de licencias y clientes para negocios. Permite manejar pagos, renovaciones y accesos desde un panel centralizado..." />
                     </div>
 
-                    <div style={{ marginTop: 14 }}>
-                        <label style={lbl}>Link de Calendly (para agendar reuniones)</label>
-                        <input value={config.calendly_link} onChange={e => setConfig(c => ({ ...c, calendly_link: e.target.value }))} style={inp} placeholder="https://calendly.com/tu-usuario/30min" />
+                    <div style={{ marginTop: 14, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 14px', fontSize: '.83rem', color: '#16a34a' }}>
+                        📅 Las reuniones se agendan automáticamente en el <strong>Calendario interno</strong> de AI Company — sin necesidad de Calendly.
                     </div>
 
                     <h4 style={{ margin: '20px 0 12px', color: '#475569', fontSize: '.9rem', fontWeight: 700 }}>Comportamiento del agente</h4>
@@ -145,15 +144,13 @@ export default function Agente() {
                         ))}
                     </div>
 
-                    <h4 style={{ margin: '20px 0 10px', color: '#475569', fontSize: '.9rem', fontWeight: 700 }}>Variables de entorno requeridas en el servidor</h4>
-                    <div style={{ background: '#1e1b4b', borderRadius: 8, padding: '14px 18px', fontFamily: 'monospace', fontSize: '.82rem', color: '#a5b4fc' }}>
-                        <div>ANTHROPIC_API_KEY=<span style={{ color: '#fbbf24' }}>sk-ant-xxxx</span></div>
-                        <div>WHATSAPP_TOKEN=<span style={{ color: '#fbbf24' }}>EAAXXXXXXX</span></div>
-                        <div>WHATSAPP_PHONE_NUMBER_ID=<span style={{ color: '#fbbf24' }}>XXXXXXXXXX</span></div>
-                        <div>WHATSAPP_VERIFY_TOKEN=<span style={{ color: '#fbbf24' }}>tu_token_secreto</span></div>
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: '.8rem', color: '#94a3b8' }}>
-                        Webhook de WhatsApp: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>POST /api/agente/webhook/whatsapp</code>
+                    <div style={{ marginTop: 8, background: '#1e1b4b', borderRadius: 8, padding: '14px 18px', fontFamily: 'monospace', fontSize: '.82rem', color: '#a5b4fc' }}>
+                        <div style={{ color: '#94a3b8', marginBottom: 6, fontFamily: 'sans-serif', fontSize: '.78rem' }}>Variables de entorno (ya configuradas en Railway):</div>
+                        <div>ANTHROPIC_API_KEY <span style={{ color: '#4ade80' }}>✓</span></div>
+                        <div>WHATSAPP_TOKEN <span style={{ color: '#4ade80' }}>✓</span></div>
+                        <div>WHATSAPP_PHONE_ID <span style={{ color: '#4ade80' }}>✓</span></div>
+                        <div>META_VERIFY_TOKEN <span style={{ color: '#4ade80' }}>✓</span></div>
+                        <div style={{ marginTop: 8, color: '#94a3b8', fontFamily: 'sans-serif', fontSize: '.75rem' }}>Webhook: POST /api/agente/webhook/whatsapp</div>
                     </div>
 
                     <div style={{ marginTop: 20, display: 'flex', gap: 10, alignItems: 'center' }}>

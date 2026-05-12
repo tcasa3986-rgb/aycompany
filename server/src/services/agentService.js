@@ -1,10 +1,9 @@
 const Anthropic = require('@anthropic-ai/sdk');
-const { Lead, AgentActividad, AgenteConfig } = require('../models');
+const { Lead, AgentActividad, AgenteConfig, Reunion } = require('../models');
 const whatsapp = require('./whatsappService');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Herramientas que el agente puede usar
 const TOOLS = [
     {
         name: 'enviar_whatsapp',
@@ -12,20 +11,22 @@ const TOOLS = [
         input_schema: {
             type: 'object',
             properties: {
-                mensaje: { type: 'string', description: 'Mensaje a enviar. Debe ser natural, personalizado y conciso.' }
+                mensaje: { type: 'string', description: 'Mensaje natural, personalizado y conciso (máximo 3 oraciones).' }
             },
             required: ['mensaje']
         }
     },
     {
-        name: 'proponer_reunion',
-        description: 'Enviar link de Calendly al lead para que agende una reunión. Usar cuando el lead muestre interés real.',
+        name: 'agendar_reunion',
+        description: 'Crear una reunión de ventas en el calendario interno de AI Company cuando el lead confirme una fecha y hora. Úsalo cuando el lead acepte reunirse y dé disponibilidad.',
         input_schema: {
             type: 'object',
             properties: {
-                mensaje_previo: { type: 'string', description: 'Mensaje que acompaña el link de la reunión' }
+                mensaje_confirmacion: { type: 'string', description: 'Mensaje de confirmación a enviar al lead con los detalles de la reunión.' },
+                fecha_iso:            { type: 'string', description: 'Fecha y hora de la reunión en formato ISO 8601. Ej: 2026-05-15T15:00:00-05:00' },
+                duracion_minutos:     { type: 'number', description: 'Duración en minutos. Por defecto 30.' }
             },
-            required: ['mensaje_previo']
+            required: ['mensaje_confirmacion', 'fecha_iso']
         }
     },
     {
@@ -39,14 +40,14 @@ const TOOLS = [
                     enum: ['contactado','respondio','interesado','reunion_agendada','sin_respuesta','descartado'],
                     description: 'Nuevo estado del lead'
                 },
-                nota: { type: 'string', description: 'Nota interna sobre el lead' }
+                nota: { type: 'string', description: 'Nota interna sobre el lead (opcional)' }
             },
             required: ['estado']
         }
     },
     {
         name: 'no_hacer_nada',
-        description: 'No realizar ninguna acción ahora. Usar cuando no es el momento correcto o el lead no requiere acción inmediata.',
+        description: 'No realizar ninguna acción. Usar cuando no es el momento correcto.',
         input_schema: {
             type: 'object',
             properties: {
@@ -61,7 +62,6 @@ async function procesarLead(lead, evento, mensajeRecibido = null) {
     const config = await AgenteConfig.findOne();
     if (!config || !config.activo) return;
 
-    // Historial de actividad del lead
     const historial = await AgentActividad.findAll({
         where: { lead_id: lead.id },
         order: [['created_at', 'ASC']],
@@ -72,21 +72,24 @@ async function procesarLead(lead, evento, mensajeRecibido = null) {
         `[${new Date(a.created_at).toLocaleDateString('es-CO')}] ${a.tipo}: ${a.mensaje || ''} ${a.resultado ? '→ Respuesta: ' + a.resultado : ''}`
     ).join('\n');
 
-    const systemPrompt = `Eres ${config.nombre_agente}, un asistente de ventas profesional de ${config.nombre_empresa}.
-Tu objetivo es contactar leads, generar interés y agendar reuniones de ventas.
+    const ahora = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
 
-SOBRE EL PRODUCTO:
-${config.descripcion_saas || 'Una plataforma SaaS para gestión de negocios.'}
+    const systemPrompt = `Eres Cristian, representante de ventas de AI Company.
+Tu objetivo es contactar leads, generar interés genuino y agendar reuniones de ventas en el calendario.
+
+SOBRE AI COMPANY:
+${config.descripcion_saas || `AI Company es una empresa de desarrollo de software a medida. Creamos sistemas personalizados para negocios, automatizaciones de procesos y somos agencia de marketing digital. Servicios: páginas web, SEO, pauta en Facebook/Instagram/TikTok/Google Ads, estrategias de lanzamiento y posicionamiento en buscadores.`}
 
 REGLAS:
-- Sé natural, amigable y conciso. Nunca seas invasivo ni presionado.
-- Mensajes de WhatsApp cortos (máximo 3 oraciones).
-- Si el lead muestra interés, propone la reunión inmediatamente.
-- Si es el primer contacto, preséntate brevemente y pregunta si tiene interés.
-- Si ya van 3+ intentos sin respuesta, actualiza a sin_respuesta y no contactes más.
-- Personaliza cada mensaje con el nombre y empresa del lead.
-- Escribe en español colombiano natural, sin formalidades excesivas.
-- Nunca menciones que eres un agente de IA.`;
+- Mensajes de WhatsApp cortos y naturales (máximo 3 oraciones). Nada de párrafos largos.
+- Primer contacto: preséntate brevemente y pregunta por el dolor o necesidad del negocio.
+- Si el lead muestra interés: propone la reunión preguntando qué día y hora le queda bien.
+- Cuando el lead confirme fecha y hora: usa agendar_reunion para crearla en el calendario.
+- Si ya van ${config.max_intentos}+ intentos sin respuesta: usa actualizar_estado con sin_respuesta.
+- Personaliza SIEMPRE con el nombre y empresa del lead.
+- Tono: cercano, profesional, colombiano. Sin formalidades excesivas.
+- Nunca digas que eres un bot o IA.
+- Fecha y hora actual: ${ahora}`;
 
     const userPrompt = `LEAD:
 - Nombre: ${lead.nombre}
@@ -95,14 +98,15 @@ REGLAS:
 - Estado actual: ${lead.estado}
 - Intentos de contacto: ${lead.intentos_contacto}
 - Fuente: ${lead.fuente}
+${lead.notas ? `- Notas: ${lead.notas}` : ''}
 
 EVENTO: ${evento}
-${mensajeRecibido ? `MENSAJE RECIBIDO DEL LEAD: "${mensajeRecibido}"` : ''}
+${mensajeRecibido ? `MENSAJE DEL LEAD: "${mensajeRecibido}"` : ''}
 
 HISTORIAL:
-${historialTexto || 'Sin historial previo.'}
+${historialTexto || 'Sin historial previo — primer contacto.'}
 
-¿Qué acción debes tomar ahora?`;
+¿Qué acción tomas ahora?`;
 
     const response = await client.messages.create({
         model: 'claude-sonnet-4-6',
@@ -112,18 +116,20 @@ ${historialTexto || 'Sin historial previo.'}
         messages: [{ role: 'user', content: userPrompt }]
     });
 
-    const tokensUsados = response.usage?.input_tokens + response.usage?.output_tokens || 0;
+    const tokensUsados = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
 
-    // Ejecutar las herramientas que el agente decidió usar
     for (const bloque of response.content) {
         if (bloque.type !== 'tool_use') continue;
-
         const { name, input } = bloque;
 
         if (name === 'enviar_whatsapp') {
             await whatsapp.enviarMensaje(lead.telefono, input.mensaje);
             await Lead.update(
-                { ultimo_contacto: new Date(), intentos_contacto: lead.intentos_contacto + 1, estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado },
+                {
+                    ultimo_contacto: new Date(),
+                    intentos_contacto: lead.intentos_contacto + 1,
+                    estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado
+                },
                 { where: { id: lead.id } }
             );
             await AgentActividad.create({
@@ -132,27 +138,36 @@ ${historialTexto || 'Sin historial previo.'}
             });
         }
 
-        if (name === 'proponer_reunion') {
-            const mensajeCompleto = `${input.mensaje_previo}\n\nAquí puedes escoger el horario: ${config.calendly_link || '[configura tu link de Calendly]'}`;
-            await whatsapp.enviarMensaje(lead.telefono, mensajeCompleto);
+        if (name === 'agendar_reunion') {
+            // Crear en el calendario interno
+            await Reunion.create({
+                titulo:       `Reunión de ventas — ${lead.nombre}${lead.empresa ? ' (' + lead.empresa + ')' : ''}`,
+                descripcion:  `Lead generado por el agente de ventas AI Company. Teléfono: ${lead.telefono}`,
+                fecha:        new Date(input.fecha_iso),
+                duracion:     input.duracion_minutos || 30,
+                participantes: lead.nombre,
+                estado:       'pendiente',
+            });
+            await whatsapp.enviarMensaje(lead.telefono, input.mensaje_confirmacion);
             await Lead.update(
-                { ultimo_contacto: new Date(), estado: 'interesado', link_reunion: config.calendly_link },
+                { estado: 'reunion_agendada', fecha_reunion: new Date(input.fecha_iso), ultimo_contacto: new Date() },
                 { where: { id: lead.id } }
             );
             await AgentActividad.create({
-                lead_id: lead.id, tipo: 'reunion_propuesta', canal: 'whatsapp',
-                mensaje: mensajeCompleto, tokens_usados: tokensUsados
+                lead_id: lead.id, tipo: 'reunion_confirmada', canal: 'whatsapp',
+                mensaje: input.mensaje_confirmacion, tokens_usados: tokensUsados
             });
         }
 
         if (name === 'actualizar_estado') {
+            const notaActual = lead.notas || '';
             await Lead.update(
-                { estado: input.estado, notas: input.nota ? (lead.notas ? lead.notas + '\n' + input.nota : input.nota) : lead.notas },
+                { estado: input.estado, notas: input.nota ? (notaActual ? notaActual + '\n' + input.nota : input.nota) : notaActual },
                 { where: { id: lead.id } }
             );
             await AgentActividad.create({
                 lead_id: lead.id, tipo: 'decision_agente', canal: 'sistema',
-                mensaje: `Estado actualizado a: ${input.estado}. ${input.nota || ''}`, tokens_usados: tokensUsados
+                mensaje: `Estado → ${input.estado}${input.nota ? '. ' + input.nota : ''}`, tokens_usados: tokensUsados
             });
         }
 
@@ -165,19 +180,16 @@ ${historialTexto || 'Sin historial previo.'}
     }
 }
 
-// Procesar un mensaje entrante de WhatsApp de un lead
 async function procesarRespuestaWhatsApp(telefono, mensajeRecibido) {
     const numero = telefono.replace(/\D/g, '');
     const lead = await Lead.findOne({ where: { telefono: numero, agente_activo: true } });
-    if (!lead) return; // No es un lead gestionado por el agente
+    if (!lead) return;
 
-    // Guardar respuesta
     await AgentActividad.create({
         lead_id: lead.id, tipo: 'respuesta_recibida', canal: 'whatsapp', resultado: mensajeRecibido
     });
 
-    // Actualizar estado si aún no había respondido
-    if (['nuevo','contactado'].includes(lead.estado)) {
+    if (['nuevo', 'contactado'].includes(lead.estado)) {
         await Lead.update({ estado: 'respondio' }, { where: { id: lead.id } });
         lead.estado = 'respondio';
     }
