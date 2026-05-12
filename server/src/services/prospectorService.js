@@ -60,10 +60,11 @@ async function buscarEnApollo({ industria, ciudad, pais = 'CO', maxResultados = 
     if (!apiKey) throw new Error('APOLLO_API_KEY no configurada');
 
     const { data } = await axios.post(
-        'https://api.apollo.io/api/v1/mixed_people/search',
+        'https://api.apollo.io/api/v1/contacts/search',
         {
-            q_organization_locations: [`${ciudad}, Colombia`],
+            api_key: apiKey,
             q_keywords: industria,
+            q_organization_locations: [`${ciudad}, Colombia`],
             page: 1,
             per_page: Math.min(maxResultados, 25),
         },
@@ -71,18 +72,18 @@ async function buscarEnApollo({ industria, ciudad, pais = 'CO', maxResultados = 
             headers: {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
-                'Authorization': `Bearer ${apiKey}`,
+                'X-Api-Key': apiKey,
             }
         }
     );
 
-    return (data.people || []).map(p => ({
-        nombre:   p.name || p.first_name + ' ' + p.last_name,
-        empresa:  p.organization?.name || p.organization_name || '',
-        telefono: p.phone_numbers?.[0]?.sanitized_number || null,
+    return (data.contacts || []).map(p => ({
+        nombre:   p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+        empresa:  p.organization_name || p.account?.name || '',
+        telefono: p.sanitized_phone || p.phone_numbers?.[0]?.sanitized_number || null,
         email:    p.email || null,
         fuente:   'apollo',
-        notas:    `Cargo: ${p.title || '?'}. Industria: ${p.organization?.industry || industria}. Web: ${p.organization?.website_url || ''}`,
+        notas:    `Cargo: ${p.title || '?'}. Industria: ${p.account?.industry || industria}. Web: ${p.account?.website_url || ''}`,
     }));
 }
 
