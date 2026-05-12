@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const { Op } = require('sequelize');
-const { Lead, AgenteConfig } = require('../models');
+const { Lead, AgenteConfig, AgentActividad } = require('../models');
 const { procesarLead } = require('./agentService');
 
 function diasAtras(dias) {
@@ -25,9 +25,10 @@ async function ejecutarCiclo() {
     for (const lead of leadsNuevos) {
         try {
             await procesarLead(lead, 'Lead nuevo, primer contacto');
-            await new Promise(r => setTimeout(r, 2000)); // pausa entre mensajes
+            await new Promise(r => setTimeout(r, 2000));
         } catch (e) {
             console.error(`[Agente] Error procesando lead ${lead.id}:`, e.message);
+            await AgentActividad.create({ lead_id: lead.id, tipo: 'error', canal: 'sistema', mensaje: `Error al procesar: ${e.message}` }).catch(() => {});
         }
     }
 
@@ -46,6 +47,7 @@ async function ejecutarCiclo() {
             await new Promise(r => setTimeout(r, 2000));
         } catch (e) {
             console.error(`[Agente] Error seguimiento 1 lead ${lead.id}:`, e.message);
+            await AgentActividad.create({ lead_id: lead.id, tipo: 'error', canal: 'sistema', mensaje: `Error seguimiento 1: ${e.message}` }).catch(() => {});
         }
     }
 
@@ -64,6 +66,7 @@ async function ejecutarCiclo() {
             await new Promise(r => setTimeout(r, 2000));
         } catch (e) {
             console.error(`[Agente] Error seguimiento 2 lead ${lead.id}:`, e.message);
+            await AgentActividad.create({ lead_id: lead.id, tipo: 'error', canal: 'sistema', mensaje: `Error seguimiento 2: ${e.message}` }).catch(() => {});
         }
     }
 

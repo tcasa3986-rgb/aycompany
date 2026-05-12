@@ -127,6 +127,7 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
         max_tokens: 1024,
         system: systemPrompt,
         tools: TOOLS,
+        tool_choice: { type: 'any' },
         messages: [{ role: 'user', content: userPrompt }]
     });
 
