@@ -126,11 +126,17 @@ SEGUIMIENTO (ya contactado, sin respuesta):
 → Mensaje completamente diferente al anterior. Ángulo nuevo: resultado concreto o caso de éxito.
 → Ejemplo: "Cristian de nuevo, hace poco le hicimos el SEO a una ${categoriaNegocio} similar en ${ciudadLead} y en 3 meses duplicaron las visitas. ¿Vale la pena hablar 20 minutos?"
 
-LEAD INTERESADO (respondió con interés):
-→ Propone reunión directa: día y hora esta semana o la siguiente.
+LEAD INTERESADO (respondió con interés, primer intento de agendar):
+→ Antes de proponer la reunión, haz UNA sola pregunta de calificación para tener contexto:
+  - Si no tiene web: "¿Cuántas personas trabajan en [empresa] aproximadamente?"
+  - Si tiene web: "¿Actualmente están invirtiendo en publicidad o es solo la web que tienen?"
+→ Solo una pregunta. Breve. No más.
+
+LEAD YA DIO INFORMACIÓN DE CALIFICACIÓN (ya respondió la pregunta anterior):
+→ Ahora sí propone la reunión: "Perfecto, ¿tienen disponibilidad esta semana para una llamada de 20 minutos?"
 
 LEAD CONFIRMA FECHA Y HORA:
-→ Usa agendar_reunion para crear la cita en el calendario.
+→ Usa agendar_reunion para crear la cita en el calendario. Incluye en mensaje_confirmacion la fecha, hora y un Google Meet o llamada normal.
 
 ÚLTIMO INTENTO (${config.max_intentos}+ sin respuesta):
 → Cierre amable y diferente: "Entiendo que están ocupados. Si en algún momento quieren que [empresa] aparezca primero en Google, aquí estoy. ¿Prefieren que los contacte en otro momento?"
@@ -231,13 +237,42 @@ Recuerda: máximo 2 oraciones, cero emojis, termina en pregunta sí/no. ¿Qué a
         }
 
         if (name === 'agendar_reunion') {
+            // Construir brief de cierre con todo el contexto del lead
+            const resumenConversacion = historial
+                .filter(a => ['respuesta_recibida', 'mensaje_enviado'].includes(a.tipo))
+                .map(a => `  [${a.tipo === 'respuesta_recibida' ? 'LEAD' : 'Cristian'}] ${a.mensaje || a.resultado || ''}`)
+                .join('\n');
+
+            const descripcionReunion = [
+                `=== BRIEF PARA CIERRE DE VENTAS ===`,
+                ``,
+                `CONTACTO:`,
+                `  Nombre: ${lead.nombre}`,
+                `  Empresa: ${lead.empresa || 'No especificada'}`,
+                `  Teléfono: ${lead.telefono || '—'}`,
+                `  Email: ${lead.email || '—'}`,
+                `  Fuente: ${lead.fuente}`,
+                ``,
+                `SITUACIÓN DIGITAL:`,
+                `  Página web: ${tieneWeb ? `SÍ — ${urlWeb || 'ver notas'}` : 'NO TIENE — oportunidad de venta directa'}`,
+                `  Categoría: ${categoriaNegocio} en ${ciudadLead}`,
+                ``,
+                `CONVERSACIÓN PREVIA:`,
+                resumenConversacion || '  (sin mensajes registrados)',
+                ``,
+                `NOTAS ORIGINALES DEL LEAD:`,
+                `  ${lead.notas || '—'}`,
+                ``,
+                `Intentos de contacto antes de agendar: ${lead.intentos_contacto}`,
+            ].join('\n');
+
             await Reunion.create({
-                titulo:       `Reunión de ventas — ${lead.nombre}${lead.empresa ? ' (' + lead.empresa + ')' : ''}`,
-                descripcion:  `Lead generado por el agente de ventas AI Company. Teléfono: ${lead.telefono}`,
-                fecha:        new Date(input.fecha_iso),
-                duracion:     input.duracion_minutos || 30,
+                titulo:        `${lead.empresa || lead.nombre} — ${categoriaNegocio} en ${ciudadLead}`,
+                descripcion:   descripcionReunion,
+                fecha:         new Date(input.fecha_iso),
+                duracion:      input.duracion_minutos || 30,
                 participantes: lead.nombre,
-                estado:       'pendiente',
+                estado:        'pendiente',
             });
             let waError = null;
             try {
