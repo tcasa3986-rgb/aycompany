@@ -116,7 +116,7 @@ ESTRATEGIA SEGÚN SITUACIÓN DEL LEAD:
 PRIMER CONTACTO — sin página web:
 → Menciona que buscaste "${categoriaNegocio} en ${ciudadLead}" en Google y no aparecen. Di que su competencia sí tiene web y se lleva esos clientes. Pregunta si les interesa tener una página que los posicione.
 → Ejemplo: "Hola, busqué ${categoriaNegocio} en ${ciudadLead} y [empresa] no tiene página web mientras sus competidores sí aparecen en Google. ¿Les interesa una que les traiga clientes nuevos cada mes?"
-→ En el seguimiento si no respondieron: menciona el precio accesible y que incluye dominio, diseño y posicionamiento básico en Google desde el día uno.
+→ En el seguimiento si no respondieron: refuerza el dolor — cada día sin web es un cliente más que se va a la competencia. Invita a una llamada de 15 minutos para mostrarles cómo quedaría.
 
 PRIMER CONTACTO — con página web:
 → Menciona que viste su web y tiene algo mejorable (velocidad, posicionamiento, sin chat de WhatsApp, diseño antiguo). Pregunta si les interesa mejorar eso.
