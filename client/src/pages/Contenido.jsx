@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from '../api/axios';
-import { Lightbulb, Plus, X, Edit2, Bot, Send, Sparkles } from 'lucide-react';
+import { Lightbulb, Plus, X, Edit2, Bot, Send, Sparkles, Rss, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+
+const GITHUB_RAW = 'https://raw.githubusercontent.com/cesargranados0100-alt/AI-COMPANY/main';
+const GITHUB_API = 'https://api.github.com/repos/cesargranados0100-alt/AI-COMPANY/contents/blog';
 
 const CANALES = ['Instagram', 'Facebook', 'TikTok', 'YouTube', 'LinkedIn', 'Twitter/X', 'Blog', 'Email', 'WhatsApp', 'Otro'];
 const FORMATOS = ['Video', 'Reel', 'Imagen', 'Carrusel', 'Historia', 'Texto', 'Podcast', 'Newsletter'];
@@ -22,6 +25,7 @@ const SUGERENCIAS_RAPIDAS = [
 ];
 
 export default function Contenido() {
+    const [tab, setTab] = useState('ideas'); // 'ideas' | 'blog'
     const [ideas, setIdeas] = useState([]);
     const [modal, setModal] = useState(false);
     const [form, setForm] = useState(empty);
@@ -33,7 +37,35 @@ export default function Contenido() {
     const [cargandoIA, setCargandoIA] = useState(false);
     const chatEndRef = useRef(null);
 
+    // Blog SEO state
+    const [blogTopics, setBlogTopics] = useState([]);
+    const [publishedSlugs, setPublishedSlugs] = useState(new Set());
+    const [blogLoading, setBlogLoading] = useState(false);
+    const [blogError, setBlogError] = useState(null);
+    const [blogFiltro, setBlogFiltro] = useState('todos'); // 'todos' | 'publicado' | 'pendiente'
+
+    useEffect(() => { if (tab === 'blog' && blogTopics.length === 0) cargarBlog(); }, [tab]);
+
     useEffect(() => { cargar(); }, []);
+
+    async function cargarBlog() {
+        setBlogLoading(true);
+        setBlogError(null);
+        try {
+            const [topicsRes, dirRes] = await Promise.all([
+                fetch(`${GITHUB_RAW}/scripts/blog-topics.json`),
+                fetch(GITHUB_API),
+            ]);
+            const topics = await topicsRes.json();
+            const dirs = await dirRes.json();
+            const slugs = new Set(Array.isArray(dirs) ? dirs.filter(d => d.type === 'dir').map(d => d.name) : []);
+            setBlogTopics(topics);
+            setPublishedSlugs(slugs);
+        } catch {
+            setBlogError('No se pudo cargar el estado del blog desde GitHub.');
+        }
+        setBlogLoading(false);
+    }
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [historial]);
 
     async function cargar() { const { data } = await axios.get('/contenido'); setIdeas(data); }
@@ -71,10 +103,107 @@ export default function Contenido() {
     const filtradas = filtro === 'todas' ? ideas : ideas.filter(i => i.estado === filtro);
     const conteo = Object.keys(ESTADOS).reduce((acc, e) => { acc[e] = ideas.filter(i => i.estado === e).length; return acc; }, {});
 
+    const blogFiltrados = blogTopics.filter(t => {
+        if (blogFiltro === 'publicado') return publishedSlugs.has(t.slug);
+        if (blogFiltro === 'pendiente') return !publishedSlugs.has(t.slug);
+        return true;
+    });
+    const publicados = blogTopics.filter(t => publishedSlugs.has(t.slug)).length;
+    const pendientes = blogTopics.length - publicados;
+
     return (
         <div style={{ display: 'flex', height: '100%' }}>
             {/* Contenido principal */}
             <div style={{ flex: 1, padding: 28, overflowY: 'auto', transition: 'all .3s' }}>
+
+                {/* Tabs */}
+                <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid #e5e7eb', paddingBottom: 0 }}>
+                    <button onClick={() => setTab('ideas')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: tab === 'ideas' ? '#6366f1' : '#6b7280', borderBottom: tab === 'ideas' ? '2px solid #6366f1' : '2px solid transparent', marginBottom: -2 }}>
+                        <Lightbulb size={15} /> Ideas de Contenido
+                    </button>
+                    <button onClick={() => setTab('blog')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: tab === 'blog' ? '#6366f1' : '#6b7280', borderBottom: tab === 'blog' ? '2px solid #6366f1' : '2px solid transparent', marginBottom: -2 }}>
+                        <Rss size={15} /> Blog SEO
+                        {pendientes > 0 && <span style={{ background: '#f59e0b', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{pendientes}</span>}
+                    </button>
+                </div>
+
+                {/* ═══ TAB BLOG SEO ═══ */}
+                {tab === 'blog' && (
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Blog SEO — aicompanyco.com</h2>
+                                <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 3 }}>Se publica automáticamente cada lunes vía GitHub Actions</div>
+                            </div>
+                            <button onClick={cargarBlog} disabled={blogLoading} style={{ fontSize: 12, padding: '7px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', color: '#374151' }}>
+                                {blogLoading ? 'Cargando...' : '↻ Actualizar'}
+                            </button>
+                        </div>
+
+                        {/* Contadores */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
+                            {[
+                                { label: 'Total temas', value: blogTopics.length, color: '#6366f1', bg: '#ede9fe' },
+                                { label: 'Publicados', value: publicados, color: '#16a34a', bg: '#dcfce7' },
+                                { label: 'Pendientes', value: pendientes, color: '#d97706', bg: '#fef3c7' },
+                            ].map(c => (
+                                <div key={c.label} style={{ background: c.bg, borderRadius: 10, padding: '14px 16px' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: c.color }}>{c.label}</div>
+                                    <div style={{ fontSize: 26, fontWeight: 800, color: c.color, marginTop: 4 }}>{c.value}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Filtro */}
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+                            {['todos', 'publicado', 'pendiente'].map(f => (
+                                <button key={f} onClick={() => setBlogFiltro(f)} style={{ padding: '5px 14px', borderRadius: 20, border: '1px solid #e5e7eb', background: blogFiltro === f ? '#6366f1' : '#fff', color: blogFiltro === f ? '#fff' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}>{f}</button>
+                            ))}
+                        </div>
+
+                        {blogError && <div style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>{blogError}</div>}
+
+                        {blogLoading && <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px 0' }}>Cargando estado del blog desde GitHub...</div>}
+
+                        {!blogLoading && !blogError && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {blogFiltrados.map(t => {
+                                    const pub = publishedSlugs.has(t.slug);
+                                    return (
+                                        <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px' }}>
+                                            <div style={{ flexShrink: 0 }}>
+                                                {pub
+                                                    ? <CheckCircle2 size={20} color="#16a34a" />
+                                                    : <Clock size={20} color="#d97706" />}
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontWeight: 600, fontSize: 13, color: '#111', lineHeight: 1.3, marginBottom: 3 }}>{t.titulo}</div>
+                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                    <span style={{ background: '#ede9fe', color: '#7c3aed', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>{t.categoria}</span>
+                                                    {t.industria && <span style={{ background: '#f0fdf4', color: '#15803d', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>{t.industria}</span>}
+                                                </div>
+                                            </div>
+                                            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: pub ? '#dcfce7' : '#fef3c7', color: pub ? '#16a34a' : '#d97706' }}>
+                                                    {pub ? 'Publicado' : 'Pendiente'}
+                                                </span>
+                                                {pub && (
+                                                    <a href={`https://aicompanyco.com/blog/${t.slug}/`} target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af', display: 'flex' }}>
+                                                        <ExternalLink size={14} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {blogFiltrados.length === 0 && <div style={{ textAlign: 'center', color: '#9ca3af', padding: '30px 0', fontSize: 13 }}>Sin artículos en esta categoría</div>}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ═══ TAB IDEAS (original) ═══ */}
+                {tab === 'ideas' && <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Lightbulb size={22} color="#6366f1" />
@@ -130,10 +259,11 @@ export default function Contenido() {
                         );
                     })}
                 </div>
+            </>}
             </div>
 
-            {/* Panel IA */}
-            {panelIA && (
+            {/* Panel IA — solo en tab ideas */}
+            {tab === 'ideas' && panelIA && (
                 <div style={{ width: 360, borderLeft: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', background: '#fff', flexShrink: 0 }}>
                     {/* Header IA */}
                     <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
