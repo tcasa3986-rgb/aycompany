@@ -123,7 +123,13 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
         const { name, input } = bloque;
 
         if (name === 'enviar_whatsapp') {
-            await whatsapp.enviarMensaje(lead.telefono, input.mensaje);
+            let waError = null;
+            try {
+                await whatsapp.enviarMensaje(lead.telefono, input.mensaje);
+            } catch (e) {
+                waError = e.message;
+                console.error(`[Agente] WhatsApp error lead ${lead.id}:`, e.message);
+            }
             await Lead.update(
                 {
                     ultimo_contacto: new Date(),
@@ -133,13 +139,16 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
                 { where: { id: lead.id } }
             );
             await AgentActividad.create({
-                lead_id: lead.id, tipo: 'mensaje_enviado', canal: 'whatsapp',
-                mensaje: input.mensaje, tokens_usados: tokensUsados
+                lead_id: lead.id,
+                tipo: waError ? 'error' : 'mensaje_enviado',
+                canal: 'whatsapp',
+                mensaje: input.mensaje,
+                resultado: waError ? `Error al enviar: ${waError}` : null,
+                tokens_usados: tokensUsados
             });
         }
 
         if (name === 'agendar_reunion') {
-            // Crear en el calendario interno
             await Reunion.create({
                 titulo:       `Reunión de ventas — ${lead.nombre}${lead.empresa ? ' (' + lead.empresa + ')' : ''}`,
                 descripcion:  `Lead generado por el agente de ventas AI Company. Teléfono: ${lead.telefono}`,
@@ -148,14 +157,24 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
                 participantes: lead.nombre,
                 estado:       'pendiente',
             });
-            await whatsapp.enviarMensaje(lead.telefono, input.mensaje_confirmacion);
+            let waError = null;
+            try {
+                await whatsapp.enviarMensaje(lead.telefono, input.mensaje_confirmacion);
+            } catch (e) {
+                waError = e.message;
+                console.error(`[Agente] WhatsApp error reunion lead ${lead.id}:`, e.message);
+            }
             await Lead.update(
                 { estado: 'reunion_agendada', fecha_reunion: new Date(input.fecha_iso), ultimo_contacto: new Date() },
                 { where: { id: lead.id } }
             );
             await AgentActividad.create({
-                lead_id: lead.id, tipo: 'reunion_confirmada', canal: 'whatsapp',
-                mensaje: input.mensaje_confirmacion, tokens_usados: tokensUsados
+                lead_id: lead.id,
+                tipo: 'reunion_confirmada',
+                canal: 'whatsapp',
+                mensaje: input.mensaje_confirmacion,
+                resultado: waError ? `Error al enviar confirmación: ${waError}` : null,
+                tokens_usados: tokensUsados
             });
         }
 

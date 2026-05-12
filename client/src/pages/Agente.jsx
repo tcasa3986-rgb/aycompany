@@ -47,11 +47,15 @@ export default function Agente() {
 
     async function ejecutarAhora() {
         setEjecutando(true);
+        setTab('actividad');
         await api.post('/agente/ejecutar');
-        setTimeout(async () => {
+        // Poll cada 5s hasta ver actividad o máx 60s
+        let intentos = 0;
+        const poll = setInterval(async () => {
+            intentos++;
             await cargar();
-            setEjecutando(false);
-        }, 3000);
+            if (intentos >= 12) { clearInterval(poll); setEjecutando(false); }
+        }, 5000);
     }
 
     const s = { card: { background: '#fff', borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.08)', marginBottom: 16 } };
