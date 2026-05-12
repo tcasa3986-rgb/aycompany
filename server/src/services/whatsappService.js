@@ -3,10 +3,10 @@ const axios = require('axios');
 const BASE_URL = 'https://graph.facebook.com/v19.0';
 
 async function enviarMensaje(telefono, mensaje) {
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const phoneId = process.env.WHATSAPP_PHONE_ID;
     const token   = process.env.WHATSAPP_TOKEN;
 
-    if (!phoneId || !token) throw new Error('WhatsApp no configurado (WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_TOKEN)');
+    if (!phoneId || !token) throw new Error('WhatsApp no configurado (WHATSAPP_PHONE_ID / WHATSAPP_TOKEN)');
 
     // Asegurar formato internacional sin +
     const numero = telefono.replace(/\D/g, '');

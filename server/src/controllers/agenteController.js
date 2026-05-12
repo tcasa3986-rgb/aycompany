@@ -44,7 +44,7 @@ exports.webhookVerificar = (req, res) => {
     const modo    = req.query['hub.mode'];
     const token   = req.query['hub.verify_token'];
     const desafio = req.query['hub.challenge'];
-    if (modo === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    if (modo === 'subscribe' && token === process.env.META_VERIFY_TOKEN) {
         res.status(200).send(desafio);
     } else {
         res.status(403).end();
