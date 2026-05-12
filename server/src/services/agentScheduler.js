@@ -13,7 +13,7 @@ async function ejecutarCiclo() {
     const config = await AgenteConfig.findOne();
     if (!config || !config.activo) return;
 
-    const horaActual = new Date().getHours();
+    const horaActual = parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', hour: 'numeric', hour12: false }));
     if (horaActual < config.horario_inicio || horaActual >= config.horario_fin) return;
 
     console.log(`[Agente] Iniciando ciclo - ${new Date().toLocaleString('es-CO')}`);
