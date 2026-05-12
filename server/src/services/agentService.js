@@ -138,29 +138,51 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
         const { name, input } = bloque;
 
         if (name === 'enviar_whatsapp') {
+            // WhatsApp
             let waError = null;
-            try {
-                await whatsapp.enviarMensaje(lead.telefono, input.mensaje);
-            } catch (e) {
-                waError = e.message;
-                console.error(`[Agente] WhatsApp error lead ${lead.id}:`, e.message);
+            if (lead.telefono) {
+                try {
+                    await whatsapp.enviarMensaje(lead.telefono, input.mensaje);
+                } catch (e) {
+                    waError = e.message;
+                    console.error(`[Agente] WhatsApp error lead ${lead.id}:`, e.message);
+                }
+                await AgentActividad.create({
+                    lead_id: lead.id,
+                    tipo: waError ? 'error' : 'mensaje_enviado',
+                    canal: 'whatsapp',
+                    mensaje: input.mensaje,
+                    resultado: waError ? `Error: ${waError}` : null,
+                    tokens_usados: tokensUsados
+                });
+            }
+            // Email automático si tiene correo
+            if (lead.email && config.gmail_user && config.gmail_app_password) {
+                let emailError = null;
+                try {
+                    await enviarEmail({
+                        gmailUser: config.gmail_user, gmailPass: config.gmail_app_password,
+                        nombreAgente: config.nombre_agente || 'Cristian',
+                        nombreEmpresa: config.nombre_empresa || 'AI Company',
+                        to: lead.email, subject: `Hola ${lead.nombre}, ¿buscas crecer en internet?`,
+                        body: input.mensaje,
+                    });
+                } catch (e) {
+                    emailError = e.message;
+                }
+                await AgentActividad.create({
+                    lead_id: lead.id,
+                    tipo: emailError ? 'error' : 'mensaje_enviado',
+                    canal: 'email',
+                    mensaje: input.mensaje,
+                    resultado: emailError ? `Error: ${emailError}` : null,
+                    tokens_usados: 0
+                });
             }
             await Lead.update(
-                {
-                    ultimo_contacto: new Date(),
-                    intentos_contacto: lead.intentos_contacto + 1,
-                    estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado
-                },
+                { ultimo_contacto: new Date(), intentos_contacto: lead.intentos_contacto + 1, estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado },
                 { where: { id: lead.id } }
             );
-            await AgentActividad.create({
-                lead_id: lead.id,
-                tipo: waError ? 'error' : 'mensaje_enviado',
-                canal: 'whatsapp',
-                mensaje: input.mensaje,
-                resultado: waError ? `Error al enviar: ${waError}` : null,
-                tokens_usados: tokensUsados
-            });
         }
 
         if (name === 'agendar_reunion') {
@@ -206,33 +228,50 @@ ${historialTexto || 'Sin historial previo — primer contacto.'}
         }
 
         if (name === 'enviar_email') {
-            let emailError = null;
-            try {
-                await enviarEmail({
-                    gmailUser:    config.gmail_user,
-                    gmailPass:    config.gmail_app_password,
-                    nombreAgente: config.nombre_agente || 'Cristian',
-                    nombreEmpresa: config.nombre_empresa || 'AI Company',
-                    to:      lead.email,
-                    subject: input.asunto,
-                    body:    input.cuerpo,
+            // Email
+            if (lead.email && config.gmail_user && config.gmail_app_password) {
+                let emailError = null;
+                try {
+                    await enviarEmail({
+                        gmailUser: config.gmail_user, gmailPass: config.gmail_app_password,
+                        nombreAgente: config.nombre_agente || 'Cristian',
+                        nombreEmpresa: config.nombre_empresa || 'AI Company',
+                        to: lead.email, subject: input.asunto, body: input.cuerpo,
+                    });
+                } catch (e) {
+                    emailError = e.message;
+                    console.error(`[Agente] Email error lead ${lead.id}:`, e.message);
+                }
+                await AgentActividad.create({
+                    lead_id: lead.id,
+                    tipo: emailError ? 'error' : 'mensaje_enviado',
+                    canal: 'email',
+                    mensaje: `[${input.asunto}] ${input.cuerpo}`,
+                    resultado: emailError ? `Error: ${emailError}` : null,
+                    tokens_usados: tokensUsados,
                 });
-            } catch (e) {
-                emailError = e.message;
-                console.error(`[Agente] Email error lead ${lead.id}:`, e.message);
+            }
+            // WhatsApp automático si tiene teléfono
+            if (lead.telefono) {
+                let waError = null;
+                try {
+                    await whatsapp.enviarMensaje(lead.telefono, input.cuerpo);
+                } catch (e) {
+                    waError = e.message;
+                }
+                await AgentActividad.create({
+                    lead_id: lead.id,
+                    tipo: waError ? 'error' : 'mensaje_enviado',
+                    canal: 'whatsapp',
+                    mensaje: input.cuerpo,
+                    resultado: waError ? `Error: ${waError}` : null,
+                    tokens_usados: 0
+                });
             }
             await Lead.update(
                 { ultimo_contacto: new Date(), intentos_contacto: lead.intentos_contacto + 1, estado: lead.estado === 'nuevo' ? 'contactado' : lead.estado },
                 { where: { id: lead.id } }
             );
-            await AgentActividad.create({
-                lead_id: lead.id,
-                tipo: emailError ? 'error' : 'mensaje_enviado',
-                canal: 'email',
-                mensaje: `[${input.asunto}] ${input.cuerpo}`,
-                resultado: emailError ? `Error al enviar: ${emailError}` : null,
-                tokens_usados: tokensUsados,
-            });
         }
 
         if (name === 'no_hacer_nada') {
