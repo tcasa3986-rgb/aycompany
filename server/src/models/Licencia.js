@@ -8,7 +8,9 @@ const Licencia = sequelize.define('Licencia', {
     activo:            { type: DataTypes.BOOLEAN, defaultValue: true },
     fecha_inicio:      { type: DataTypes.DATEONLY, allowNull: false },
     fecha_vencimiento: { type: DataTypes.DATEONLY, allowNull: false },
-    last_check:        { type: DataTypes.DATE }
+    last_check:          { type: DataTypes.DATE },
+    mp_subscription_id:  { type: DataTypes.STRING(100) },
+    suscripcion_activa:  { type: DataTypes.BOOLEAN, defaultValue: false }
 }, { tableName: 'licencias', timestamps: true, createdAt: 'created_at', updatedAt: false });
 
 module.exports = Licencia;
