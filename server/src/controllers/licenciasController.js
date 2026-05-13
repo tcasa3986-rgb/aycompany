@@ -1,8 +1,9 @@
 const { v4: uuidv4 } = require('uuid');
 const { Licencia, Cliente, Producto } = require('../models');
+const { notificarNuevaLicencia, notificarRenovacion } = require('../services/licenciaNotificaciones');
 
 const include = [
-    { model: Cliente,  as: 'cliente',  attributes: ['id', 'nombre', 'telefono'] },
+    { model: Cliente,  as: 'cliente',  attributes: ['id', 'nombre', 'telefono', 'email'] },
     { model: Producto, as: 'producto', attributes: ['id', 'nombre', 'precio_mensual'] }
 ];
 
@@ -24,6 +25,15 @@ exports.crear = async (req, res) => {
         fecha_vencimiento: fecha_vencimiento.toISOString().split('T')[0]
     });
     const completa = await Licencia.findByPk(licencia.id, { include });
+    if (completa?.cliente?.email) {
+        notificarNuevaLicencia({
+            clienteEmail:     completa.cliente.email,
+            clienteNombre:    completa.cliente.nombre,
+            productoNombre:   completa.producto?.nombre || 'Sistema',
+            fechaVencimiento: completa.fecha_vencimiento,
+            licenseKey:       completa.license_key
+        });
+    }
     res.json({ ok: true, data: completa });
 };
 
@@ -36,11 +46,19 @@ exports.toggle = async (req, res) => {
 
 exports.renovar = async (req, res) => {
     const { meses = 1 } = req.body;
-    const lic = await Licencia.findByPk(req.params.id);
+    const lic = await Licencia.findByPk(req.params.id, { include });
     if (!lic) return res.status(404).json({ ok: false, msg: 'No encontrada' });
     const base = new Date(lic.fecha_vencimiento) > new Date() ? new Date(lic.fecha_vencimiento) : new Date();
     base.setMonth(base.getMonth() + parseInt(meses));
     await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true });
+    if (lic.cliente?.email) {
+        notificarRenovacion({
+            clienteEmail:          lic.cliente.email,
+            clienteNombre:         lic.cliente.nombre,
+            productoNombre:        lic.producto?.nombre || 'Sistema',
+            nuevaFechaVencimiento: base.toISOString().split('T')[0]
+        });
+    }
     res.json({ ok: true, msg: `Renovada por ${meses} mes(es)`, fecha_vencimiento: base });
 };
 

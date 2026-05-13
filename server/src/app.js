@@ -14,6 +14,7 @@ const { startReminder }  = require('./services/meetingReminder');
 const { startFollowUp }  = require('./services/followUpService');
 const { iniciarScheduler } = require('./services/agentScheduler');
 const { iniciarProspectorScheduler } = require('./services/prospectorScheduler');
+const { iniciarLicenciaExpirationScheduler } = require('./services/licenciaExpirationScheduler');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -140,6 +141,7 @@ async function iniciar(intentos = 5) {
             startFollowUp();
             iniciarScheduler();
             iniciarProspectorScheduler();
+            iniciarLicenciaExpirationScheduler();
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);

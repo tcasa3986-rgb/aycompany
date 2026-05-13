@@ -1,6 +1,7 @@
 const { Pago, Cliente, Licencia, Producto } = require('../models');
 const { generarFactura } = require('./facturasController');
 const { MercadoPagoConfig, Preference, Payment, PreApproval } = require('mercadopago');
+const { notificarRenovacion } = require('../services/licenciaNotificaciones');
 
 const include = [
     { model: Cliente,  as: 'cliente',  attributes: ['id', 'nombre'] },
@@ -25,7 +26,12 @@ exports.crear = async (req, res) => {
         base.setMonth(base.getMonth() + parseInt(meses));
         await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true });
     }
-    const lic2 = await Licencia.findByPk(licencia_id, { include: [{ model: Producto, as: 'producto', attributes: ['nombre'] }] });
+    const lic2 = await Licencia.findByPk(licencia_id, {
+        include: [
+            { model: Producto, as: 'producto', attributes: ['nombre'] },
+            { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] }
+        ]
+    });
     await generarFactura({
         pago_id:     pago.id,
         cliente_id:  pago.cliente_id,
@@ -34,6 +40,15 @@ exports.crear = async (req, res) => {
         metodo_pago: pago.metodo_pago,
         fecha:       pago.fecha_pago
     });
+    if (lic2?.cliente?.email) {
+        notificarRenovacion({
+            clienteEmail:         lic2.cliente.email,
+            clienteNombre:        lic2.cliente.nombre,
+            productoNombre:       lic2.producto?.nombre || 'Sistema',
+            nuevaFechaVencimiento: lic?.fecha_vencimiento,
+            monto:                pago.monto
+        });
+    }
 
     res.json({ ok: true, data: pago, msg: 'Pago registrado y licencia renovada' });
 };
@@ -134,7 +149,12 @@ exports.mpWebhook = async (req, res) => {
             base.setMonth(base.getMonth() + 1);
             await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true });
 
-            const licConProd = await Licencia.findByPk(lic.id, { include: [{ model: Producto, as: 'producto', attributes: ['nombre'] }] });
+            const licConProd = await Licencia.findByPk(lic.id, {
+                include: [
+                    { model: Producto, as: 'producto', attributes: ['nombre'] },
+                    { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] }
+                ]
+            });
             const nuevoPago = await Pago.create({
                 licencia_id: lic.id, cliente_id: lic.cliente_id,
                 monto: pago.transaction_amount, fecha_pago: new Date().toISOString().split('T')[0],
@@ -146,6 +166,15 @@ exports.mpWebhook = async (req, res) => {
                 monto: pago.transaction_amount, metodo_pago: 'MercadoPago',
                 fecha: new Date().toISOString().split('T')[0]
             });
+            if (licConProd?.cliente?.email) {
+                notificarRenovacion({
+                    clienteEmail:          licConProd.cliente.email,
+                    clienteNombre:         licConProd.cliente.nombre,
+                    productoNombre:        licConProd.producto?.nombre || 'Sistema',
+                    nuevaFechaVencimiento: lic.fecha_vencimiento,
+                    monto:                 pago.transaction_amount
+                });
+            }
             console.log(`✅ Pago único MP — licencia ${licenseKey} renovada`);
         }
 
@@ -164,7 +193,12 @@ exports.mpWebhook = async (req, res) => {
             base.setMonth(base.getMonth() + 1);
             await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true, suscripcion_activa: true });
 
-            const licConProd = await Licencia.findByPk(lic.id, { include: [{ model: Producto, as: 'producto', attributes: ['nombre'] }] });
+            const licConProd = await Licencia.findByPk(lic.id, {
+                include: [
+                    { model: Producto, as: 'producto', attributes: ['nombre'] },
+                    { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] }
+                ]
+            });
             const nuevoPago = await Pago.create({
                 licencia_id: lic.id, cliente_id: lic.cliente_id,
                 monto: pago.transaction_amount, fecha_pago: new Date().toISOString().split('T')[0],
@@ -176,6 +210,15 @@ exports.mpWebhook = async (req, res) => {
                 monto: pago.transaction_amount, metodo_pago: 'MercadoPago',
                 fecha: new Date().toISOString().split('T')[0]
             });
+            if (licConProd?.cliente?.email) {
+                notificarRenovacion({
+                    clienteEmail:          licConProd.cliente.email,
+                    clienteNombre:         licConProd.cliente.nombre,
+                    productoNombre:        licConProd.producto?.nombre || 'Sistema',
+                    nuevaFechaVencimiento: lic.fecha_vencimiento,
+                    monto:                 pago.transaction_amount
+                });
+            }
             console.log(`✅ Cobro automático MP — licencia ${licenseKey} renovada`);
         }
 
