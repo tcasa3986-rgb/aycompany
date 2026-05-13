@@ -7,7 +7,7 @@ const LOGO_PATH = path.join(__dirname, '../assets/logo.png');
 function cop(n) {
     return '$' + Number(n).toLocaleString('es-CO') + ' COP';
 }
-function fecha(f) {
+function fechaLarga(f) {
     return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', {
         year: 'numeric', month: 'long', day: 'numeric'
     });
@@ -24,132 +24,162 @@ function generarPDFFactura({ numero, fecha: fechaStr, concepto, monto, metodo_pa
         doc.on('error', reject);
 
         const nombreEmpresa = empresa || process.env.NOMBRE_EMPRESA || 'AI Company CO';
-        const PW = 595; // ancho A4
-        const HEADER_H = 130;
-        const PURPLE_DARK  = '#1a0d3d';
-        const PURPLE_MID   = '#4f46e5';
-        const PURPLE_LIGHT = '#7c3aed';
-        const GREEN  = '#10b981';
-        const GRAY   = '#64748b';
-        const BORDER = '#e2e8f0';
+        const PW = 595;
+        const PH = 842;
 
-        // ══════════════════════════════════════════════════════
-        // BANDA SUPERIOR — fondo morado oscuro
-        // ══════════════════════════════════════════════════════
-        doc.rect(0, 0, PW, HEADER_H).fill(PURPLE_DARK);
+        const PURPLE      = '#5b21b6';
+        const PURPLE_MID  = '#7c3aed';
+        const PURPLE_LIGHT= '#ede9fe';
+        const PURPLE_SOFT = '#f5f3ff';
+        const GREEN       = '#059669';
+        const DARK        = '#1e1b4b';
+        const GRAY        = '#64748b';
+        const GRAY_LIGHT  = '#f8fafc';
+        const BORDER      = '#e2e8f0';
 
-        // Franja de acento morado claro (línea inferior del header)
-        doc.rect(0, HEADER_H - 4, PW, 4).fill(PURPLE_LIGHT);
+        // ── Barra superior morada (acento) ──────────────────────
+        doc.rect(0, 0, PW, 7).fill(PURPLE_MID);
 
-        // Logo (izquierda, centrado verticalmente en la banda)
-        const logoSize = 82;
+        // ── Encabezado blanco ────────────────────────────────────
+        // Logo (transparente — se ve perfecto sobre blanco)
+        const logoW = 100;
+        const logoH = 100;
         if (fs.existsSync(LOGO_PATH)) {
-            doc.image(LOGO_PATH, 24, (HEADER_H - logoSize) / 2, { width: logoSize, height: logoSize });
+            doc.image(LOGO_PATH, 36, 18, { width: logoW, height: logoH });
         }
 
-        // Nombre empresa y tagline (junto al logo)
-        doc.fillColor('#ffffff')
-           .fontSize(19).font('Helvetica-Bold')
-           .text(nombreEmpresa, 118, 32);
-        doc.fillColor('#a78bfa')
-           .fontSize(9).font('Helvetica')
-           .text('aicompanyco.com  ·  +57 321 267 4754', 118, 56);
+        // Nombre empresa
+        doc.fillColor(DARK)
+           .fontSize(20).font('Helvetica-Bold')
+           .text(nombreEmpresa, 148, 32);
 
-        // FACTURA + número (derecha)
-        doc.fillColor('#a78bfa')
-           .fontSize(10).font('Helvetica-Bold')
-           .text('FACTURA', 0, 30, { align: 'right', width: PW - 30 });
-        doc.fillColor('#ffffff')
-           .fontSize(22).font('Helvetica-Bold')
-           .text(numero, 0, 46, { align: 'right', width: PW - 30 });
-        doc.fillColor('#a78bfa')
-           .fontSize(9).font('Helvetica')
-           .text(`Fecha: ${fecha(fechaStr)}`, 0, 74, { align: 'right', width: PW - 30 });
-
-        // ══════════════════════════════════════════════════════
-        // CUERPO — fondo blanco
-        // ══════════════════════════════════════════════════════
-        const bodyY = HEADER_H + 28;
-
-        // ── Datos del cliente ──
         doc.fillColor(GRAY)
-           .fontSize(8).font('Helvetica-Bold')
-           .text('FACTURADO A', 40, bodyY);
+           .fontSize(9).font('Helvetica')
+           .text('aicompanyco.com', 148, 57)
+           .text('+57 321 267 4754  ·  Colombia', 148, 70);
 
-        doc.fillColor('#111')
-           .fontSize(14).font('Helvetica-Bold')
-           .text(clienteNombre || '—', 40, bodyY + 14);
+        // FACTURA label + número (esquina derecha)
+        doc.fillColor(PURPLE_MID)
+           .fontSize(10).font('Helvetica-Bold')
+           .text('FACTURA', 0, 32, { align: 'right', width: PW - 36 });
 
-        let cy = bodyY + 34;
+        doc.fillColor(DARK)
+           .fontSize(26).font('Helvetica-Bold')
+           .text(numero, 0, 46, { align: 'right', width: PW - 36 });
+
+        doc.fillColor(GRAY)
+           .fontSize(9).font('Helvetica')
+           .text(`Emitida el ${fechaLarga(fechaStr)}`, 0, 79, { align: 'right', width: PW - 36 });
+
+        // Línea divisoria header
+        const divY = 128;
+        doc.moveTo(36, divY).lineTo(PW - 36, divY).strokeColor(BORDER).lineWidth(1).stroke();
+
+        // ── Bloque cliente + info pago ───────────────────────────
+        const secY = divY + 22;
+
+        // Columna izquierda — datos del cliente
+        doc.fillColor(PURPLE_MID)
+           .fontSize(7.5).font('Helvetica-Bold')
+           .text('FACTURADO A', 36, secY);
+
+        doc.fillColor(DARK)
+           .fontSize(13).font('Helvetica-Bold')
+           .text(clienteNombre || '—', 36, secY + 13);
+
+        let cy = secY + 32;
         if (clienteEmail) {
-            doc.fillColor(GRAY).fontSize(9).font('Helvetica').text(clienteEmail, 40, cy);
+            doc.fillColor(GRAY).fontSize(9).font('Helvetica').text(clienteEmail, 36, cy);
             cy += 14;
         }
         if (clienteTelefono) {
-            doc.fillColor(GRAY).fontSize(9).font('Helvetica').text(clienteTelefono, 40, cy);
+            doc.fillColor(GRAY).fontSize(9).font('Helvetica').text(clienteTelefono, 36, cy);
             cy += 14;
         }
 
-        // Número de factura también en el cuerpo (pequeño, a la derecha)
-        doc.fillColor(GRAY).fontSize(8).font('Helvetica')
-           .text('N° de factura', PW - 200, bodyY, { width: 170, align: 'right' });
-        doc.fillColor(PURPLE_MID).fontSize(13).font('Helvetica-Bold')
-           .text(numero, PW - 200, bodyY + 13, { width: 170, align: 'right' });
+        // Columna derecha — método de pago
+        doc.fillColor(PURPLE_MID)
+           .fontSize(7.5).font('Helvetica-Bold')
+           .text('MÉTODO DE PAGO', 360, secY);
+        doc.fillColor(DARK)
+           .fontSize(11).font('Helvetica-Bold')
+           .text(metodo_pago || 'Efectivo', 360, secY + 13);
 
-        // ── Separador ──
-        const tableY = Math.max(cy + 18, bodyY + 80);
-        doc.moveTo(40, tableY).lineTo(PW - 40, tableY).strokeColor(BORDER).lineWidth(1).stroke();
+        doc.fillColor(PURPLE_MID)
+           .fontSize(7.5).font('Helvetica-Bold')
+           .text('FECHA DE EMISIÓN', 360, secY + 38);
+        doc.fillColor(DARK)
+           .fontSize(10).font('Helvetica')
+           .text(fechaLarga(fechaStr), 360, secY + 51);
 
-        // ── Cabecera tabla ──
-        const thY = tableY + 8;
-        doc.rect(40, thY, PW - 80, 26).fill(PURPLE_MID);
-        doc.fillColor('#fff').fontSize(9).font('Helvetica-Bold')
-           .text('DESCRIPCIÓN / CONCEPTO', 52, thY + 8)
-           .text('IMPORTE', PW - 130, thY + 8, { width: 90, align: 'right' });
+        // ── Tabla ────────────────────────────────────────────────
+        const tableY = Math.max(cy + 22, secY + 100);
 
-        // ── Fila de concepto ──
-        const rowY = thY + 26;
-        doc.rect(40, rowY, PW - 80, 40).fill('#f8f7ff');
-        doc.fillColor('#1e1b4b').fontSize(10).font('Helvetica')
-           .text(concepto, 52, rowY + 12, { width: PW - 170 });
-        doc.fillColor(GREEN).fontSize(12).font('Helvetica-Bold')
-           .text(cop(monto), PW - 130, rowY + 11, { width: 90, align: 'right' });
+        // Cabecera tabla
+        doc.rect(36, tableY, PW - 72, 28).fill(DARK);
+        doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold')
+           .text('DESCRIPCIÓN', 50, tableY + 9)
+           .text('CANTIDAD', 340, tableY + 9, { width: 70, align: 'center' })
+           .text('IMPORTE', PW - 130, tableY + 9, { width: 88, align: 'right' });
 
-        // Borde tabla
-        doc.rect(40, thY, PW - 80, 66).strokeColor(BORDER).lineWidth(1).stroke();
+        // Fila
+        const rowY = tableY + 28;
+        doc.rect(36, rowY, PW - 72, 44).fill(PURPLE_SOFT);
+        doc.rect(36, rowY, PW - 72, 44).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-        // ── Total ──
-        const totY = rowY + 56;
+        doc.fillColor(DARK).fontSize(10).font('Helvetica')
+           .text(concepto, 50, rowY + 14, { width: 280 });
+        doc.fillColor(GRAY).fontSize(10).font('Helvetica')
+           .text('1', 340, rowY + 14, { width: 70, align: 'center' });
+        doc.fillColor(GREEN).fontSize(11).font('Helvetica-Bold')
+           .text(cop(monto), PW - 130, rowY + 13, { width: 88, align: 'right' });
 
-        doc.rect(PW - 220, totY, 180, 44).fill('#f8f7ff').strokeColor(PURPLE_LIGHT).lineWidth(1).stroke();
+        // ── Subtotal / Total ──────────────────────────────────────
+        const sumY = rowY + 56;
+
+        // Línea subtotal
         doc.fillColor(GRAY).fontSize(9).font('Helvetica')
-           .text('TOTAL A PAGAR', PW - 212, totY + 7, { width: 164, align: 'center' });
-        doc.fillColor(PURPLE_DARK).fontSize(17).font('Helvetica-Bold')
-           .text(cop(monto), PW - 212, totY + 20, { width: 164, align: 'center' });
+           .text('Subtotal', PW - 220, sumY, { width: 90, align: 'right' });
+        doc.fillColor(DARK).fontSize(9).font('Helvetica')
+           .text(cop(monto), PW - 125, sumY, { width: 88, align: 'right' });
 
-        // Método de pago
-        doc.fillColor(GRAY).fontSize(9).font('Helvetica')
-           .text(`Método de pago: ${metodo_pago || 'efectivo'}`, 40, totY + 16);
+        doc.moveTo(PW - 220, sumY + 16).lineTo(PW - 36, sumY + 16).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-        // ── Separador pie ──
-        const pieY = totY + 70;
-        doc.moveTo(40, pieY).lineTo(PW - 40, pieY).strokeColor(BORDER).lineWidth(1).stroke();
+        // Caja TOTAL
+        const totBoxY = sumY + 22;
+        doc.rect(PW - 220, totBoxY, 184, 48).fill(PURPLE).strokeColor(PURPLE).stroke();
+        doc.fillColor('#ffffff').fontSize(9).font('Helvetica')
+           .text('TOTAL', PW - 212, totBoxY + 9, { width: 168, align: 'center' });
+        doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold')
+           .text(cop(monto), PW - 212, totBoxY + 23, { width: 168, align: 'center' });
 
-        // ── Pie de página ──
-        doc.rect(0, pieY + 1, PW, 90).fill('#faf9ff');
-
-        doc.fillColor(PURPLE_DARK).fontSize(10).font('Helvetica-Bold')
-           .text(nombreEmpresa, 40, pieY + 16);
+        // ── Nota / agradecimiento ─────────────────────────────────
+        const notaY = totBoxY + 72;
+        doc.rect(36, notaY, PW - 72, 40).fill(GRAY_LIGHT).strokeColor(BORDER).lineWidth(0.5).stroke();
+        doc.fillColor(PURPLE_MID).fontSize(8).font('Helvetica-Bold')
+           .text('NOTA:', 50, notaY + 10);
         doc.fillColor(GRAY).fontSize(8).font('Helvetica')
-           .text('aicompanyco.com  ·  +57 321 267 4754  ·  Colombia', 40, pieY + 31);
+           .text('Gracias por su pago. Este documento es una constancia de pago generada electrónicamente.', 80, notaY + 10, { width: PW - 130 });
+        doc.fillColor(GRAY).fontSize(8)
+           .text('No requiere firma ni sello para su validez.', 80, notaY + 22, { width: PW - 130 });
 
-        doc.fillColor('#c4b5fd').fontSize(8).font('Helvetica')
-           .text('Este documento es una constancia de pago generada electrónicamente.', 40, pieY + 50);
-        doc.text('No requiere firma ni sello para su validez.', 40, pieY + 62);
+        // ── Pie de página ─────────────────────────────────────────
+        const pieY = PH - 60;
+        doc.rect(0, pieY, PW, 60).fill(PURPLE_SOFT);
+        doc.moveTo(0, pieY).lineTo(PW, pieY).strokeColor(BORDER).lineWidth(1).stroke();
 
-        // Número de factura repetido en el pie (marca de agua pequeña)
-        doc.fillColor('#e2e8f0').fontSize(9).font('Helvetica-Bold')
-           .text(numero, 0, pieY + 48, { align: 'right', width: PW - 40 });
+        // Barra inferior de color
+        doc.rect(0, PH - 7, PW, 7).fill(PURPLE_MID);
+
+        doc.fillColor(DARK).fontSize(9).font('Helvetica-Bold')
+           .text(nombreEmpresa, 36, pieY + 14);
+        doc.fillColor(GRAY).fontSize(8).font('Helvetica')
+           .text('aicompanyco.com  ·  +57 321 267 4754', 36, pieY + 28);
+
+        doc.fillColor(PURPLE_MID).fontSize(9).font('Helvetica-Bold')
+           .text(numero, 0, pieY + 14, { align: 'right', width: PW - 36 });
+        doc.fillColor(GRAY).fontSize(8).font('Helvetica')
+           .text('Documento electrónico', 0, pieY + 28, { align: 'right', width: PW - 36 });
 
         doc.end();
     });
