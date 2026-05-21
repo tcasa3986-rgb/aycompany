@@ -6,8 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Calendar, Package, LogOut,
     Plus, X, Phone, Mail, ChevronRight, CheckCircle,
-    Clock, UserPlus, TrendingUp, ExternalLink, Copy, Share2
+    Clock, UserPlus, TrendingUp, ExternalLink, Copy, Share2,
+    Lock, Eye, EyeOff, MonitorPlay
 } from 'lucide-react';
+
+const CAT_COLORS = {
+    CRM: '#0284c7', ERP: '#7c3aed', Salud: '#059669', Comercio: '#d97706',
+    Servicios: '#4f46e5', Finanzas: '#dc2626', IA: '#db2777', Sistema: '#475569'
+};
 
 const TABS = [
     { key: 'dashboard',  label: 'Dashboard',   icon: LayoutDashboard },
@@ -36,6 +42,8 @@ export default function PortalVendedor() {
     const [equipo,     setEquipo]     = useState(null);
     const [modalLead,  setModalLead]  = useState(false);
     const [modalReu,   setModalReu]   = useState(false);
+    const [demoModal,  setDemoModal]  = useState(null);   // producto seleccionado
+    const [showPass,   setShowPass]   = useState(false);
     const [formLead,   setFormLead]   = useState({ nombre:'', telefono:'', email:'', empresa:'', sistema_interes:'', notas:'' });
     const [formReu,    setFormReu]    = useState({ prospecto:'', telefono:'', sistema:'', fecha:'', duracion:60, notas:'' });
 
@@ -261,42 +269,54 @@ export default function PortalVendedor() {
                 {/* ── CATÁLOGO ── */}
                 {tab === 'catalogo' && (
                     <div style={{ padding: 28 }}>
-                        <div style={{ marginBottom: 20 }}>
+                        <div style={{ marginBottom: 22 }}>
                             <h1 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Catálogo de sistemas</h1>
-                            <p style={{ color: '#64748b', fontSize: '.82rem', marginTop: 2 }}>Todos los sistemas que puedes vender — desde $250.000/mes</p>
+                            <p style={{ color: '#64748b', fontSize: '.82rem', marginTop: 2 }}>
+                                Haz clic en cualquier sistema para ver los detalles y abrir el demo en vivo
+                            </p>
                         </div>
 
-                        {categorias.map(cat => (
-                            <div key={cat} style={{ marginBottom: 28 }}>
-                                <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>{cat}</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 14 }}>
-                                    {catalogo.filter(p => p.categoria === cat).map(p => (
-                                        <div key={p.id} style={{ background: '#fff', borderRadius: 12, padding: '16px 18px', boxShadow: '0 1px 4px rgba(0,0,0,.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                            <div>
-                                                <div style={{ fontWeight: 700, fontSize: '.92rem', color: '#1e293b', marginBottom: 4 }}>{p.nombre}</div>
-                                                <div style={{ fontSize: '.8rem', color: '#64748b', lineHeight: 1.5 }}>{p.descripcion_venta || p.descripcion}</div>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                                                <div>
-                                                    <span style={{ fontWeight: 700, color: '#10b981', fontSize: '.95rem' }}>$250.000</span>
-                                                    <span style={{ fontSize: '.72rem', color: '#94a3b8' }}>/mes</span>
+                        {categorias.map(cat => {
+                            const catColor = CAT_COLORS[cat] || '#6366f1';
+                            return (
+                                <div key={cat} style={{ marginBottom: 28 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: catColor }}/>
+                                        <span style={{ fontSize: '.78rem', fontWeight: 700, color: catColor, textTransform: 'uppercase', letterSpacing: '.08em' }}>{cat}</span>
+                                        <span style={{ fontSize: '.72rem', color: '#94a3b8' }}>({catalogo.filter(p => p.categoria === cat).length})</span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
+                                        {catalogo.filter(p => p.categoria === cat).map(p => (
+                                            <div key={p.id}
+                                                onClick={() => { setDemoModal(p); setShowPass(false); }}
+                                                style={{ background: '#fff', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,.07)', cursor: 'pointer', borderLeft: `3px solid ${catColor}`, transition: 'box-shadow .15s', display: 'flex', flexDirection: 'column', gap: 8 }}
+                                                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.12)'}
+                                                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,.07)'}
+                                            >
+                                                <div style={{ fontWeight: 700, fontSize: '.9rem', color: '#1e293b' }}>{p.nombre}</div>
+                                                <div style={{ fontSize: '.78rem', color: '#64748b', lineHeight: 1.45, flex: 1 }}>
+                                                    {(p.descripcion_venta || p.descripcion || '').slice(0, 90)}{(p.descripcion_venta || p.descripcion || '').length > 90 ? '…' : ''}
                                                 </div>
-                                                <div style={{ display: 'flex', gap: 6 }}>
-                                                    {p.demo_url && (
-                                                        <a href={p.demo_url} target="_blank" rel="noopener noreferrer" style={{ background: '#ede9fe', color: '#6366f1', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: '.75rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                            <ExternalLink size={11}/> Demo
-                                                        </a>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                                                    <span style={{ fontWeight: 700, color: '#10b981', fontSize: '.88rem' }}>
+                                                        ${Number(p.precio_mensual).toLocaleString('es')}<span style={{ fontSize: '.68rem', color: '#94a3b8', fontWeight: 400 }}>/mes</span>
+                                                    </span>
+                                                    {p.demo_url ? (
+                                                        <span style={{ fontSize: '.68rem', color: '#059669', background: '#d1fae5', padding: '2px 7px', borderRadius: 20, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            <MonitorPlay size={9}/> Demo disponible
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ fontSize: '.68rem', color: '#94a3b8', background: '#f1f5f9', padding: '2px 7px', borderRadius: 20 }}>
+                                                            Ver detalle →
+                                                        </span>
                                                     )}
-                                                    <button onClick={() => { setFormReu(f => ({ ...f, sistema: p.nombre })); setModalReu(true); }} style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: '.75rem', fontWeight: 600, cursor: 'pointer' }}>
-                                                        Agendar reunión
-                                                    </button>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -374,6 +394,107 @@ export default function PortalVendedor() {
                     </div>
                 )}
             </main>
+
+            {/* Modal: demo del sistema */}
+            {demoModal && (() => {
+                const p = demoModal;
+                const catColor = CAT_COLORS[p.categoria] || '#6366f1';
+                return (
+                    <div style={overlay} onClick={() => setDemoModal(null)}>
+                        <div style={{ ...modalBox, width: 520, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                            {/* Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                <div>
+                                    <span style={{ fontSize: '.7rem', fontWeight: 700, color: catColor, background: catColor + '18', padding: '2px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                                        {p.categoria}
+                                    </span>
+                                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', marginTop: 8 }}>{p.nombre}</h2>
+                                </div>
+                                <button onClick={() => setDemoModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><X size={20}/></button>
+                            </div>
+
+                            {/* Descripción */}
+                            <p style={{ fontSize: '.88rem', color: '#475569', lineHeight: 1.6, marginBottom: 18 }}>
+                                {p.descripcion_venta || p.descripcion || 'Sistema de gestión empresarial.'}
+                            </p>
+
+                            {/* Precio */}
+                            <div style={{ background: '#f8fafc', borderRadius: 10, padding: '12px 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '.85rem', color: '#64748b' }}>Precio mensual desde</span>
+                                <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981' }}>
+                                    ${Number(p.precio_mensual).toLocaleString('es')}
+                                    <span style={{ fontSize: '.75rem', fontWeight: 400, color: '#94a3b8' }}>/mes</span>
+                                </span>
+                            </div>
+
+                            {/* Demo */}
+                            {p.demo_url ? (
+                                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '16px 18px', marginBottom: 18 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '.88rem', color: '#15803d', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <MonitorPlay size={15}/> Demo en vivo
+                                    </div>
+
+                                    {(p.demo_usuario || p.demo_password) && (
+                                        <div style={{ background: '#fff', borderRadius: 8, padding: '12px 14px', marginBottom: 12, border: '1px solid #d1fae5' }}>
+                                            <div style={{ fontSize: '.75rem', fontWeight: 700, color: '#64748b', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                <Lock size={11}/> CREDENCIALES DE ACCESO
+                                            </div>
+                                            {p.demo_usuario && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                    <span style={{ fontSize: '.82rem', color: '#64748b' }}>Usuario:</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <code style={{ background: '#f1f5f9', padding: '3px 10px', borderRadius: 6, fontSize: '.85rem', color: '#1e293b', fontWeight: 600 }}>{p.demo_usuario}</code>
+                                                        <button onClick={() => { navigator.clipboard.writeText(p.demo_usuario); toast.success('Usuario copiado'); }}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1', padding: 0 }}>
+                                                            <Copy size={13}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {p.demo_password && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '.82rem', color: '#64748b' }}>Contraseña:</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <code style={{ background: '#f1f5f9', padding: '3px 10px', borderRadius: 6, fontSize: '.85rem', color: '#1e293b', fontWeight: 600 }}>
+                                                            {showPass ? p.demo_password : '••••••••'}
+                                                        </code>
+                                                        <button onClick={() => setShowPass(s => !s)}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}>
+                                                            {showPass ? <EyeOff size={13}/> : <Eye size={13}/>}
+                                                        </button>
+                                                        <button onClick={() => { navigator.clipboard.writeText(p.demo_password); toast.success('Contraseña copiada'); }}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1', padding: 0 }}>
+                                                            <Copy size={13}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <a href={p.demo_url} target="_blank" rel="noopener noreferrer"
+                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 20px', background: '#16a34a', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: '.95rem', textDecoration: 'none', width: '100%', boxSizing: 'border-box' }}>
+                                        <ExternalLink size={16}/> Abrir demo en nueva pestaña
+                                    </a>
+                                </div>
+                            ) : (
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px 18px', marginBottom: 18, textAlign: 'center' }}>
+                                    <p style={{ fontSize: '.85rem', color: '#94a3b8', margin: 0 }}>
+                                        Demo no configurado aún — agenda una reunión para mostrar el sistema al cliente
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Agendar */}
+                            <button
+                                onClick={() => { setFormReu(f => ({ ...f, sistema: p.nombre })); setDemoModal(null); setModalReu(true); }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: '.9rem', cursor: 'pointer', width: '100%' }}>
+                                <Calendar size={15}/> Agendar reunión con este sistema
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Modal: nuevo lead */}
             {modalLead && (

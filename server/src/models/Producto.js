@@ -8,6 +8,8 @@ const Producto = sequelize.define('Producto', {
     precio_mensual:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 250000 },
     categoria:          { type: DataTypes.STRING(60), defaultValue: 'Sistema' },
     demo_url:           { type: DataTypes.STRING(300) },
+    demo_usuario:       { type: DataTypes.STRING(100) },
+    demo_password:      { type: DataTypes.STRING(100) },
     imagen_url:         { type: DataTypes.STRING(300) },
     visible_vendedor:   { type: DataTypes.BOOLEAN, defaultValue: true },
     activo:             { type: DataTypes.BOOLEAN, defaultValue: true }
