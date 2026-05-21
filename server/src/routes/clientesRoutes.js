@@ -1,8 +1,10 @@
 const router = require('express').Router();
-const auth   = require('../middlewares/auth');
+const auth        = require('../middlewares/auth');
 const ctrl        = require('../controllers/clientesController');
 const fichaCtrl   = require('../controllers/fichaClienteController');
+
 router.use(auth);
+router.use(auth.requireRol(['admin', 'soporte']));
 router.get('/',                   ctrl.listar);
 router.get('/:id/ficha',          fichaCtrl.ficha);
 router.get('/:id',                ctrl.obtener);

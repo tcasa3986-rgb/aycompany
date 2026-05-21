@@ -1,5 +1,6 @@
 const { Lead, Cliente, Producto, Reunion, Licencia, Usuario } = require('../models');
-const { Op } = require('sequelize');
+const { Op }      = require('sequelize');
+const sequelize   = require('../config/db');
 const telegramService = require('../services/telegramService');
 
 // ── Catálogo de sistemas de AI Company ───────────────────────────────────────
@@ -50,80 +51,84 @@ async function seedProductos() {
         }
     }
 }
+exports.seedProductos = seedProductos;
+
+const e500 = (res, e) => { console.error(e.message); res.status(500).json({ ok: false, msg: 'Error del servidor' }); };
 
 // GET /api/vendedor/catalogo
 exports.catalogo = async (req, res) => {
-    await seedProductos();
-    const productos = await Producto.findAll({
-        where: { activo: true, visible_vendedor: true },
-        order: [['categoria', 'ASC'], ['nombre', 'ASC']]
-    });
-    res.json({ ok: true, data: productos });
+    try {
+        const productos = await Producto.findAll({
+            where: { activo: true, visible_vendedor: true },
+            order: [['categoria', 'ASC'], ['nombre', 'ASC']]
+        });
+        res.json({ ok: true, data: productos });
+    } catch (e) { e500(res, e); }
 };
 
 // GET /api/vendedor/stats
 exports.stats = async (req, res) => {
-    const vendedorId = req.user.id;
-    const ahora      = new Date();
-    const inicioMes  = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    try {
+        const vendedorId = req.user.id;
+        const ahora      = new Date();
+        const inicioMes  = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
-    const [leadsActivos, reunionesPendientes, clientesMes, clientesTotal] = await Promise.all([
-        Lead.count({ where: { vendedor_id: vendedorId, estado: { [Op.notIn]: ['cliente', 'descartado', 'sin_respuesta'] } } }),
-        Reunion.count({ where: { fecha: { [Op.gte]: ahora }, estado: 'pendiente', descripcion: { [Op.like]: `%${req.user.nombre}%` } } }),
-        Cliente.count({ where: { vendedor_id: vendedorId, created_at: { [Op.gte]: inicioMes } } }),
-        Cliente.count({ where: { vendedor_id: vendedorId } })
-    ]);
+        const [leadsActivos, clientesMes, clientesTotal] = await Promise.all([
+            Lead.count({ where: { vendedor_id: vendedorId, estado: { [Op.notIn]: ['cliente', 'descartado', 'sin_respuesta'] } } }),
+            Cliente.count({ where: { vendedor_id: vendedorId, created_at: { [Op.gte]: inicioMes } } }),
+            Cliente.count({ where: { vendedor_id: vendedorId } })
+        ]);
 
-    // Reuniones del vendedor (por participantes que contenga su nombre)
-    const reuniones = await Reunion.findAll({
-        where: { fecha: { [Op.gte]: ahora }, estado: 'pendiente' },
-        order: [['fecha', 'ASC']],
-        limit: 10
-    });
+        const reuniones = await Reunion.findAll({
+            where: { fecha: { [Op.gte]: ahora }, estado: 'pendiente', descripcion: { [Op.like]: `%${req.user.nombre}%` } },
+            order: [['fecha', 'ASC']],
+            limit: 10
+        });
 
-    res.json({ ok: true, data: { leadsActivos, reunionesPendientes: reuniones.length, clientesMes, clientesTotal, reuniones } });
+        res.json({ ok: true, data: { leadsActivos, reunionesPendientes: reuniones.length, clientesMes, clientesTotal, reuniones } });
+    } catch (e) { e500(res, e); }
 };
 
 // GET /api/vendedor/leads
 exports.leads = async (req, res) => {
-    const leads = await Lead.findAll({
-        where: { vendedor_id: req.user.id },
-        order: [['created_at', 'DESC']]
-    });
-    res.json({ ok: true, data: leads });
+    try {
+        const leads = await Lead.findAll({
+            where: { vendedor_id: req.user.id },
+            order: [['created_at', 'DESC']]
+        });
+        res.json({ ok: true, data: leads });
+    } catch (e) { e500(res, e); }
 };
 
 // POST /api/vendedor/leads
 exports.crearLead = async (req, res) => {
-    const lead = await Lead.create({
-        ...req.body,
-        vendedor_id: req.user.id,
-        fuente: 'vendedor'
-    });
-
-    // Notificar al admin
-    telegramService.enviar(
-        `👤 *Nuevo lead registrado*\n\n` +
-        `🏷 *Vendedor:* ${req.user.nombre}\n` +
-        `👤 *Prospecto:* ${lead.nombre}\n` +
-        `🏢 *Empresa:* ${lead.empresa || '—'}\n` +
-        `📱 *Teléfono:* ${lead.telefono || '—'}\n` +
-        `🖥 *Sistema de interés:* ${lead.sistema_interes || '—'}`
-    ).catch(() => {});
-
-    res.status(201).json({ ok: true, data: lead });
+    try {
+        const lead = await Lead.create({ ...req.body, vendedor_id: req.user.id, fuente: 'vendedor' });
+        telegramService.enviar(
+            `👤 *Nuevo lead registrado*\n\n` +
+            `🏷 *Vendedor:* ${req.user.nombre}\n` +
+            `👤 *Prospecto:* ${lead.nombre}\n` +
+            `🏢 *Empresa:* ${lead.empresa || '—'}\n` +
+            `📱 *Teléfono:* ${lead.telefono || '—'}\n` +
+            `🖥 *Sistema de interés:* ${lead.sistema_interes || '—'}`
+        ).catch(() => {});
+        res.status(201).json({ ok: true, data: lead });
+    } catch (e) { e500(res, e); }
 };
 
 // PUT /api/vendedor/leads/:id
 exports.actualizarLead = async (req, res) => {
-    const lead = await Lead.findOne({ where: { id: req.params.id, vendedor_id: req.user.id } });
-    if (!lead) return res.status(404).json({ ok: false, msg: 'Lead no encontrado' });
-    await lead.update(req.body);
-    res.json({ ok: true, data: lead });
+    try {
+        const lead = await Lead.findOne({ where: { id: req.params.id, vendedor_id: req.user.id } });
+        if (!lead) return res.status(404).json({ ok: false, msg: 'Lead no encontrado' });
+        await lead.update(req.body);
+        res.json({ ok: true, data: lead });
+    } catch (e) { e500(res, e); }
 };
 
 // POST /api/vendedor/reuniones
 exports.agendarReunion = async (req, res) => {
+  try {
     const { prospecto, telefono, sistema, fecha, duracion = 60, notas } = req.body;
     if (!prospecto || !fecha) return res.status(400).json({ ok: false, msg: 'Prospecto y fecha son requeridos' });
 
@@ -165,34 +170,33 @@ exports.agendarReunion = async (req, res) => {
     ).catch(() => {});
 
     res.status(201).json({ ok: true, data: reunion, msg: 'Reunión agendada y notificada al admin' });
+  } catch (e) { e500(res, e); }
 };
 
 // GET /api/vendedor/mi-equipo
 exports.miEquipo = async (req, res) => {
-    const yo = await Usuario.findByPk(req.user.id, { attributes: ['id', 'nombre', 'codigo_referido'] });
-
-    const equipo = await Usuario.findAll({
-        where: { referido_por: req.user.id, rol: 'vendedor' },
-        attributes: ['id', 'nombre', 'email', 'ciudad', 'activo', 'created_at']
-    });
-
-    const equipoEnriquecido = await Promise.all(equipo.map(async m => {
-        const [leads, clientes] = await Promise.all([
-            Lead.count({ where: { vendedor_id: m.id } }),
-            Cliente.count({ where: { vendedor_id: m.id } })
-        ]);
-        return { ...m.toJSON(), leads, clientes };
-    }));
-
-    res.json({ ok: true, data: { codigo_referido: yo?.codigo_referido, equipo: equipoEnriquecido } });
+    try {
+        const yo = await Usuario.findByPk(req.user.id, { attributes: ['id', 'nombre', 'codigo_referido'] });
+        const equipo = await Usuario.findAll({
+            where: { referido_por: req.user.id, rol: 'vendedor' },
+            attributes: [
+                'id', 'nombre', 'email', 'ciudad', 'activo', 'created_at',
+                [sequelize.literal(`(SELECT COUNT(*) FROM leads WHERE leads.vendedor_id = Usuario.id)`), 'leads'],
+                [sequelize.literal(`(SELECT COUNT(*) FROM clientes WHERE clientes.vendedor_id = Usuario.id)`), 'clientes'],
+            ]
+        });
+        res.json({ ok: true, data: { codigo_referido: yo?.codigo_referido, equipo } });
+    } catch (e) { e500(res, e); }
 };
 
 // GET /api/vendedor/clientes
 exports.clientes = async (req, res) => {
-    const clientes = await Cliente.findAll({
-        where: { vendedor_id: req.user.id },
-        include: [{ model: Licencia, as: 'licencias', attributes: ['id', 'activo', 'fecha_vencimiento'] }],
-        order: [['created_at', 'DESC']]
-    });
-    res.json({ ok: true, data: clientes });
+    try {
+        const clientes = await Cliente.findAll({
+            where: { vendedor_id: req.user.id },
+            include: [{ model: Licencia, as: 'licencias', attributes: ['id', 'activo', 'fecha_vencimiento'] }],
+            order: [['created_at', 'DESC']]
+        });
+        res.json({ ok: true, data: clientes });
+    } catch (e) { e500(res, e); }
 };

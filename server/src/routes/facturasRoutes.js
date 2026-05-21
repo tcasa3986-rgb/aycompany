@@ -3,6 +3,7 @@ const auth   = require('../middlewares/auth');
 const ctrl   = require('../controllers/facturasController');
 
 router.use(auth);
+router.use(auth.requireRol(['admin']));
 router.get('/',                  ctrl.listar);
 router.get('/exportar/excel',    ctrl.exportarExcel);
 router.get('/:id/pdf',           ctrl.descargarPDF);

@@ -37,8 +37,8 @@ export default function Vendedores() {
         navigator.clipboard.writeText(link).then(() => toast.success('Enlace copiado'));
     }
 
-    const totalLeads    = vendedores.reduce((s, v) => s + (v.leads || 0), 0);
-    const totalClientes = vendedores.reduce((s, v) => s + (v.clientes || 0), 0);
+    const totalLeads    = vendedores.reduce((s, v) => s + (Number(v.leads) || 0), 0);
+    const totalClientes = vendedores.reduce((s, v) => s + (Number(v.clientes) || 0), 0);
     const totalEquipo   = vendedores.reduce((s, v) => s + (v.equipo?.length || 0), 0);
 
     return (
@@ -112,9 +112,9 @@ export default function Vendedores() {
 
                                 {/* Stats */}
                                 <div style={{ display: 'flex', gap: 20, flexShrink: 0 }}>
-                                    <Stat label="Leads"    value={v.leads}           color="#f59e0b" />
-                                    <Stat label="Clientes" value={v.clientes}        color="#10b981" />
-                                    <Stat label="Equipo"   value={v.equipo?.length}  color="#6366f1" />
+                                    <Stat label="Leads"    value={Number(v.leads)}        color="#f59e0b" />
+                                    <Stat label="Clientes" value={Number(v.clientes)}     color="#10b981" />
+                                    <Stat label="Equipo"   value={v.equipo?.length ?? 0}  color="#6366f1" />
                                 </div>
 
                                 {/* Acciones */}

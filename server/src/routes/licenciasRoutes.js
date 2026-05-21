@@ -6,9 +6,10 @@ const ctrl   = require('../controllers/licenciasController');
 router.post('/validar', ctrl.validar);
 
 router.use(auth);
-router.get('/',              ctrl.listar);
-router.post('/',             ctrl.crear);
-router.put('/:id/toggle',   ctrl.toggle);
-router.put('/:id/renovar',  ctrl.renovar);
-router.delete('/:id',       ctrl.eliminar);
+router.use(auth.requireRol(['admin']));
+router.get('/',             ctrl.listar);
+router.post('/',            ctrl.crear);
+router.put('/:id/toggle',  ctrl.toggle);
+router.put('/:id/renovar', ctrl.renovar);
+router.delete('/:id',      ctrl.eliminar);
 module.exports = router;

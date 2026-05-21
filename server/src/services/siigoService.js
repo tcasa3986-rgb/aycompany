@@ -1,5 +1,4 @@
-const fetch = require('node-fetch');
-
+// Usa fetch global de Node 18+ (no requiere node-fetch)
 const BASE = 'https://api.siigo.com';
 
 async function getToken() {

@@ -10,8 +10,9 @@ router.post('/mp/suscripcion/:license_key',     ctrl.mpCrearSuscripcion);
 router.post('/mp/cancelar/:license_key',        ctrl.mpCancelarSuscripcion);
 router.get( '/mp/validar/:license_key',         ctrl.validarLicencia);
 
-// Protegidas
+// Protegidas — solo admin
 router.use(auth);
+router.use(auth.requireRol(['admin']));
 router.get('/',       ctrl.listar);
 router.post('/',      ctrl.crear);
 router.delete('/:id', ctrl.eliminar);

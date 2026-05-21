@@ -8,6 +8,7 @@ const path      = require('path');
 const fs        = require('fs');
 const sequelize = require('./config/db');
 const { Usuario } = require('./models');
+const { seedProductos } = require('./controllers/portalVendedorController');
 const { initBot } = require('./services/plataformaBot');
 const { startPoller }   = require('./services/facebookPoller');
 const { startReminder }  = require('./services/meetingReminder');
@@ -62,7 +63,8 @@ const authLimiter = rateLimit({
     message: { ok: false, msg: 'Demasiados intentos de inicio de sesión, espera 15 minutos' },
     skipSuccessfulRequests: true
 });
-app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/login',             authLimiter);
+app.use('/api/auth/registro-vendedor', authLimiter);
 
 // ── Rate limiting para webhooks externos (más permisivo) ─────────────────────
 const webhookLimiter = rateLimit({
@@ -146,6 +148,7 @@ async function iniciar(intentos = 5) {
             await sequelize.authenticate();
             await sequelize.sync({ alter: true });
             await seedAdmin();
+            await seedProductos();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
             initBot();
             startPoller();

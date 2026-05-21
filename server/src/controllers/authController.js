@@ -68,6 +68,10 @@ exports.login = async (req, res) => {
             return res.status(401).json({ ok: false, msg: 'Credenciales incorrectas' });
         }
 
+        if (user.activo === false) {
+            return res.status(403).json({ ok: false, msg: 'Tu cuenta está desactivada. Contacta al administrador.' });
+        }
+
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) {
             registrarFallo(emailLimpio);
@@ -84,10 +88,11 @@ exports.login = async (req, res) => {
         limpiarIntentos(emailLimpio);
         console.log(`✅ Login: ${emailLimpio} — IP: ${req.ip}`);
 
+        const expiresIn = user.rol === 'vendedor' ? '7d' : (process.env.JWT_EXPIRES_IN || '12h');
         const token = jwt.sign(
             { id: user.id, nombre: user.nombre, rol: user.rol },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '12h' }
+            { expiresIn }
         );
 
         res.json({ ok: true, token, user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } });

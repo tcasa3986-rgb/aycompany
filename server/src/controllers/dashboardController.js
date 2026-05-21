@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 
 exports.stats = async (req, res) => {
+  try {
     const hoy  = new Date();
     const en7  = new Date(); en7.setDate(en7.getDate() + 7);
     const en30 = new Date(); en30.setDate(en30.getDate() + 30);
@@ -88,4 +89,8 @@ exports.stats = async (req, res) => {
             ultimosPagos, proximosVencer, chartData
         }
     });
+  } catch (err) {
+    console.error('Error dashboard:', err.message);
+    res.status(500).json({ ok: false, msg: 'Error al obtener estadísticas' });
+  }
 };
