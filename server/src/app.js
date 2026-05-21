@@ -41,6 +41,12 @@ app.use(cors({
     credentials: true
 }));
 
+// ── Demo API proxy (debe ir ANTES de express.json para no consumir el body) ────
+const { DEMOS, initDemos, proxyMiddleware } = require('./demoManager');
+for (const demo of DEMOS) {
+    app.use(`/demos/${demo.name}/api`, proxyMiddleware(demo));
+}
+
 // ── Límite de tamaño de peticiones ───────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
 
@@ -122,6 +128,17 @@ app.use((err, req, res, next) => {
     res.status(500).json({ ok: false, msg: isProd ? 'Error interno del servidor' : err.message });
 });
 
+// ── Demo frontends estáticos ─────────────────────────────────────────────────
+if (isProd) {
+    for (const demo of DEMOS) {
+        if (fs.existsSync(demo.dist)) {
+            app.use(`/demos/${demo.name}`, express.static(demo.dist));
+            app.get(`/demos/${demo.name}`, (_, res) => res.sendFile(path.join(demo.dist, 'index.html')));
+            app.get(`/demos/${demo.name}/*`, (_, res) => res.sendFile(path.join(demo.dist, 'index.html')));
+        }
+    }
+}
+
 // En producción redirigir todo lo demás al index.html del React
 if (isProd) {
     app.get('*', (req, res) => {
@@ -186,6 +203,7 @@ async function iniciar(intentos = 5) {
             await syncSchema();
             await seedAdmin();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
+            initDemos().catch(e => console.error('⚠️  initDemos falló (no crítico):', e.message));
             seedProductos().catch(e => console.error('⚠️  seedProductos falló (no crítico):', e.message));
             try { initBot(); } catch(e) { console.warn('⚠️ initBot:', e.message); }
             try { startPoller(); } catch(e) { console.warn('⚠️ startPoller:', e.message); }

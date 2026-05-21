@@ -1,6 +1,8 @@
 node_modules/
 server/node_modules/
 client/node_modules/
+server/demos/**/node_modules/
+server/demos/**/dist/
 # client/dist/
 .env
 *.local

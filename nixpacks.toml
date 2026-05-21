@@ -1,8 +1,20 @@
 [phases.install]
-cmds = ["cd server && npm ci --omit=dev"]
+cmds = [
+  "cd server && npm ci --omit=dev",
+  "cd server/demos/viaje360/backend && npm ci --omit=dev",
+  "cd server/demos/condominio/backend && npm ci --omit=dev",
+  "cd server/demos/odontologia/server && npm ci --omit=dev",
+  "cd server/demos/ventas/backend && npm ci --omit=dev"
+]
 
 [phases.build]
-cmds = ["cd client && npm ci && npm run build"]
+cmds = [
+  "cd client && npm ci && npm run build",
+  "cd server/demos/viaje360/frontend && npm ci && VITE_API_URL=/demos/viaje360/api npm run build",
+  "cd server/demos/condominio/frontend && npm ci && VITE_API_URL=/demos/condominio/api npm run build",
+  "cd server/demos/odontologia/client && npm ci && VITE_API_URL=/demos/odontologia/api npm run build",
+  "cd server/demos/ventas/frontend && npm ci && VITE_API_URL=/demos/ventas/api npm run build"
+]
 
 [start]
 cmd = "node server/src/app.js"
