@@ -6,13 +6,20 @@ const telegramService = require('../services/telegramService');
 // ── Catálogo de sistemas de AI Company ───────────────────────────────────────
 const CATALOGO = [
     // ── CRM ──────────────────────────────────────────────────────────────────
-    { nombre: 'CRM Delivery',                        categoria: 'CRM',    descripcion_venta: 'Gestión de pedidos a domicilio, rutas de entrega, clientes frecuentes y domiciliarios para restaurantes y dark kitchens.' },
-    { nombre: 'CRM Tienda Celulares',                categoria: 'CRM',    descripcion_venta: 'Control de equipos nuevos y usados, IMEI, reparaciones, garantías y ventas para tiendas de tecnología.' },
-    { nombre: 'CRM Agencia de Viajes',               categoria: 'CRM',    descripcion_venta: 'Gestión de paquetes turísticos, reservas, cotizaciones, clientes y comisiones para agencias de viajes.' },
-    { nombre: 'CRM Colegio',                         categoria: 'CRM',    descripcion_venta: 'Matrículas, pensiones, notas, asistencia, comunicación con padres y agenda académica para colegios.' },
-    { nombre: 'CRM Condominio',                      categoria: 'CRM',    descripcion_venta: 'Administración de cuotas, reservas de zonas comunes, PQR, visitantes y comunicados para conjuntos residenciales.' },
-    { nombre: 'CRM Odontología',                     categoria: 'CRM',    descripcion_venta: 'Historia clínica digital, citas, tratamientos, pagos y recordatorios para consultorios odontológicos.' },
-    { nombre: 'CRM Ventas',                          categoria: 'CRM',    descripcion_venta: 'Pipeline de ventas, seguimiento de clientes, cotizaciones y reportes para equipos comerciales de cualquier sector.' },
+    { nombre: 'CRM Delivery',       categoria: 'CRM', descripcion_venta: 'Gestión de pedidos a domicilio, rutas de entrega, clientes frecuentes y domiciliarios para restaurantes y dark kitchens.',
+      demo_url: '/demos/delivery/',  demo_usuario: 'admin@crm.com',         demo_password: 'password' },
+    { nombre: 'CRM Tienda Celulares', categoria: 'CRM', descripcion_venta: 'Control de equipos nuevos y usados, IMEI, reparaciones, garantías y ventas para tiendas de tecnología.',
+      demo_url: '/demos/celulares/', demo_usuario: 'admin@tienda.com',      demo_password: 'password' },
+    { nombre: 'CRM Agencia de Viajes', categoria: 'CRM', descripcion_venta: 'Gestión de paquetes turísticos, reservas, cotizaciones, clientes y comisiones para agencias de viajes.',
+      demo_url: '/demos/viaje360/', demo_usuario: 'admin@viaje360.com',    demo_password: 'Viaje360@' },
+    { nombre: 'CRM Colegio',        categoria: 'CRM', descripcion_venta: 'Matrículas, pensiones, notas, asistencia, comunicación con padres y agenda académica para colegios.',
+      demo_url: '/demos/colegio/',  demo_usuario: 'admin@colegio.edu.pe',  demo_password: 'admin123' },
+    { nombre: 'CRM Condominio',     categoria: 'CRM', descripcion_venta: 'Administración de cuotas, reservas de zonas comunes, PQR, visitantes y comunicados para conjuntos residenciales.',
+      demo_url: '/demos/condominio/', demo_usuario: 'admin@laspalmas.com', demo_password: 'Admin123!' },
+    { nombre: 'CRM Odontología',    categoria: 'CRM', descripcion_venta: 'Historia clínica digital, citas, tratamientos, pagos y recordatorios para consultorios odontológicos.',
+      demo_url: '/demos/odontologia/', demo_usuario: 'admin@clinica.com',  demo_password: 'admin123' },
+    { nombre: 'CRM Ventas',         categoria: 'CRM', descripcion_venta: 'Pipeline de ventas, seguimiento de clientes, cotizaciones y reportes para equipos comerciales de cualquier sector.',
+      demo_url: '/demos/ventas/',   demo_usuario: 'admin@crm.com',         demo_password: 'admin123' },
     // ── ERP ──────────────────────────────────────────────────────────────────
     { nombre: 'Sistema Ferretería',                  categoria: 'ERP',    descripcion_venta: 'Control de inventario, ventas, compras y caja para ferreterías y distribuidoras de materiales de construcción.' },
     { nombre: 'ERP Educativo',                       categoria: 'ERP',    descripcion_venta: 'Sistema integral para instituciones educativas: estudiantes, docentes, finanzas, notas y comunicación.' },
@@ -48,6 +55,8 @@ async function seedProductos() {
         const existe = await Producto.findOne({ where: { nombre: p.nombre } });
         if (!existe) {
             await Producto.create({ ...p, precio_mensual: 250000, visible_vendedor: true, activo: true });
+        } else if (p.demo_url && !existe.demo_url) {
+            await existe.update({ demo_url: p.demo_url, demo_usuario: p.demo_usuario, demo_password: p.demo_password });
         }
     }
 }
