@@ -128,6 +128,11 @@ function spawnNodeDemo(demo) {
     PORT:        String(demo.port),
     DB_NAME:     demo.db,
     DB_DATABASE: demo.db,
+    // Railway usa MYSQLHOST/MYSQLUSER/etc.; mapear a DB_* para que dotenv no sobreescriba con localhost
+    DB_HOST:     process.env.DB_HOST     || process.env.MYSQLHOST     || '127.0.0.1',
+    DB_PORT:     process.env.DB_PORT     || process.env.MYSQLPORT     || '3306',
+    DB_USER:     process.env.DB_USER     || process.env.MYSQLUSER     || 'root',
+    DB_PASSWORD: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
     NODE_ENV:    'production',
   };
   const child = spawn('node', [demo.entry], { cwd: demo.cwd, env, stdio: 'pipe' });
