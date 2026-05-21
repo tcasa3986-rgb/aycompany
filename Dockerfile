@@ -56,9 +56,9 @@ RUN cd server/demos/php/laboratorio && composer install --no-dev --optimize-auto
 RUN cd server/demos/php/cotizacion  && composer install --no-dev --optimize-autoloader --no-interaction
 
 # ── Vite builds for PHP demos that need CSS compilation ───────────────────────
-RUN cd server/demos/php/restaurante && npm ci && npm run build
-RUN cd server/demos/php/hospedaje   && npm ci && npm run build
-RUN cd server/demos/php/laboratorio && npm ci && npm run build
+RUN cd server/demos/php/restaurante && npm ci  && npm run build
+RUN cd server/demos/php/hospedaje   && npm install && npm run build
+RUN cd server/demos/php/laboratorio && npm install && npm run build
 
 # ── Build React frontends ──────────────────────────────────────────────────────
 RUN cd client && npm ci && npm run build
