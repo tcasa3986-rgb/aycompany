@@ -14,6 +14,15 @@ export default function PagarLicencia() {
   const [msg, setMsg]             = useState('');
   const [meses, setMeses]         = useState(1);
 
+  const DESCUENTOS = { 1: 0, 2: 0, 3: 5, 6: 10, 12: 15 };
+  function precioFinal(precio, m) {
+    const desc = DESCUENTOS[m] || 0;
+    return Math.round(precio * m * (1 - desc / 100));
+  }
+  function ahorroTotal(precio, m) {
+    return precio * m - precioFinal(precio, m);
+  }
+
   useEffect(() => {
     api.get(`/pagos/mp/info/${license_key}`)
       .then(r => setInfo(r.data))
@@ -92,35 +101,47 @@ export default function PagarLicencia() {
               ¿Cuántos meses desea pagar?
             </p>
             <div style={s.mesesGrid}>
-              {[1, 2, 3, 6, 12].map(m => (
-                <button key={m} onClick={() => setMeses(m)}
-                  style={{ ...s.mesBtn, ...(meses === m ? s.mesBtnActive : {}) }}>
-                  <span style={{ fontSize: 16, fontWeight: 800 }}>{m}</span>
-                  <span style={{ fontSize: 11, color: meses === m ? '#bfdbfe' : '#666' }}>
-                    {m === 1 ? 'mes' : 'meses'}
-                  </span>
-                  {m === 3  && <span style={s.tag}>Popular</span>}
-                  {m === 12 && <span style={s.tag}>Mejor precio</span>}
-                </button>
-              ))}
+              {[1, 2, 3, 6, 12].map(m => {
+                const desc = DESCUENTOS[m] || 0;
+                return (
+                  <button key={m} onClick={() => setMeses(m)}
+                    style={{ ...s.mesBtn, ...(meses === m ? s.mesBtnActive : {}) }}>
+                    <span style={{ fontSize: 16, fontWeight: 800 }}>{m}</span>
+                    <span style={{ fontSize: 11, color: meses === m ? '#bfdbfe' : '#666' }}>
+                      {m === 1 ? 'mes' : 'meses'}
+                    </span>
+                    {desc > 0 && <span style={{ ...s.tag, background: '#10b981' }}>-{desc}%</span>}
+                    {m === 3 && desc === 0 && <span style={s.tag}>Popular</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Precio calculado */}
         <div style={s.precioBox}>
-          {meses > 1 && !info.suscripcion_activa && estado !== 'suscrito' ? (
+          {!info.suscripcion_activa && estado !== 'suscrito' ? (
             <>
-              <span style={{ color: '#aaa', fontSize: 12, marginBottom: 4 }}>
-                {meses} mes{meses > 1 ? 'es' : ''} × ${Number(info.precio).toLocaleString('es-CO')}
-              </span>
+              {meses > 1 && (
+                <span style={{ color: '#666', fontSize: 12, marginBottom: 2, textDecoration: 'line-through' }}>
+                  ${(Number(info.precio) * meses).toLocaleString('es-CO')} COP
+                </span>
+              )}
               <span style={{ color: '#fff', fontSize: 34, fontWeight: 800 }}>
-                ${(Number(info.precio) * meses).toLocaleString('es-CO')}
+                ${precioFinal(Number(info.precio), meses).toLocaleString('es-CO')}
               </span>
-              <span style={{ color: '#aaa', fontSize: 12 }}>COP en total</span>
-              <span style={{ color: '#2ecc71', fontSize: 12, marginTop: 4 }}>
-                ✅ Licencia activa por {meses} meses
-              </span>
+              <span style={{ color: '#aaa', fontSize: 12 }}>{meses === 1 ? 'COP / mes' : 'COP en total'}</span>
+              {(DESCUENTOS[meses] || 0) > 0 && (
+                <span style={{ color: '#2ecc71', fontSize: 12, marginTop: 4 }}>
+                  🎉 Ahorras ${ahorroTotal(Number(info.precio), meses).toLocaleString('es-CO')} COP ({DESCUENTOS[meses]}% off)
+                </span>
+              )}
+              {meses > 1 && (
+                <span style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+                  {meses} mes{meses > 1 ? 'es' : ''} × ${Number(info.precio).toLocaleString('es-CO')}
+                </span>
+              )}
             </>
           ) : (
             <>
@@ -143,7 +164,7 @@ export default function PagarLicencia() {
               Se cobra ${Number(info.precio).toLocaleString('es-CO')} cada mes automáticamente. Puede cancelar cuando quiera.
             </p>
             <button onClick={pagarUnaVez} disabled={procesando} style={s.btnSecundario}>
-              💳 Pagar {meses} {meses === 1 ? 'mes' : `meses`} — ${(Number(info.precio) * meses).toLocaleString('es-CO')} COP
+              💳 Pagar {meses} {meses === 1 ? 'mes' : 'meses'} — ${precioFinal(Number(info.precio), meses).toLocaleString('es-CO')} COP
             </button>
           </>
         )}

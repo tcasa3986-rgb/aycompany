@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle, XCircle, Clock, Download, RefreshCw, User, Phone, Mail, Building2, Save } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Download, RefreshCw, User, Phone, Mail, Building2, Save, Headphones, Send, Plus } from 'lucide-react';
 
 const API = '/api/portal';
 
@@ -13,6 +13,10 @@ export default function PortalCliente() {
   const [form,      setForm]      = useState({});
   const [guardando, setGuardando] = useState(false);
   const [msgGuard,  setMsgGuard]  = useState('');
+  const [tickets,   setTickets]   = useState([]);
+  const [tForm,     setTForm]     = useState({ asunto: '', mensaje: '' });
+  const [tEnviando, setTEnviando] = useState(false);
+  const [tMsg,      setTMsg]      = useState('');
 
   useEffect(() => {
     fetch(`${API}/${token}`)
@@ -32,6 +36,10 @@ export default function PortalCliente() {
     fetch(`${API}/${token}/facturas`)
       .then(r => r.json())
       .then(d => { if (d.ok) setFacturas(d.data); });
+
+    fetch(`${API}/${token}/tickets`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) setTickets(d.data); });
   }, [token]);
 
   function descargarPDF(facturaId, numero) {
@@ -63,6 +71,31 @@ export default function PortalCliente() {
     } finally {
       setGuardando(false);
     }
+  }
+
+  async function enviarTicket(e) {
+    e.preventDefault();
+    if (!tForm.asunto.trim() || !tForm.mensaje.trim()) return;
+    setTEnviando(true);
+    setTMsg('');
+    try {
+      const r = await fetch(`${API}/${token}/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tForm)
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setTMsg('✅ Ticket enviado. Le responderemos pronto.');
+        setTForm({ asunto: '', mensaje: '' });
+        const r2 = await fetch(`${API}/${token}/tickets`);
+        const d2 = await r2.json();
+        if (d2.ok) setTickets(d2.data);
+      } else {
+        setTMsg(d.msg || 'Error al enviar');
+      }
+    } catch { setTMsg('Error al enviar'); }
+    finally { setTEnviando(false); }
   }
 
   if (error) return (
@@ -106,7 +139,7 @@ export default function PortalCliente() {
       <div style={styles.body}>
         {/* ── Tabs ── */}
         <div style={styles.tabs}>
-          {[['licencias','Mis licencias'],['facturas','Mis facturas'],['datos','Mis datos']].map(([k, label]) => (
+          {[['licencias','Mis licencias'],['facturas','Mis facturas'],['datos','Mis datos'],['soporte','Soporte']].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
               style={{ ...styles.tab, ...(tab === k ? styles.tabActive : {}) }}>
               {label}
@@ -241,6 +274,64 @@ export default function PortalCliente() {
                 <Save size={15} /> {guardando ? 'Guardando...' : 'Guardar cambios'}
               </button>
             </form>
+          </div>
+        )}
+        {/* ── Tab: Soporte ── */}
+        {tab === 'soporte' && (
+          <div>
+            <div style={styles.datosCard}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e1b4b', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Headphones size={18} color="#7c3aed" /> Abrir nuevo ticket
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '.85rem', marginBottom: 20 }}>
+                Cuéntenos su problema y le responderemos lo antes posible.
+              </p>
+              <form onSubmit={enviarTicket}>
+                <FieldPortal icon={<Plus size={14} />} label="Asunto">
+                  <input value={tForm.asunto} onChange={e => setTForm({...tForm, asunto: e.target.value})} style={styles.input} placeholder="Ej: No puedo acceder al sistema" required />
+                </FieldPortal>
+                <FieldPortal icon={<Send size={14} />} label="Descripción del problema">
+                  <textarea rows={4} value={tForm.mensaje} onChange={e => setTForm({...tForm, mensaje: e.target.value})}
+                    style={{ ...styles.input, resize: 'none' }} placeholder="Describe con detalle lo que ocurre..." required />
+                </FieldPortal>
+                {tMsg && <div style={{ color: tMsg.startsWith('✅') ? '#059669' : '#dc2626', fontSize: '.88rem', marginBottom: 12 }}>{tMsg}</div>}
+                <button type="submit" disabled={tEnviando} style={styles.btnGuardar}>
+                  <Send size={15} /> {tEnviando ? 'Enviando...' : 'Enviar ticket'}
+                </button>
+              </form>
+            </div>
+
+            {tickets.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <h4 style={{ fontSize: '.9rem', fontWeight: 700, color: '#374151', marginBottom: 12 }}>Mis tickets anteriores</h4>
+                {tickets.map(t => {
+                  const badgeStyle = t.estado === 'cerrado'
+                    ? { background: '#d1fae5', color: '#065f46' }
+                    : t.estado === 'en_proceso'
+                    ? { background: '#dbeafe', color: '#1d4ed8' }
+                    : { background: '#fef3c7', color: '#d97706' };
+                  return (
+                    <div key={t.id} style={{ background: '#fff', borderRadius: 12, padding: '14px 18px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ fontWeight: 600, fontSize: '.9rem', color: '#1e293b' }}>{t.asunto}</div>
+                        <span style={{ ...badgeStyle, padding: '3px 10px', borderRadius: 20, fontSize: '.76rem', fontWeight: 700 }}>
+                          {t.estado === 'cerrado' ? 'Cerrado' : t.estado === 'en_proceso' ? 'En proceso' : 'Abierto'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '.8rem', color: '#64748b', marginTop: 4 }}>
+                        {new Date(t.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </div>
+                      {t.respuesta && (
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px', marginTop: 10, fontSize: '.85rem', color: '#374151' }}>
+                          <strong style={{ color: '#065f46', display: 'block', marginBottom: 4 }}>Respuesta:</strong>
+                          {t.respuesta}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

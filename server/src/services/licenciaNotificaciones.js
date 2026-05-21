@@ -1,8 +1,18 @@
 const { enviarEmail } = require('./emailService');
+const { enviarMensaje } = require('./whatsappService');
 
 const BASE_URL   = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
 const EMPRESA    = process.env.NOMBRE_EMPRESA || 'AI Company CO';
 const SOPORTE_WA = 'https://wa.me/573212674754';
+
+async function notificarWA(telefono, mensaje) {
+    if (!telefono || !process.env.WHATSAPP_PHONE_ID || !process.env.WHATSAPP_TOKEN) return;
+    try {
+        await enviarMensaje(telefono, mensaje);
+    } catch (err) {
+        console.error(`📱 Error WhatsApp a ${telefono}:`, err.message);
+    }
+}
 
 function fecha(f) {
     return new Date(f).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -24,7 +34,7 @@ async function notificar(to, subject, body) {
     }
 }
 
-async function notificarNuevaLicencia({ clienteEmail, clienteNombre, productoNombre, fechaVencimiento, licenseKey }) {
+async function notificarNuevaLicencia({ clienteEmail, clienteNombre, productoNombre, fechaVencimiento, licenseKey, clienteTelefono }) {
     const subject = `✅ Licencia activada — ${productoNombre}`;
     const body = [
         `Hola ${clienteNombre},`,
@@ -40,10 +50,11 @@ async function notificarNuevaLicencia({ clienteEmail, clienteNombre, productoNom
         `Gracias por confiar en ${EMPRESA}.`
     ].join('\n');
     await notificar(clienteEmail, subject, body);
+    await notificarWA(clienteTelefono, `✅ *${EMPRESA}* — Su licencia de *${productoNombre}* ha sido activada. Vence: ${fecha(fechaVencimiento)}. Soporte: ${SOPORTE_WA}`);
     console.log(`📧 Bienvenida enviada a ${clienteEmail}`);
 }
 
-async function notificarRenovacion({ clienteEmail, clienteNombre, productoNombre, nuevaFechaVencimiento, monto }) {
+async function notificarRenovacion({ clienteEmail, clienteNombre, productoNombre, nuevaFechaVencimiento, monto, clienteTelefono }) {
     const subject = `🔄 Licencia renovada — ${productoNombre}`;
     const body = [
         `Hola ${clienteNombre},`,
@@ -57,10 +68,11 @@ async function notificarRenovacion({ clienteEmail, clienteNombre, productoNombre
         `Soporte: ${SOPORTE_WA}`
     ].filter(l => l !== undefined).join('\n');
     await notificar(clienteEmail, subject, body);
+    await notificarWA(clienteTelefono, `🔄 *${EMPRESA}* — Su licencia de *${productoNombre}* fue renovada. Nueva fecha de vencimiento: ${fecha(nuevaFechaVencimiento)}.`);
     console.log(`📧 Confirmación renovación enviada a ${clienteEmail}`);
 }
 
-async function notificarVencimientoCercano({ clienteEmail, clienteNombre, productoNombre, fechaVencimiento, diasRestantes, licenseKey }) {
+async function notificarVencimientoCercano({ clienteEmail, clienteNombre, productoNombre, fechaVencimiento, diasRestantes, licenseKey, clienteTelefono }) {
     const dias = diasRestantes === 1 ? '1 día' : `${diasRestantes} días`;
     const subject = `⚠️ Su licencia vence en ${dias} — ${productoNombre}`;
     const pagoUrl = `${BASE_URL}/pagar/${licenseKey}`;
@@ -78,10 +90,11 @@ async function notificarVencimientoCercano({ clienteEmail, clienteNombre, produc
         `${EMPRESA} · +57 321 267 4754`
     ].join('\n');
     await notificar(clienteEmail, subject, body);
+    await notificarWA(clienteTelefono, `⚠️ *${EMPRESA}* — Su licencia de *${productoNombre}* vence en ${dias} (${fecha(fechaVencimiento)}). Renueve: ${pagoUrl}`);
     console.log(`📧 Aviso vencimiento (${diasRestantes}d) enviado a ${clienteEmail}`);
 }
 
-async function notificarLicenciaBloqueada({ clienteEmail, clienteNombre, productoNombre, licenseKey }) {
+async function notificarLicenciaBloqueada({ clienteEmail, clienteNombre, productoNombre, licenseKey, clienteTelefono }) {
     const subject = `🔒 Su sistema está bloqueado — ${productoNombre}`;
     const pagoUrl = `${BASE_URL}/pagar/${licenseKey}`;
     const body = [
@@ -98,6 +111,7 @@ async function notificarLicenciaBloqueada({ clienteEmail, clienteNombre, product
         `${EMPRESA} · +57 321 267 4754`
     ].join('\n');
     await notificar(clienteEmail, subject, body);
+    await notificarWA(clienteTelefono, `🔒 *${EMPRESA}* — Su sistema *${productoNombre}* está BLOQUEADO. Renueve ahora: ${pagoUrl}`);
     console.log(`📧 Aviso bloqueo enviado a ${clienteEmail}`);
 }
 

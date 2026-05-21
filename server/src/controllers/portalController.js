@@ -1,4 +1,4 @@
-const { Cliente, Licencia, Producto, Factura, Pago } = require('../models');
+const { Cliente, Licencia, Producto, Factura, Pago, Ticket } = require('../models');
 const { generarPDFFactura } = require('../services/pdfFactura');
 
 const BASE_URL = () => process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
@@ -115,6 +115,38 @@ exports.actualizarDatos = async (req, res) => {
 
         await cliente.update(updates);
         res.json({ ok: true, msg: 'Datos actualizados correctamente' });
+    } catch (err) {
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+};
+
+// GET /api/portal/:token/tickets
+exports.ticketsCliente = async (req, res) => {
+    try {
+        const cliente = await clientePorToken(req.params.token);
+        if (!cliente) return res.status(404).json({ ok: false, msg: 'Portal no encontrado' });
+
+        const tickets = await Ticket.findAll({
+            where: { cliente_id: cliente.id },
+            order: [['created_at', 'DESC']]
+        });
+        res.json({ ok: true, data: tickets });
+    } catch (err) {
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+};
+
+// POST /api/portal/:token/tickets
+exports.crearTicket = async (req, res) => {
+    try {
+        const cliente = await clientePorToken(req.params.token);
+        if (!cliente) return res.status(404).json({ ok: false, msg: 'Portal no encontrado' });
+
+        const { asunto, mensaje } = req.body;
+        if (!asunto || !mensaje) return res.status(400).json({ ok: false, msg: 'Asunto y mensaje son requeridos' });
+
+        const ticket = await Ticket.create({ cliente_id: cliente.id, asunto, mensaje });
+        res.status(201).json({ ok: true, msg: 'Ticket creado', data: ticket });
     } catch (err) {
         res.status(500).json({ ok: false, msg: err.message });
     }

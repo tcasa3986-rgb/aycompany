@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle, UserPlus, Bot, Radar } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Key, CreditCard, FileText, LogOut, TrendingUp, Calendar, Lightbulb, MessageCircle, UserPlus, Bot, Radar, Headphones } from 'lucide-react';
 
 const nav = [
   { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
@@ -9,6 +9,7 @@ const nav = [
   { to: '/licencias',   icon: Key,              label: 'Licencias' },
   { to: '/pagos',       icon: CreditCard,       label: 'Pagos' },
   { to: '/facturas',    icon: FileText,         label: 'Facturas' },
+  { to: '/tickets',    icon: Headphones,       label: 'Tickets' },
   { to: '/marketing',   icon: TrendingUp,       label: 'Marketing' },
   { to: '/calendario',  icon: Calendar,         label: 'Calendario' },
   { to: '/contenido',   icon: Lightbulb,        label: 'Contenido' },

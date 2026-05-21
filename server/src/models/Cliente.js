@@ -8,8 +8,9 @@ const Cliente = sequelize.define('Cliente', {
     empresa:       { type: DataTypes.STRING(150) },
     direccion:     { type: DataTypes.TEXT },
     notas:         { type: DataTypes.TEXT },
-    activo:        { type: DataTypes.BOOLEAN, defaultValue: true },
-    token_portal:  { type: DataTypes.STRING(100), unique: true }
+    activo:          { type: DataTypes.BOOLEAN, defaultValue: true },
+    token_portal:    { type: DataTypes.STRING(100), unique: true },
+    onboarding_paso: { type: DataTypes.INTEGER, defaultValue: 0 }
 }, { tableName: 'clientes', timestamps: true, createdAt: 'created_at', updatedAt: false });
 
 module.exports = Cliente;

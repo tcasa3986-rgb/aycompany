@@ -90,6 +90,7 @@ app.use('/api/licencias', require('./routes/licenciasRoutes'));
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/facturas',   require('./routes/facturasRoutes'));
+app.use('/api/tickets',   require('./routes/ticketsRoutes'));
 app.use('/api/marketing',  require('./routes/marketingRoutes'));
 app.use('/api/reuniones',  require('./routes/reunionesRoutes'));
 app.use('/api/contenido',  require('./routes/contenidoRoutes'));

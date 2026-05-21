@@ -105,7 +105,9 @@ exports.mpCrearPago = async (req, res) => {
         if (!lic) return res.status(404).json({ ok: false, msg: 'Licencia no encontrada' });
 
         const baseUrl   = process.env.BASE_URL || `https://mi-plataforma-production.up.railway.app`;
-        const total     = Number(lic.producto.precio_mensual) * meses;
+        const descuentos = { 3: 5, 6: 10, 12: 15 };
+        const pct        = descuentos[meses] || 0;
+        const total      = Math.round(Number(lic.producto.precio_mensual) * meses * (1 - pct / 100));
         const titulo    = meses === 1
             ? `Renovación ${lic.producto.nombre} — ${lic.cliente.nombre}`
             : `Renovación ${lic.producto.nombre} ${meses} meses — ${lic.cliente.nombre}`;
