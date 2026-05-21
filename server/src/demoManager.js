@@ -5,7 +5,8 @@ const path     = require('path');
 const mysql2   = require('mysql2/promise');
 const fs       = require('fs');
 
-const DEMOS = [
+// ── Node.js demos ─────────────────────────────────────────────────
+const NODE_DEMOS = [
   {
     name: 'viaje360',
     port: 5200,
@@ -61,7 +62,17 @@ const DEMOS = [
   },
 ];
 
-// ── Seed a single demo database ──────────────────────────────────
+// ── PHP/Laravel demos ─────────────────────────────────────────────
+const PHP_DEMOS = [
+  { name: 'delivery',  port: 5210, db: 'demo_delivery',  cwd: path.join(__dirname, '../demos/php/delivery') },
+  { name: 'celulares', port: 5211, db: 'demo_celulares', cwd: path.join(__dirname, '../demos/php/celulares') },
+  { name: 'colegio',   port: 5212, db: 'demo_colegio',   cwd: path.join(__dirname, '../demos/php/colegio') },
+  { name: 'farmacia',  port: 5213, db: 'demo_farmacia',  cwd: path.join(__dirname, '../demos/php/farmacia') },
+];
+
+const DEMOS = [...NODE_DEMOS, ...PHP_DEMOS];
+
+// ── Seed a single Node.js demo database ──────────────────────────
 async function seedDemo(demo) {
   const host     = process.env.DB_HOST     || process.env.MYSQLHOST     || '127.0.0.1';
   const port     = parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306');
@@ -71,7 +82,6 @@ async function seedDemo(demo) {
   let conn;
   try {
     conn = await mysql2.createConnection({ host, port, user, password });
-
     await conn.execute(
       `CREATE DATABASE IF NOT EXISTS \`${demo.db}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
     );
@@ -107,13 +117,12 @@ async function seedDemo(demo) {
   }
 }
 
-// ── Spawn a demo as child process ────────────────────────────────
-function spawnDemo(demo) {
+// ── Spawn a Node.js demo ─────────────────────────────────────────
+function spawnNodeDemo(demo) {
   if (!fs.existsSync(path.join(demo.cwd, demo.entry))) {
-    console.warn(`[${demo.name}] entry no encontrado: ${demo.entry}, omitiendo spawn.`);
+    console.warn(`[${demo.name}] entry no encontrado, omitiendo.`);
     return;
   }
-
   const env = {
     ...process.env,
     PORT:        String(demo.port),
@@ -121,20 +130,40 @@ function spawnDemo(demo) {
     DB_DATABASE: demo.db,
     NODE_ENV:    'production',
   };
-
   const child = spawn('node', [demo.entry], { cwd: demo.cwd, env, stdio: 'pipe' });
   child.stdout.on('data', d => process.stdout.write(`[${demo.name}] ${d}`));
   child.stderr.on('data', d => process.stderr.write(`[${demo.name}] ${d}`));
   child.on('exit', code => {
     console.log(`[${demo.name}] proceso terminó (code=${code}), reiniciando en 5s...`);
-    setTimeout(() => spawnDemo(demo), 5000);
+    setTimeout(() => spawnNodeDemo(demo), 5000);
   });
 }
 
-// ── HTTP proxy middleware for a demo ──────────────────────────────
-// Note: app.use('/demos/[name]/api', fn) strips the mount path from req.url,
-// so req.url is already relative (e.g. '/clientes'). Prepend '/api' to restore.
-function proxyMiddleware(demo) {
+// ── Spawn a PHP/Laravel demo ─────────────────────────────────────
+function spawnPhpDemo(demo) {
+  if (!fs.existsSync(path.join(demo.cwd, 'artisan'))) {
+    console.warn(`[${demo.name}] artisan no encontrado, omitiendo.`);
+    return;
+  }
+  const env = {
+    ...process.env,
+    DEMO_PORT:   String(demo.port),
+    DB_DATABASE: demo.db,
+    DB_NAME:     demo.db,
+    NODE_ENV:    'production',
+  };
+  const child = spawn('bash', ['start.sh'], { cwd: demo.cwd, env, stdio: 'pipe' });
+  child.stdout.on('data', d => process.stdout.write(`[${demo.name}] ${d}`));
+  child.stderr.on('data', d => process.stderr.write(`[${demo.name}] ${d}`));
+  child.on('exit', code => {
+    console.log(`[${demo.name}] PHP proceso terminó (code=${code}), reiniciando en 10s...`);
+    setTimeout(() => spawnPhpDemo(demo), 10000);
+  });
+}
+
+// ── HTTP proxy for Node.js demos (/demos/[name]/api → /api) ──────
+// Express strips the mount prefix from req.url, so prepend '/api'
+function nodeProxyMiddleware(demo) {
   return (req, res) => {
     const targetPath = '/api' + req.url;
     const options = {
@@ -144,17 +173,37 @@ function proxyMiddleware(demo) {
       method:   req.method,
       headers:  { ...req.headers, host: `127.0.0.1:${demo.port}` },
     };
-
     const proxy = http.request(options, proxyRes => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res, { end: true });
     });
-
     proxy.on('error', err => {
       console.error(`[${demo.name}] proxy error: ${err.message}`);
       if (!res.headersSent) res.status(502).json({ ok: false, msg: 'Demo temporalmente no disponible' });
     });
+    req.pipe(proxy, { end: true });
+  };
+}
 
+// ── HTTP proxy for PHP demos (/demos/[name]/* → /*) ──────────────
+// Passes all requests to PHP artisan serve (HTML, CSS, JS, POST, etc.)
+function phpProxyMiddleware(demo) {
+  return (req, res) => {
+    const options = {
+      hostname: '127.0.0.1',
+      port:     demo.port,
+      path:     req.url || '/',
+      method:   req.method,
+      headers:  { ...req.headers, host: `127.0.0.1:${demo.port}` },
+    };
+    const proxy = http.request(options, proxyRes => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+    proxy.on('error', err => {
+      console.error(`[${demo.name}] PHP proxy error: ${err.message}`);
+      if (!res.headersSent) res.status(502).send('<h2>Demo temporalmente no disponible</h2>');
+    });
     req.pipe(proxy, { end: true });
   };
 }
@@ -162,11 +211,14 @@ function proxyMiddleware(demo) {
 // ── Bootstrap all demos ───────────────────────────────────────────
 async function initDemos() {
   console.log('=== Inicializando demos ===');
-  for (const demo of DEMOS) {
+  for (const demo of NODE_DEMOS) {
     try { await seedDemo(demo); } catch (e) { console.error(`[${demo.name}] seed failed: ${e.message}`); }
-    spawnDemo(demo);
+    spawnNodeDemo(demo);
+  }
+  for (const demo of PHP_DEMOS) {
+    spawnPhpDemo(demo);
   }
   console.log('=== Demos iniciados ===');
 }
 
-module.exports = { DEMOS, initDemos, proxyMiddleware };
+module.exports = { DEMOS, NODE_DEMOS, PHP_DEMOS, initDemos, nodeProxyMiddleware, phpProxyMiddleware };

@@ -41,10 +41,13 @@ app.use(cors({
     credentials: true
 }));
 
-// ── Demo API proxy (debe ir ANTES de express.json para no consumir el body) ────
-const { DEMOS, initDemos, proxyMiddleware } = require('./demoManager');
-for (const demo of DEMOS) {
-    app.use(`/demos/${demo.name}/api`, proxyMiddleware(demo));
+// ── Demo proxies (deben ir ANTES de express.json para no consumir el body) ────
+const { DEMOS, NODE_DEMOS, PHP_DEMOS, initDemos, nodeProxyMiddleware, phpProxyMiddleware } = require('./demoManager');
+for (const demo of NODE_DEMOS) {
+    app.use(`/demos/${demo.name}/api`, nodeProxyMiddleware(demo));
+}
+for (const demo of PHP_DEMOS) {
+    app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));
 }
 
 // ── Límite de tamaño de peticiones ───────────────────────────────────────────

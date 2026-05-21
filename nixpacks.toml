@@ -1,10 +1,17 @@
+[phases.setup]
+nixPkgs = ["php82", "php82Packages.composer"]
+
 [phases.install]
 cmds = [
   "cd server && npm ci --omit=dev",
   "cd server/demos/viaje360/backend && npm ci --omit=dev",
   "cd server/demos/condominio/backend && npm ci --omit=dev",
   "cd server/demos/odontologia/server && npm ci --omit=dev",
-  "cd server/demos/ventas/backend && npm ci --omit=dev"
+  "cd server/demos/ventas/backend && npm ci --omit=dev",
+  "cd server/demos/php/delivery && composer install --no-dev --optimize-autoloader --no-interaction",
+  "cd server/demos/php/celulares && composer install --no-dev --optimize-autoloader --no-interaction",
+  "cd server/demos/php/colegio && composer install --no-dev --optimize-autoloader --no-interaction",
+  "cd server/demos/php/farmacia && composer install --no-dev --optimize-autoloader --no-interaction"
 ]
 
 [phases.build]
