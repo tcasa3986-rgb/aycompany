@@ -44,7 +44,12 @@ app.use(cors({
 // ── Demo proxies (deben ir ANTES de express.json para no consumir el body) ────
 const { DEMOS, NODE_DEMOS, PHP_DEMOS, initDemos, nodeProxyMiddleware, phpProxyMiddleware } = require('./demoManager');
 for (const demo of NODE_DEMOS) {
-    app.use(`/demos/${demo.name}/api`, nodeProxyMiddleware(demo));
+    if (demo.dist === null) {
+        // Server-rendered Node.js app (EJS/views) — proxy all requests like PHP
+        app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));
+    } else {
+        app.use(`/demos/${demo.name}/api`, nodeProxyMiddleware(demo));
+    }
 }
 for (const demo of PHP_DEMOS) {
     app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));

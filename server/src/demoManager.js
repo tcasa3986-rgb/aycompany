@@ -22,7 +22,7 @@ function getDbConfig() {
   };
 }
 
-// ── Node.js demos ─────────────────────────────────────────────────
+// ── Node.js demos (React SPA + API backend) ───────────────────────
 const NODE_DEMOS = [
   {
     name: 'viaje360',
@@ -77,14 +77,82 @@ const NODE_DEMOS = [
     ],
     checkTable: 'usuarios',
   },
+  {
+    name: 'ferreteria',
+    port: 5204,
+    db:   'demo_ferreteria',
+    cwd:  path.join(__dirname, '../demos/ferreteria/backend'),
+    entry: 'src/app.js',
+    dist: path.join(__dirname, '../demos/ferreteria/frontend/dist'),
+    sqlFiles: [
+      path.join(__dirname, '../demos/ferreteria/backend/ferreteria_db.sql'),
+    ],
+    checkTable: 'usuarios',
+  },
+  {
+    name: 'polleria',
+    port: 5205,
+    db:   'demo_polleria',
+    cwd:  path.join(__dirname, '../demos/polleria/backend'),
+    entry: 'src/app.js',
+    dist: path.join(__dirname, '../demos/polleria/frontend/dist'),
+    sqlFiles: [
+      path.join(__dirname, '../demos/polleria/backend/polleria_db.sql'),
+    ],
+    checkTable: 'usuarios',
+  },
+  {
+    name: 'salon',
+    port: 5206,
+    db:   'demo_salon',
+    cwd:  path.join(__dirname, '../demos/salon/backend'),
+    entry: 'server.js',
+    dist: path.join(__dirname, '../demos/salon/frontend/dist'),
+    sqlFiles: [
+      path.join(__dirname, '../demos/salon/backend/bk_basededatos.sql'),
+    ],
+    checkTable: 'usuarios',
+  },
+  {
+    name: 'parqueo',
+    port: 5207,
+    db:   'demo_parqueo',
+    cwd:  path.join(__dirname, '../demos/parqueo/backend'),
+    entry: 'src/server.js',
+    dist: path.join(__dirname, '../demos/parqueo/frontend/dist'),
+    sqlFiles: [
+      path.join(__dirname, '../demos/parqueo/backend/database/schema.sql'),
+    ],
+    checkTable: 'vehiculos',
+  },
+  {
+    name: 'prestamos',
+    port: 5208,
+    db:   'demo_prestamos',
+    cwd:  path.join(__dirname, '../demos/prestamos/backend'),
+    entry: 'app.js',
+    dist: null,
+    sqlFiles: [
+      path.join(__dirname, '../demos/prestamos/backend/bk_basededatos.sql'),
+    ],
+    checkTable: 'usuarios',
+  },
 ];
 
 // ── PHP/Laravel demos ─────────────────────────────────────────────
 const PHP_DEMOS = [
-  { name: 'delivery',  port: 5210, db: 'demo_delivery',  cwd: path.join(__dirname, '../demos/php/delivery') },
-  { name: 'celulares', port: 5211, db: 'demo_celulares', cwd: path.join(__dirname, '../demos/php/celulares') },
-  { name: 'colegio',   port: 5212, db: 'demo_colegio',   cwd: path.join(__dirname, '../demos/php/colegio') },
-  { name: 'farmacia',  port: 5213, db: 'demo_farmacia',  cwd: path.join(__dirname, '../demos/php/farmacia') },
+  { name: 'delivery',    port: 5210, db: 'demo_delivery',    cwd: path.join(__dirname, '../demos/php/delivery') },
+  { name: 'celulares',   port: 5211, db: 'demo_celulares',   cwd: path.join(__dirname, '../demos/php/celulares') },
+  { name: 'colegio',     port: 5212, db: 'demo_colegio',     cwd: path.join(__dirname, '../demos/php/colegio') },
+  { name: 'farmacia',    port: 5213, db: 'demo_farmacia',    cwd: path.join(__dirname, '../demos/php/farmacia') },
+  { name: 'panaderia',   port: 5214, db: 'demo_panaderia',   cwd: path.join(__dirname, '../demos/php/panaderia') },
+  { name: 'restaurante', port: 5215, db: 'demo_restaurante', cwd: path.join(__dirname, '../demos/php/restaurante') },
+  { name: 'citas',       port: 5216, db: 'demo_citas',       cwd: path.join(__dirname, '../demos/php/citas') },
+  { name: 'hospedaje',   port: 5217, db: 'demo_hospedaje',   cwd: path.join(__dirname, '../demos/php/hospedaje') },
+  { name: 'inventario',  port: 5218, db: 'demo_inventario',  cwd: path.join(__dirname, '../demos/php/inventario') },
+  { name: 'laboratorio', port: 5219, db: 'demo_laboratorio', cwd: path.join(__dirname, '../demos/php/laboratorio') },
+  { name: 'cotizacion',  port: 5220, db: 'demo_cotizacion',  cwd: path.join(__dirname, '../demos/php/cotizacion') },
+  { name: 'botica',      port: 5221, db: 'demo_botica',      cwd: path.join(__dirname, '../demos/php/botica') },
 ];
 
 const DEMOS = [...NODE_DEMOS, ...PHP_DEMOS];
@@ -160,8 +228,8 @@ function spawnNodeDemo(demo) {
 
 // ── Spawn a PHP/Laravel demo ─────────────────────────────────────
 function spawnPhpDemo(demo) {
-  if (!fs.existsSync(path.join(demo.cwd, 'artisan'))) {
-    console.warn(`[${demo.name}] artisan no encontrado, omitiendo.`);
+  if (!fs.existsSync(path.join(demo.cwd, 'start.sh'))) {
+    console.warn(`[${demo.name}] start.sh no encontrado, omitiendo.`);
     return;
   }
   const { host, port: dbPort, user, password } = getDbConfig();
@@ -191,12 +259,15 @@ function spawnPhpDemo(demo) {
 function nodeProxyMiddleware(demo) {
   return (req, res) => {
     const targetPath = '/api' + req.url;
+    const proxyHeaders = { ...req.headers, host: `127.0.0.1:${demo.port}` };
+    delete proxyHeaders['origin'];
+    delete proxyHeaders['referer'];
     const options = {
       hostname: '127.0.0.1',
       port:     demo.port,
       path:     targetPath,
       method:   req.method,
-      headers:  { ...req.headers, host: `127.0.0.1:${demo.port}` },
+      headers:  proxyHeaders,
     };
     const proxy = http.request(options, proxyRes => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers);

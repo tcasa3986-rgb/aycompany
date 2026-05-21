@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-park-dark text-park-text font-sans;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1e3a5f #060d18;
+  }
+  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-track { background: #060d18; }
+  *::-webkit-scrollbar-thumb { background-color: #1e3a5f; border-radius: 3px; }
+}
+
+@layer components {
+  .card {
+    @apply bg-park-card border border-park-border rounded-xl p-5 shadow-lg;
+  }
+  .btn-primary {
+    @apply bg-park-accent hover:bg-park-accent-light text-park-dark font-semibold px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-park-border hover:bg-park-primary text-park-text font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2;
+  }
+  .btn-danger {
+    @apply bg-park-ocupado hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2;
+  }
+  .input {
+    @apply bg-park-sidebar border border-park-border text-park-text placeholder-park-muted rounded-lg px-3 py-2 w-full focus:outline-none focus:border-park-accent transition-colors;
+  }
+  .select {
+    @apply bg-park-sidebar border border-park-border text-park-text rounded-lg px-3 py-2 w-full focus:outline-none focus:border-park-accent transition-colors;
+  }
+  .badge-libre {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/40 text-emerald-400 border border-emerald-700/50;
+  }
+  .badge-ocupado {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/40 text-red-400 border border-red-700/50;
+  }
+  .badge-mant {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-700/40 text-gray-400 border border-gray-600/50;
+  }
+  .table-header {
+    @apply text-park-muted text-xs font-semibold uppercase tracking-wider;
+  }
+  .table-cell {
+    @apply text-park-text text-sm py-3 px-4 border-b border-park-border/30;
+  }
+}
