@@ -11,12 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     php8.2-bcmath \
     php8.2-intl \
     php8.2-gd \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
-RUN php -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');" \
-    && php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && rm /tmp/composer-setup.php
+# Get Composer from official image (avoids SSL download issues at build time)
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 WORKDIR /app
 
