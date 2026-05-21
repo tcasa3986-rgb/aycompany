@@ -142,21 +142,38 @@ async function seedAdmin() {
 
 const PORT = process.env.PORT || 5000;
 
+async function syncSchema() {
+    try {
+        await sequelize.sync({ alter: true });
+        console.log('✅ Schema sincronizado (alter)');
+    } catch (alterErr) {
+        console.warn('⚠️  sync alter falló, intentando sync básico:', alterErr.message);
+        try {
+            await sequelize.sync();
+            console.log('✅ Schema sincronizado (básico)');
+        } catch (syncErr) {
+            // Si las tablas ya existen en la BD, continuamos igual
+            console.warn('⚠️  sync básico falló, continuando con esquema actual:', syncErr.message);
+        }
+    }
+}
+
 async function iniciar(intentos = 5) {
     for (let i = 1; i <= intentos; i++) {
         try {
             await sequelize.authenticate();
-            await sequelize.sync({ alter: true });
+            console.log(`✅ BD conectada (intento ${i})`);
+            await syncSchema();
             await seedAdmin();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
             seedProductos().catch(e => console.error('⚠️  seedProductos falló (no crítico):', e.message));
-            initBot();
-            startPoller();
-            startReminder();
-            startFollowUp();
-            iniciarScheduler();
-            iniciarProspectorScheduler();
-            iniciarLicenciaExpirationScheduler();
+            try { initBot(); } catch(e) { console.warn('⚠️ initBot:', e.message); }
+            try { startPoller(); } catch(e) { console.warn('⚠️ startPoller:', e.message); }
+            try { startReminder(); } catch(e) { console.warn('⚠️ startReminder:', e.message); }
+            try { startFollowUp(); } catch(e) { console.warn('⚠️ startFollowUp:', e.message); }
+            try { iniciarScheduler(); } catch(e) { console.warn('⚠️ agentScheduler:', e.message); }
+            try { iniciarProspectorScheduler(); } catch(e) { console.warn('⚠️ prospectorScheduler:', e.message); }
+            try { iniciarLicenciaExpirationScheduler(); } catch(e) { console.warn('⚠️ licenciaScheduler:', e.message); }
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);
