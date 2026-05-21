@@ -5,6 +5,23 @@ const path     = require('path');
 const mysql2   = require('mysql2/promise');
 const fs       = require('fs');
 
+// Extrae host/port/user/password de MYSQL_URL, MYSQLHOST, o DB_HOST (en ese orden)
+function getDbConfig() {
+  const url = process.env.MYSQL_URL || process.env.DATABASE_URL;
+  if (url) {
+    try {
+      const u = new URL(url);
+      return { host: u.hostname, port: u.port || '3306', user: decodeURIComponent(u.username), password: decodeURIComponent(u.password) };
+    } catch (_) {}
+  }
+  return {
+    host:     process.env.DB_HOST     || process.env.MYSQLHOST     || '127.0.0.1',
+    port:     process.env.DB_PORT     || process.env.MYSQLPORT     || '3306',
+    user:     process.env.DB_USER     || process.env.MYSQLUSER     || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+  };
+}
+
 // ── Node.js demos ─────────────────────────────────────────────────
 const NODE_DEMOS = [
   {
@@ -74,14 +91,11 @@ const DEMOS = [...NODE_DEMOS, ...PHP_DEMOS];
 
 // ── Seed a single Node.js demo database ──────────────────────────
 async function seedDemo(demo) {
-  const host     = process.env.DB_HOST     || process.env.MYSQLHOST     || '127.0.0.1';
-  const port     = parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306');
-  const user     = process.env.DB_USER     || process.env.MYSQLUSER     || 'root';
-  const password = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '';
+  const { host, port, user, password } = getDbConfig();
 
   let conn;
   try {
-    conn = await mysql2.createConnection({ host, port, user, password });
+    conn = await mysql2.createConnection({ host, port: parseInt(port), user, password });
     await conn.execute(
       `CREATE DATABASE IF NOT EXISTS \`${demo.db}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
     );
@@ -123,16 +137,16 @@ function spawnNodeDemo(demo) {
     console.warn(`[${demo.name}] entry no encontrado, omitiendo.`);
     return;
   }
+  const { host, port, user, password } = getDbConfig();
   const env = {
     ...process.env,
     PORT:        String(demo.port),
     DB_NAME:     demo.db,
     DB_DATABASE: demo.db,
-    // Railway usa MYSQLHOST/MYSQLUSER/etc.; mapear a DB_* para que dotenv no sobreescriba con localhost
-    DB_HOST:     process.env.DB_HOST     || process.env.MYSQLHOST     || '127.0.0.1',
-    DB_PORT:     process.env.DB_PORT     || process.env.MYSQLPORT     || '3306',
-    DB_USER:     process.env.DB_USER     || process.env.MYSQLUSER     || 'root',
-    DB_PASSWORD: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+    DB_HOST:     host,
+    DB_PORT:     String(port),
+    DB_USER:     user,
+    DB_PASSWORD: password,
     NODE_ENV:    'production',
   };
   const child = spawn('node', [demo.entry], { cwd: demo.cwd, env, stdio: 'pipe' });
@@ -150,11 +164,17 @@ function spawnPhpDemo(demo) {
     console.warn(`[${demo.name}] artisan no encontrado, omitiendo.`);
     return;
   }
+  const { host, port: dbPort, user, password } = getDbConfig();
   const env = {
     ...process.env,
     DEMO_PORT:   String(demo.port),
     DB_DATABASE: demo.db,
     DB_NAME:     demo.db,
+    DB_HOST:     host,
+    DB_PORT:     String(dbPort),
+    DB_USER:     user,
+    DB_USERNAME: user,
+    DB_PASSWORD: password,
     NODE_ENV:    'production',
   };
   const child = spawn('bash', ['start.sh'], { cwd: demo.cwd, env, stdio: 'pipe' });
