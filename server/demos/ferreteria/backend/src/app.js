@@ -50,12 +50,18 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-sequelize.authenticate()
-    .then(() => {
-        console.log('✅ Conexión a BD exitosa');
-        app.listen(PORT, () => console.log(`🔧 Servidor Ferretería corriendo en http://localhost:${PORT}`));
-    })
-    .catch(err => {
-        console.error('❌ Error de conexión a BD:', err.message);
-        process.exit(1);
-    });
+async function iniciar(intentos = 10) {
+    for (let i = 1; i <= intentos; i++) {
+        try {
+            await sequelize.authenticate();
+            console.log('✅ Conexión a BD exitosa');
+            app.listen(PORT, () => console.log(`🔧 Servidor Ferretería corriendo en http://localhost:${PORT}`));
+            return;
+        } catch (err) {
+            console.error(`❌ Intento ${i}/${intentos}: ${err.message}`);
+            if (i < intentos) await new Promise(r => setTimeout(r, 3000));
+        }
+    }
+    process.exit(1);
+}
+iniciar();

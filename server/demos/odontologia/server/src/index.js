@@ -40,33 +40,25 @@ if (fs.existsSync(FRONTEND_DIST)) {
 
 const PORT = process.env.PORT || 4000;
 
-async function iniciar() {
-  try {
-    await sequelize.authenticate();
-    console.log('Conexión a MySQL establecida.');
-
-    await sequelize.sync();
-    console.log('Tablas sincronizadas.');
-
-    const adminExiste = await Usuario.findOne({ where: { email: 'admin@clinica.com' } });
-    if (!adminExiste) {
-      await Usuario.create({
-        nombre: 'Admin',
-        apellido: 'Sistema',
-        email: 'admin@clinica.com',
-        password: 'admin123',
-        rol: 'administrador'
-      });
-      console.log('Usuario admin creado: admin@clinica.com / admin123');
+async function iniciar(intentos = 10) {
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      await sequelize.authenticate();
+      console.log('Conexión a MySQL establecida.');
+      await sequelize.sync();
+      const adminExiste = await Usuario.findOne({ where: { email: 'admin@clinica.com' } });
+      if (!adminExiste) {
+        await Usuario.create({ nombre: 'Admin', apellido: 'Sistema', email: 'admin@clinica.com', password: 'admin123', rol: 'administrador' });
+        console.log('Usuario admin creado: admin@clinica.com / admin123');
+      }
+      app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
+      return;
+    } catch (error) {
+      console.error(`Error al iniciar (intento ${i}/${intentos}):`, error.message);
+      if (i < intentos) await new Promise(r => setTimeout(r, 3000));
     }
-
-    app.listen(PORT, () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error('Error al iniciar:', error);
-    process.exit(1);
   }
+  process.exit(1);
 }
 
 iniciar();

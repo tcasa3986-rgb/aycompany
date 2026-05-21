@@ -14,15 +14,8 @@ const pool = mysql.createPool({
   charset: 'utf8mb4',
 });
 
-// Test connection on startup
 pool.getConnection()
-  .then(conn => {
-    console.log('✅ MySQL conectado correctamente — Base de datos:', process.env.DB_NAME);
-    conn.release();
-  })
-  .catch(err => {
-    console.error('❌ Error de conexión a MySQL:', err.message);
-    process.exit(1);
-  });
+  .then(conn => { console.log('✅ MySQL conectado — BD:', process.env.DB_NAME); conn.release(); })
+  .catch(err => console.error('⚠️ MySQL no disponible aún:', err.message));
 
 module.exports = pool;

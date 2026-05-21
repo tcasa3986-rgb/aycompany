@@ -310,6 +310,23 @@ function phpProxyMiddleware(demo) {
   };
 }
 
+// ── Create database for a PHP demo (migrations handled by start.sh) ─
+async function createPhpDb(demo) {
+  const { host, port, user, password } = getDbConfig();
+  let conn;
+  try {
+    conn = await mysql2.createConnection({ host, port: parseInt(port), user, password });
+    await conn.execute(
+      `CREATE DATABASE IF NOT EXISTS \`${demo.db}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    );
+    console.log(`[${demo.name}] DB lista: ${demo.db}`);
+  } catch (err) {
+    console.error(`[${demo.name}] createPhpDb error: ${err.message}`);
+  } finally {
+    if (conn) conn.end().catch(() => {});
+  }
+}
+
 // ── Bootstrap all demos ───────────────────────────────────────────
 async function initDemos() {
   console.log('=== Inicializando demos ===');
@@ -318,6 +335,7 @@ async function initDemos() {
     spawnNodeDemo(demo);
   }
   for (const demo of PHP_DEMOS) {
+    try { await createPhpDb(demo); } catch (e) { console.error(`[${demo.name}] db creation failed: ${e.message}`); }
     spawnPhpDemo(demo);
   }
   console.log('=== Demos iniciados ===');

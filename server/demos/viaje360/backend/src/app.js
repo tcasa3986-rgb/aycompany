@@ -400,21 +400,22 @@ async function autoSeed() {
   }
 }
 
-// ─── Iniciar ──────────────────────────────────────────────────
+// ─── Iniciar con reintentos ───────────────────────────────────
 const PORT = process.env.PORT || 3001;
 
-sequelize.authenticate()
-  .then(() => {
-    console.log('✅  MySQL conectado correctamente');
-    return sequelize.sync({ alter: false });
-  })
-  .then(() => autoSeed())
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀  Servidor corriendo en puerto ${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('❌  Error de conexión a la base de datos:', err.message);
-    process.exit(1);
+async function iniciar(intentos = 10) {
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      await sequelize.authenticate();
+      console.log('✅  MySQL conectado correctamente');
+      await sequelize.sync({ alter: false });
+      await autoSeed();
+      app.listen(PORT, () => console.log(`🚀  Servidor corriendo en puerto ${PORT}`));
+      return;
+    } catch (err) {
+      console.error(`❌  Intento ${i}/${intentos} fallido: ${err.message}`);
+      if (i < intentos) await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+  process.exit(1);
   });
