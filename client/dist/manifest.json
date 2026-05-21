@@ -1,0 +1,27 @@
+{
+  "name": "AI Company — Plataforma",
+  "short_name": "AI Company",
+  "description": "Gestión de licencias, clientes y operaciones",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#1e1b4b",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo-ai-company.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-ai-company.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es",
+  "dir": "ltr"
+}

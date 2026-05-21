@@ -2,6 +2,7 @@ const { Pago, Cliente, Licencia, Producto } = require('../models');
 const { generarFactura } = require('./facturasController');
 const { MercadoPagoConfig, Preference, Payment, PreApproval } = require('mercadopago');
 const { notificarRenovacion } = require('../services/licenciaNotificaciones');
+const { crearFactura: crearFacturaSiigo } = require('../services/siigoService');
 
 const include = [
     { model: Cliente,  as: 'cliente',  attributes: ['id', 'nombre'] },
@@ -188,6 +189,15 @@ exports.mpWebhook = async (req, res) => {
                     monto:                 pago.transaction_amount
                 });
             }
+            // Sync SIIGO si está configurado
+            crearFacturaSiigo({
+                clienteNombre:  licConProd?.cliente?.nombre,
+                clienteEmail:   licConProd?.cliente?.email,
+                concepto:       `Renovación ${licConProd?.producto?.nombre || 'Sistema'} — ${numMeses} mes${numMeses > 1 ? 'es' : ''}`,
+                monto:          pago.transaction_amount,
+                fecha:          new Date().toISOString().split('T')[0]
+            }).catch(e => console.error('SIIGO sync error:', e.message));
+
             console.log(`✅ Pago MP ${numMeses} mes(es) — licencia ${licenseKey} renovada`);
         }
 

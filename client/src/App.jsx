@@ -26,6 +26,8 @@ import Pipeline       from './pages/Pipeline';
 import Contratos      from './pages/Contratos';
 import Usuarios       from './pages/Usuarios';
 import Reportes       from './pages/Reportes';
+import Analitica      from './pages/Analitica';
+import Empresas       from './pages/Empresas';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -62,6 +64,8 @@ export default function App() {
           <Route path="contratos"      element={<Contratos />} />
           <Route path="usuarios"       element={<Usuarios />} />
           <Route path="reportes"       element={<Reportes />} />
+          <Route path="analitica"      element={<Analitica />} />
+          <Route path="empresas"       element={<Empresas />} />
         </Route>
       </Routes>
     </BrowserRouter>

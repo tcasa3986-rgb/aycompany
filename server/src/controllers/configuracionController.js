@@ -16,6 +16,9 @@ const DEFAULTS = [
     { clave: 'whatsapp_soporte',valor: 'https://wa.me/573212674754', tipo: 'url', etiqueta: 'Link WhatsApp soporte', grupo: 'contacto' },
     { clave: 'base_url',        valor: 'https://mi-plataforma-production.up.railway.app', tipo: 'url', etiqueta: 'URL base del sistema', grupo: 'sistema' },
     { clave: 'auto_responder',  valor: 'false',           tipo: 'booleano',etiqueta: 'Auto-responder WhatsApp activo',grupo: 'sistema' },
+    { clave: 'siigo_user',      valor: '',                tipo: 'texto',   etiqueta: 'Usuario SIIGO (email)',          grupo: 'integraciones' },
+    { clave: 'siigo_partner',   valor: '',                tipo: 'texto',   etiqueta: 'Partner ID SIIGO',              grupo: 'integraciones' },
+    { clave: 'siigo_activo',    valor: 'false',           tipo: 'booleano',etiqueta: 'Facturación SIIGO activa',       grupo: 'integraciones' },
 ];
 
 async function seedDefaults() {
