@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 if [ ! -f .env ]; then
   cat > .env << ENVEOF
@@ -29,8 +28,5 @@ php artisan migrate --force 2>&1 || true
 php artisan db:seed --force 2>&1 || true
 php artisan storage:link 2>&1 || true
 php artisan config:clear 2>&1 || true
-php artisan config:cache 2>&1 || true
-php artisan route:cache 2>&1 || true
-php artisan view:cache 2>&1 || true
 
 exec php artisan serve --host=127.0.0.1 --port=${DEMO_PORT:-5217}

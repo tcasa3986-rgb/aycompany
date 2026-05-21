@@ -293,7 +293,13 @@ function phpProxyMiddleware(demo) {
       headers:  { ...req.headers, host: `127.0.0.1:${demo.port}` },
     };
     const proxy = http.request(options, proxyRes => {
-      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      // Rewrite Location headers so Laravel redirects stay on the public domain
+      const headers = { ...proxyRes.headers };
+      if (headers['location']) {
+        headers['location'] = headers['location']
+          .replace(/^https?:\/\/127\.0\.0\.1:\d+(\/.*)?$/, `/demos/${demo.name}$1`);
+      }
+      res.writeHead(proxyRes.statusCode, headers);
       proxyRes.pipe(res, { end: true });
     });
     proxy.on('error', err => {
