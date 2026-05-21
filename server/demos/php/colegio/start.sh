@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 echo "=== CRM Colegio - Modo Demo ==="
 
@@ -40,9 +39,9 @@ php artisan storage:link 2>&1 || true
 
 echo "Cacheando configuracion..."
 php artisan config:clear 2>&1 || true
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php artisan config:cache 2>&1 || true
+php artisan route:cache 2>&1 || true
+php artisan view:cache 2>&1 || true
 
 echo "Iniciando CRM Colegio en puerto ${DEMO_PORT:-5212}..."
 exec php artisan serve --host=127.0.0.1 --port=${DEMO_PORT:-5212}
