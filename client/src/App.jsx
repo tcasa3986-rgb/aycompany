@@ -18,6 +18,14 @@ import Leads          from './pages/Leads';
 import Agente         from './pages/Agente';
 import Prospector     from './pages/Prospector';
 import Tickets        from './pages/Tickets';
+import Cartera        from './pages/Cartera';
+import Configuracion  from './pages/Configuracion';
+import Proyectos      from './pages/Proyectos';
+import ClienteDetalle from './pages/ClienteDetalle';
+import Pipeline       from './pages/Pipeline';
+import Contratos      from './pages/Contratos';
+import Usuarios       from './pages/Usuarios';
+import Reportes       from './pages/Reportes';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -45,7 +53,15 @@ export default function App() {
           <Route path="leads"      element={<Leads />} />
           <Route path="agente"     element={<Agente />} />
           <Route path="prospector" element={<Prospector />} />
-          <Route path="tickets"    element={<Tickets />} />
+          <Route path="tickets"        element={<Tickets />} />
+          <Route path="cartera"        element={<Cartera />} />
+          <Route path="configuracion"  element={<Configuracion />} />
+          <Route path="proyectos"      element={<Proyectos />} />
+          <Route path="clientes/:id"   element={<ClienteDetalle />} />
+          <Route path="pipeline"       element={<Pipeline />} />
+          <Route path="contratos"      element={<Contratos />} />
+          <Route path="usuarios"       element={<Usuarios />} />
+          <Route path="reportes"       element={<Reportes />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -15,6 +15,10 @@ const Lead           = require('./Lead');
 const AgentActividad = require('./AgentActividad');
 const AgenteConfig   = require('./AgenteConfig');
 const Ticket         = require('./Ticket');
+const Configuracion  = require('./Configuracion');
+const Proyecto       = require('./Proyecto');
+const Tarea          = require('./Tarea');
+const Contrato       = require('./Contrato');
 
 Cliente.hasMany(Licencia,  { foreignKey: 'cliente_id',  as: 'licencias' });
 Producto.hasMany(Licencia, { foreignKey: 'producto_id', as: 'licencias' });
@@ -37,4 +41,12 @@ AgentActividad.belongsTo(Lead, { foreignKey: 'lead_id', as: 'lead' });
 Cliente.hasMany(Ticket, { foreignKey: 'cliente_id', as: 'tickets' });
 Ticket.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
 
-module.exports = { Usuario, Cliente, Producto, Licencia, Pago, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento, MensajeSocial, Lead, AgentActividad, AgenteConfig, Ticket };
+Cliente.hasMany(Proyecto,  { foreignKey: 'cliente_id', as: 'proyectos' });
+Proyecto.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
+Proyecto.hasMany(Tarea,    { foreignKey: 'proyecto_id', as: 'tareas' });
+Tarea.belongsTo(Proyecto,  { foreignKey: 'proyecto_id', as: 'proyecto' });
+
+Cliente.hasMany(Contrato,  { foreignKey: 'cliente_id', as: 'contratos' });
+Contrato.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
+
+module.exports = { Usuario, Cliente, Producto, Licencia, Pago, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento, MensajeSocial, Lead, AgentActividad, AgenteConfig, Ticket, Configuracion, Proyecto, Tarea, Contrato };

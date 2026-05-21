@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = (req, res, next) => {
+const auth = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer '))
         return res.status(401).json({ ok: false, msg: 'Token requerido' });
@@ -19,3 +19,13 @@ module.exports = (req, res, next) => {
         res.status(401).json({ ok: false, msg });
     }
 };
+
+// Middleware de rol: requireRol(['admin']) o requireRol(['admin','vendedor'])
+auth.requireRol = (roles) => (req, res, next) => {
+    if (!req.user) return res.status(401).json({ ok: false, msg: 'No autenticado' });
+    if (!roles.includes(req.user.rol))
+        return res.status(403).json({ ok: false, msg: 'Sin permiso para esta acción' });
+    next();
+};
+
+module.exports = auth;
