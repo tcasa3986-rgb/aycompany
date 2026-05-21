@@ -4,23 +4,42 @@ const telegramService = require('../services/telegramService');
 
 // ── Catálogo de sistemas de AI Company ───────────────────────────────────────
 const CATALOGO = [
-    { nombre: 'Sistema Ferretería',         categoria: 'ERP',    descripcion_venta: 'Control de inventario, ventas, compras y caja para ferreterías y distribuidoras de materiales de construcción.' },
-    { nombre: 'CRM Delivery',               categoria: 'CRM',    descripcion_venta: 'Gestión de pedidos a domicilio, rutas de entrega, clientes frecuentes y domiciliarios para restaurantes y dark kitchens.' },
-    { nombre: 'CRM Tienda Celulares',        categoria: 'CRM',    descripcion_venta: 'Control de equipos nuevos y usados, IMEI, reparaciones, garantías y ventas para tiendas de tecnología.' },
-    { nombre: 'CRM Agencia de Viajes',       categoria: 'CRM',    descripcion_venta: 'Gestión de paquetes turísticos, reservas, cotizaciones, clientes y comisiones para agencias de viajes.' },
-    { nombre: 'CRM Colegio',                 categoria: 'CRM',    descripcion_venta: 'Matrículas, pensiones, notas, asistencia, comunicación con padres y agenda académica para colegios.' },
-    { nombre: 'CRM Condominio',              categoria: 'CRM',    descripcion_venta: 'Administración de cuotas, reservas de zonas comunes, PQR, visitantes y comunicados para conjuntos residenciales.' },
-    { nombre: 'CRM Odontología',             categoria: 'CRM',    descripcion_venta: 'Historia clínica digital, citas, tratamientos, pagos y recordatorios para consultorios odontológicos.' },
-    { nombre: 'CRM Ventas',                  categoria: 'CRM',    descripcion_venta: 'Pipeline de ventas, seguimiento de clientes, cotizaciones y reportes para equipos comerciales de cualquier sector.' },
-    { nombre: 'ERP Educativo',               categoria: 'ERP',    descripcion_venta: 'Sistema integral para instituciones educativas: estudiantes, docentes, finanzas, notas y comunicación.' },
-    { nombre: 'ERP Farmacia',                categoria: 'ERP',    descripcion_venta: 'Inventario de medicamentos, ventas, recetas, vencimientos y caja para droguerías y farmacias.' },
-    { nombre: 'ERP Taller Automotriz',       categoria: 'ERP',    descripcion_venta: 'Órdenes de trabajo, repuestos, mecánicos, historial de vehículos y facturación para talleres mecánicos.' },
-    { nombre: 'Sistema Citas Médicas',       categoria: 'Sistema',descripcion_venta: 'Agenda médica, historia clínica, recordatorios automáticos y facturación para consultorios médicos.' },
-    { nombre: 'Sistema Control de Acceso',   categoria: 'Sistema',descripcion_venta: 'Registro de entrada/salida de empleados o visitantes con huella, QR o carnet para empresas y edificios.' },
-    { nombre: 'Sistema de Moda',             categoria: 'Sistema',descripcion_venta: 'Inventario por tallas y colores, ventas, apartados y caja para tiendas de ropa y accesorios.' },
-    { nombre: 'Sistema Panadería',           categoria: 'Sistema',descripcion_venta: 'Producción, ventas, caja, insumos y control de recetas para panaderías y negocios de repostería.' },
-    { nombre: 'Sistema Préstamos y Cobranza',categoria: 'Sistema',descripcion_venta: 'Gestión de créditos, cuotas, cartera vencida, recordatorios y reportes para empresas financieras.' },
-    { nombre: 'ASOERC',                      categoria: 'Sistema',descripcion_venta: 'Sistema de gestión para asociaciones y cooperativas: socios, aportes, préstamos y asambleas.' },
+    // ── CRM ──────────────────────────────────────────────────────────────────
+    { nombre: 'CRM Delivery',                        categoria: 'CRM',    descripcion_venta: 'Gestión de pedidos a domicilio, rutas de entrega, clientes frecuentes y domiciliarios para restaurantes y dark kitchens.' },
+    { nombre: 'CRM Tienda Celulares',                categoria: 'CRM',    descripcion_venta: 'Control de equipos nuevos y usados, IMEI, reparaciones, garantías y ventas para tiendas de tecnología.' },
+    { nombre: 'CRM Agencia de Viajes',               categoria: 'CRM',    descripcion_venta: 'Gestión de paquetes turísticos, reservas, cotizaciones, clientes y comisiones para agencias de viajes.' },
+    { nombre: 'CRM Colegio',                         categoria: 'CRM',    descripcion_venta: 'Matrículas, pensiones, notas, asistencia, comunicación con padres y agenda académica para colegios.' },
+    { nombre: 'CRM Condominio',                      categoria: 'CRM',    descripcion_venta: 'Administración de cuotas, reservas de zonas comunes, PQR, visitantes y comunicados para conjuntos residenciales.' },
+    { nombre: 'CRM Odontología',                     categoria: 'CRM',    descripcion_venta: 'Historia clínica digital, citas, tratamientos, pagos y recordatorios para consultorios odontológicos.' },
+    { nombre: 'CRM Ventas',                          categoria: 'CRM',    descripcion_venta: 'Pipeline de ventas, seguimiento de clientes, cotizaciones y reportes para equipos comerciales de cualquier sector.' },
+    // ── ERP ──────────────────────────────────────────────────────────────────
+    { nombre: 'Sistema Ferretería',                  categoria: 'ERP',    descripcion_venta: 'Control de inventario, ventas, compras y caja para ferreterías y distribuidoras de materiales de construcción.' },
+    { nombre: 'ERP Educativo',                       categoria: 'ERP',    descripcion_venta: 'Sistema integral para instituciones educativas: estudiantes, docentes, finanzas, notas y comunicación.' },
+    { nombre: 'ERP Farmacia',                        categoria: 'ERP',    descripcion_venta: 'Inventario de medicamentos, ventas, recetas, vencimientos y caja para droguerías y farmacias.' },
+    { nombre: 'ERP Taller Automotriz',               categoria: 'ERP',    descripcion_venta: 'Órdenes de trabajo, repuestos, mecánicos, historial de vehículos y facturación para talleres mecánicos.' },
+    // ── Salud ─────────────────────────────────────────────────────────────────
+    { nombre: 'Sistema Citas Médicas',               categoria: 'Salud',  descripcion_venta: 'Agenda médica, historia clínica, recordatorios automáticos y facturación para consultorios médicos.' },
+    { nombre: 'Sistema Citas Médicas V2',            categoria: 'Salud',  descripcion_venta: 'Versión mejorada con módulo de telemedicina, pagos en línea y portal del paciente.' },
+    { nombre: 'Sistema Laboratorio Clínico',         categoria: 'Salud',  descripcion_venta: 'Registro de muestras, resultados, impresión de informes y gestión de pacientes para laboratorios clínicos.' },
+    { nombre: 'Sistema Botica',                      categoria: 'Salud',  descripcion_venta: 'Ventas, inventario de medicamentos, control de vencimientos y caja para boticas y droguerías pequeñas.' },
+    // ── Comercio ─────────────────────────────────────────────────────────────
+    { nombre: 'Sistema de Moda',                     categoria: 'Comercio',descripcion_venta: 'Inventario por tallas y colores, ventas, apartados y caja para tiendas de ropa y accesorios.' },
+    { nombre: 'Sistema Boutique',                    categoria: 'Comercio',descripcion_venta: 'POS completo con catálogo visual, apartados, fidelización de clientes y reportes para boutiques.' },
+    { nombre: 'Sistema Restaurante',                 categoria: 'Comercio',descripcion_venta: 'Mesas, comandas, cocina, caja y reportes de ventas para restaurantes y cafeterías.' },
+    { nombre: 'Sistema Pollería',                    categoria: 'Comercio',descripcion_venta: 'Gestión de ventas, combos, caja y control de inventario especializado para pollerías y asaderos.' },
+    { nombre: 'Sistema Salón de Belleza',            categoria: 'Comercio',descripcion_venta: 'Agenda de citas, servicios, comisiones de estilistas, ventas de productos y caja para salones de belleza.' },
+    // ── Servicios ─────────────────────────────────────────────────────────────
+    { nombre: 'Sistema Panadería y Pastelería',      categoria: 'Servicios',descripcion_venta: 'Producción, ventas, caja, insumos y control de recetas para panaderías y negocios de repostería.' },
+    { nombre: 'Sistema Hospedaje',                   categoria: 'Servicios',descripcion_venta: 'Check-in/out, disponibilidad de habitaciones, facturación y reporte de ocupación para hoteles y hostales.' },
+    { nombre: 'Sistema Parqueo y Estacionamiento',   categoria: 'Servicios',descripcion_venta: 'Control de entrada/salida de vehículos, tarifas por hora, facturación y reportes para parqueaderos.' },
+    { nombre: 'Sistema Control de Acceso',           categoria: 'Servicios',descripcion_venta: 'Registro de entrada/salida de empleados o visitantes con QR o carnet para empresas y edificios.' },
+    { nombre: 'Sistema Cotización',                  categoria: 'Servicios',descripcion_venta: 'Generación rápida de cotizaciones profesionales en PDF, seguimiento y conversión a factura.' },
+    // ── Finanzas ──────────────────────────────────────────────────────────────
+    { nombre: 'Sistema Préstamos y Cobranza',        categoria: 'Finanzas',descripcion_venta: 'Gestión de créditos, cuotas, cartera vencida, recordatorios y reportes para empresas financieras y prestamistas.' },
+    { nombre: 'Sistema Inventario Equipos Tecnológicos', categoria: 'Servicios', descripcion_venta: 'Control de equipos, asignaciones, mantenimientos y depreciación para empresas de tecnología.' },
+    // ── IA y Automatización ───────────────────────────────────────────────────
+    { nombre: 'Bot de Ventas por WhatsApp',          categoria: 'IA',     descripcion_venta: 'Agente de IA para WhatsApp que vende productos digitales automáticamente, 24/7, sin intervención humana.' },
+    { nombre: 'ASOERC',                              categoria: 'Sistema',descripcion_venta: 'Sistema de gestión para asociaciones y cooperativas: socios, aportes, préstamos y asambleas.' },
 ];
 
 async function seedProductos() {
