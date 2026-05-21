@@ -148,8 +148,8 @@ async function iniciar(intentos = 5) {
             await sequelize.authenticate();
             await sequelize.sync({ alter: true });
             await seedAdmin();
-            await seedProductos();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
+            seedProductos().catch(e => console.error('⚠️  seedProductos falló (no crítico):', e.message));
             initBot();
             startPoller();
             startReminder();

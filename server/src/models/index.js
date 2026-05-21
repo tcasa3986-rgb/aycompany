@@ -43,9 +43,9 @@ Usuario.hasMany(Lead, { foreignKey: 'vendedor_id', as: 'leads' });
 Cliente.belongsTo(Usuario, { foreignKey: 'vendedor_id', as: 'vendedor' });
 Usuario.hasMany(Cliente, { foreignKey: 'vendedor_id', as: 'clientesVendedor' });
 
-// Equipos de vendedores (auto-referencia)
-Usuario.belongsTo(Usuario, { foreignKey: 'referido_por', as: 'referidor' });
-Usuario.hasMany(Usuario,   { foreignKey: 'referido_por', as: 'equipo' });
+// Equipos de vendedores (auto-referencia) — constraints:false evita FK circular en MySQL sync
+Usuario.belongsTo(Usuario, { foreignKey: 'referido_por', as: 'referidor', constraints: false });
+Usuario.hasMany(Usuario,   { foreignKey: 'referido_por', as: 'equipo',    constraints: false });
 
 Empresa.hasMany(Usuario,  { foreignKey: 'empresa_id', as: 'usuarios' });
 Usuario.belongsTo(Empresa,  { foreignKey: 'empresa_id', as: 'empresa' });
