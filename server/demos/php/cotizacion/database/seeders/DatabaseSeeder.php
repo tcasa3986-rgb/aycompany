@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\QuotationDetail;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // ── Admin user para demo ─────────────────────────────
+        User::firstOrCreate(
+            ['email' => 'admin@test.com'],
+            ['name' => 'Administrador', 'password' => 'password123']
+        );
+
         // ── Settings ────────────────────────────────────────
         $defaults = [
             'company_name'         => 'Mi Empresa S.A.C.',
