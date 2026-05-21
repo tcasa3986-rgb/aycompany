@@ -28,7 +28,8 @@ import Usuarios       from './pages/Usuarios';
 import Reportes       from './pages/Reportes';
 import Analitica      from './pages/Analitica';
 import Empresas       from './pages/Empresas';
-import PortalVendedor from './pages/PortalVendedor';
+import PortalVendedor  from './pages/PortalVendedor';
+import UnirseVendedor  from './pages/UnirseVendedor';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -47,7 +48,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/vendedor" element={<PrivateVendedor />} />
+        <Route path="/vendedor"       element={<PrivateVendedor />} />
+        <Route path="/unirse"         element={<UnirseVendedor />} />
         <Route path="/pagar/:license_key"  element={<PagarLicencia />} />
         <Route path="/cliente/:token"     element={<PortalCliente />} />
         <Route path="/" element={<Private><Layout /></Private>}>

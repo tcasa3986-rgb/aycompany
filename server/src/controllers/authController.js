@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const { Usuario } = require('../models');
+const telegramService = require('../services/telegramService');
+const { enviarEmail }  = require('../services/emailService');
 
 // ── Bloqueo por intentos fallidos (en memoria) ───────────────────────────────
 const intentosFallidos = new Map();
@@ -92,5 +94,84 @@ exports.login = async (req, res) => {
     } catch (err) {
         console.error('Error en login:', err.message);
         res.status(500).json({ ok: false, msg: 'Error interno del servidor' });
+    }
+};
+
+// ── Registro público de vendedores ───────────────────────────────────────────
+exports.registroVendedor = async (req, res) => {
+    try {
+        const { nombre, email, password, telefono, ciudad } = req.body;
+
+        if (!nombre || !email || !password)
+            return res.status(400).json({ ok: false, msg: 'Nombre, email y contraseña son requeridos' });
+        if (password.length < 6)
+            return res.status(400).json({ ok: false, msg: 'La contraseña debe tener al menos 6 caracteres' });
+
+        const emailLimpio = email.toLowerCase().trim();
+        const existe = await Usuario.findOne({ where: { email: emailLimpio } });
+        if (existe)
+            return res.status(409).json({ ok: false, msg: 'Este email ya está registrado' });
+
+        const hash    = await bcrypt.hash(password, 10);
+        const usuario = await Usuario.create({ nombre, email: emailLimpio, password: hash, rol: 'vendedor' });
+
+        // Notificar al admin por Telegram
+        telegramService.enviar(
+            `🙋 *Nuevo vendedor registrado*\n\n` +
+            `👤 *Nombre:* ${nombre}\n` +
+            `📧 *Email:* ${emailLimpio}\n` +
+            `📱 *Teléfono:* ${telefono || '—'}\n` +
+            `📍 *Ciudad:* ${ciudad || '—'}\n\n` +
+            `_Ya puede acceder al portal de vendedores._`
+        ).catch(() => {});
+
+        // Email de bienvenida al vendedor
+        const empresa  = process.env.NOMBRE_EMPRESA || 'AI Company CO';
+        const BASE_URL = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
+        if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+            enviarEmail({
+                gmailUser:    process.env.GMAIL_USER,
+                gmailPass:    process.env.GMAIL_APP_PASSWORD,
+                nombreAgente: empresa,
+                nombreEmpresa: empresa,
+                to:      emailLimpio,
+                subject: `✅ Bienvenido al equipo de ventas — ${empresa}`,
+                body: [
+                    `Hola ${nombre},`,
+                    ``,
+                    `¡Bienvenido al equipo de ventas de ${empresa}!`,
+                    ``,
+                    `Ya puedes acceder a tu portal de vendedores:`,
+                    `${BASE_URL}`,
+                    ``,
+                    `Con tu cuenta puedes:`,
+                    `✅ Ver todos los sistemas disponibles para vender`,
+                    `✅ Registrar tus prospectos`,
+                    `✅ Agendar reuniones (el admin es notificado automáticamente)`,
+                    ``,
+                    `Tu modelo: tú cobras la personalización, nosotros manejamos la mensualidad ($250.000/mes mínimo).`,
+                    ``,
+                    `¿Dudas? Escríbenos por WhatsApp: https://wa.me/573212674754`,
+                    ``,
+                    `Equipo ${empresa}`
+                ].join('\n')
+            }).catch(() => {});
+        }
+
+        const token = jwt.sign(
+            { id: usuario.id, nombre: usuario.nombre, rol: 'vendedor' },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN || '12h' }
+        );
+
+        res.status(201).json({
+            ok: true,
+            msg: '¡Cuenta creada! Bienvenido al equipo.',
+            token,
+            user: { id: usuario.id, nombre: usuario.nombre, email: emailLimpio, rol: 'vendedor' }
+        });
+    } catch (err) {
+        console.error('Error registro vendedor:', err.message);
+        res.status(500).json({ ok: false, msg: 'Error al crear la cuenta' });
     }
 };
