@@ -12,6 +12,7 @@ export default function PagarLicencia() {
   const [procesando, setProcesando] = useState(false);
   const [error, setError]         = useState('');
   const [msg, setMsg]             = useState('');
+  const [meses, setMeses]         = useState(1);
 
   useEffect(() => {
     api.get(`/pagos/mp/info/${license_key}`)
@@ -34,7 +35,7 @@ export default function PagarLicencia() {
   async function pagarUnaVez() {
     setProcesando(true);
     try {
-      const { data } = await api.post(`/pagos/mp/crear/${license_key}`);
+      const { data } = await api.post(`/pagos/mp/crear/${license_key}`, { meses });
       window.location.href = data.init_point;
     } catch {
       setError('Error al iniciar el pago. Intente de nuevo.');
@@ -67,7 +68,7 @@ export default function PagarLicencia() {
           alt="Mercado Pago" style={{ width: 140, marginBottom: 20 }} />
 
         {/* Alertas de estado */}
-        {estado === 'ok'       && <Alert color="green">✅ ¡Pago exitoso! Su licencia fue renovada por 1 mes.</Alert>}
+        {estado === 'ok'       && <Alert color="green">✅ ¡Pago exitoso! Su licencia fue renovada por {params.get('meses') || 1} mes{(params.get('meses') || 1) > 1 ? 'es' : ''}.</Alert>}
         {estado === 'suscrito' && <Alert color="green">✅ ¡Suscripción activada! Se cobrará automáticamente cada mes.</Alert>}
         {estado === 'error'    && <Alert color="red">❌ El pago no pudo procesarse. Intente de nuevo.</Alert>}
         {estado === 'pendiente'&& <Alert color="orange">⏳ Pago pendiente de confirmación.</Alert>}
@@ -84,11 +85,52 @@ export default function PagarLicencia() {
           <Row label="Suscripción" value={info.suscripcion_activa ? '✅ Activa — cobro automático' : '⭕ No configurada'} color={info.suscripcion_activa ? '#2ecc71' : '#888'} />
         </div>
 
-        {/* Precio */}
+        {/* Selector de meses */}
+        {!info.suscripcion_activa && estado !== 'suscrito' && (
+          <div style={s.mesesBox}>
+            <p style={{ color: '#aaa', fontSize: 12, marginBottom: 10, textAlign: 'center' }}>
+              ¿Cuántos meses desea pagar?
+            </p>
+            <div style={s.mesesGrid}>
+              {[1, 2, 3, 6, 12].map(m => (
+                <button key={m} onClick={() => setMeses(m)}
+                  style={{ ...s.mesBtn, ...(meses === m ? s.mesBtnActive : {}) }}>
+                  <span style={{ fontSize: 16, fontWeight: 800 }}>{m}</span>
+                  <span style={{ fontSize: 11, color: meses === m ? '#bfdbfe' : '#666' }}>
+                    {m === 1 ? 'mes' : 'meses'}
+                  </span>
+                  {m === 3  && <span style={s.tag}>Popular</span>}
+                  {m === 12 && <span style={s.tag}>Mejor precio</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Precio calculado */}
         <div style={s.precioBox}>
-          <span style={{ color: '#aaa', fontSize: 12, marginBottom: 4 }}>Precio mensual</span>
-          <span style={{ color: '#fff', fontSize: 34, fontWeight: 800 }}>${Number(info.precio).toLocaleString('es-CO')}</span>
-          <span style={{ color: '#aaa', fontSize: 12 }}>COP / mes</span>
+          {meses > 1 && !info.suscripcion_activa && estado !== 'suscrito' ? (
+            <>
+              <span style={{ color: '#aaa', fontSize: 12, marginBottom: 4 }}>
+                {meses} mes{meses > 1 ? 'es' : ''} × ${Number(info.precio).toLocaleString('es-CO')}
+              </span>
+              <span style={{ color: '#fff', fontSize: 34, fontWeight: 800 }}>
+                ${(Number(info.precio) * meses).toLocaleString('es-CO')}
+              </span>
+              <span style={{ color: '#aaa', fontSize: 12 }}>COP en total</span>
+              <span style={{ color: '#2ecc71', fontSize: 12, marginTop: 4 }}>
+                ✅ Licencia activa por {meses} meses
+              </span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: '#aaa', fontSize: 12, marginBottom: 4 }}>Precio mensual</span>
+              <span style={{ color: '#fff', fontSize: 34, fontWeight: 800 }}>
+                ${Number(info.precio).toLocaleString('es-CO')}
+              </span>
+              <span style={{ color: '#aaa', fontSize: 12 }}>COP / mes</span>
+            </>
+          )}
         </div>
 
         {/* Botones según estado */}
@@ -98,10 +140,10 @@ export default function PagarLicencia() {
               {procesando ? 'Procesando...' : '🔄 Activar suscripción automática'}
             </button>
             <p style={{ color: '#555', fontSize: 12, textAlign: 'center', margin: '8px 0' }}>
-              Se cobra cada mes automáticamente. Puede cancelar cuando quiera.
+              Se cobra ${Number(info.precio).toLocaleString('es-CO')} cada mes automáticamente. Puede cancelar cuando quiera.
             </p>
             <button onClick={pagarUnaVez} disabled={procesando} style={s.btnSecundario}>
-              💳 Pagar solo este mes
+              💳 Pagar {meses} {meses === 1 ? 'mes' : `meses`} — ${(Number(info.precio) * meses).toLocaleString('es-CO')} COP
             </button>
           </>
         )}
@@ -140,7 +182,12 @@ const s = {
   card:       { background:'#141414', borderRadius:18, padding:36, width:'100%', maxWidth:420, display:'flex', flexDirection:'column', alignItems:'center', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' },
   infoBox:    { width:'100%', margin:'0 0 20px' },
   precioBox:  { width:'100%', background:'#0d0d0d', borderRadius:12, padding:'18px 20px', display:'flex', flexDirection:'column', alignItems:'center', marginBottom:24, border:'1px solid #1e1e1e' },
-  btnPrimario:{ width:'100%', padding:'15px', background:'#009ee3', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', marginBottom:0 },
-  btnSecundario:{ width:'100%', padding:'12px', background:'transparent', color:'#009ee3', border:'1px solid #009ee3', borderRadius:12, fontSize:13, fontWeight:600, cursor:'pointer', marginTop:10 },
-  btnCancelar:{ width:'100%', padding:'12px', background:'transparent', color:'#e74c3c', border:'1px solid #e74c3c', borderRadius:12, fontSize:13, fontWeight:600, cursor:'pointer', marginTop:8 },
+  btnPrimario:  { width:'100%', padding:'15px', background:'#009ee3', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', marginBottom:0 },
+  btnSecundario:{ width:'100%', padding:'13px', background:'transparent', color:'#009ee3', border:'1px solid #009ee3', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:10 },
+  btnCancelar:  { width:'100%', padding:'12px', background:'transparent', color:'#e74c3c', border:'1px solid #e74c3c', borderRadius:12, fontSize:13, fontWeight:600, cursor:'pointer', marginTop:8 },
+  mesesBox:     { width:'100%', marginBottom:16 },
+  mesesGrid:    { display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6 },
+  mesBtn:       { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'10px 4px', background:'#1e1e1e', border:'1px solid #2a2a2a', borderRadius:10, cursor:'pointer', position:'relative', gap:2 },
+  mesBtnActive: { background:'#0a3a5c', border:'2px solid #009ee3', color:'#fff' },
+  tag:          { position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)', background:'#009ee3', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, whiteSpace:'nowrap' },
 };

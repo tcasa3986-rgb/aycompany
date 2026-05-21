@@ -93,6 +93,8 @@ exports.mpInfoLicencia = async (req, res) => {
 exports.mpCrearPago = async (req, res) => {
     try {
         const { license_key } = req.params;
+        const meses = Math.min(Math.max(parseInt(req.body?.meses) || 1, 1), 24);
+
         const lic = await Licencia.findOne({
             where: { license_key },
             include: [
@@ -102,19 +104,25 @@ exports.mpCrearPago = async (req, res) => {
         });
         if (!lic) return res.status(404).json({ ok: false, msg: 'Licencia no encontrada' });
 
-        const baseUrl = process.env.BASE_URL || `https://mi-plataforma-production.up.railway.app`;
+        const baseUrl   = process.env.BASE_URL || `https://mi-plataforma-production.up.railway.app`;
+        const total     = Number(lic.producto.precio_mensual) * meses;
+        const titulo    = meses === 1
+            ? `Renovación ${lic.producto.nombre} — ${lic.cliente.nombre}`
+            : `Renovación ${lic.producto.nombre} ${meses} meses — ${lic.cliente.nombre}`;
+
         const preference = new Preference(mpClient());
         const result = await preference.create({
             body: {
                 items: [{
-                    title:      `Renovación ${lic.producto.nombre} — ${lic.cliente.nombre}`,
-                    quantity:   1,
-                    unit_price: Number(lic.producto.precio_mensual),
+                    title:       titulo,
+                    quantity:    1,
+                    unit_price:  total,
                     currency_id: 'COP'
                 }],
-                external_reference: license_key,
+                // Codificamos los meses en el external_reference: "license_key|meses"
+                external_reference: `${license_key}|${meses}`,
                 back_urls: {
-                    success: `${baseUrl}/pagar/${license_key}?estado=ok`,
+                    success: `${baseUrl}/pagar/${license_key}?estado=ok&meses=${meses}`,
                     failure: `${baseUrl}/pagar/${license_key}?estado=error`,
                     pending: `${baseUrl}/pagar/${license_key}?estado=pendiente`
                 },
@@ -141,12 +149,15 @@ exports.mpWebhook = async (req, res) => {
             const pago = await paymentApi.get({ id: data.id });
             if (pago.status !== 'approved') return;
 
-            const licenseKey = pago.external_reference;
+            // external_reference puede ser "license_key|meses" o solo "license_key" (pagos antiguos)
+            const [licenseKey, mesesStr] = (pago.external_reference || '').split('|');
+            const numMeses = Math.min(Math.max(parseInt(mesesStr) || 1, 1), 24);
+
             const lic = await Licencia.findOne({ where: { license_key: licenseKey } });
             if (!lic) return;
 
             const base = new Date(lic.fecha_vencimiento) > new Date() ? new Date(lic.fecha_vencimiento) : new Date();
-            base.setMonth(base.getMonth() + 1);
+            base.setMonth(base.getMonth() + numMeses);
             await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true });
 
             const licConProd = await Licencia.findByPk(lic.id, {
@@ -158,11 +169,11 @@ exports.mpWebhook = async (req, res) => {
             const nuevoPago = await Pago.create({
                 licencia_id: lic.id, cliente_id: lic.cliente_id,
                 monto: pago.transaction_amount, fecha_pago: new Date().toISOString().split('T')[0],
-                metodo_pago: 'MercadoPago', meses: 1, notas: `MP pago único #${pago.id}`
+                metodo_pago: 'MercadoPago', meses: numMeses, notas: `MP pago único #${pago.id}`
             });
             await generarFactura({
                 pago_id: nuevoPago.id, cliente_id: lic.cliente_id,
-                concepto: `Renovación ${licConProd?.producto?.nombre || 'Sistema'} — 1 mes`,
+                concepto: `Renovación ${licConProd?.producto?.nombre || 'Sistema'} — ${numMeses} mes${numMeses > 1 ? 'es' : ''}`,
                 monto: pago.transaction_amount, metodo_pago: 'MercadoPago',
                 fecha: new Date().toISOString().split('T')[0]
             });
@@ -175,7 +186,7 @@ exports.mpWebhook = async (req, res) => {
                     monto:                 pago.transaction_amount
                 });
             }
-            console.log(`✅ Pago único MP — licencia ${licenseKey} renovada`);
+            console.log(`✅ Pago MP ${numMeses} mes(es) — licencia ${licenseKey} renovada`);
         }
 
         // ── Cobro automático de suscripción ───────────────────────
