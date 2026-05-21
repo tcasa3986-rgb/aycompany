@@ -132,10 +132,11 @@ function spawnDemo(demo) {
 }
 
 // ── HTTP proxy middleware for a demo ──────────────────────────────
+// Note: app.use('/demos/[name]/api', fn) strips the mount path from req.url,
+// so req.url is already relative (e.g. '/clientes'). Prepend '/api' to restore.
 function proxyMiddleware(demo) {
-  const prefix = new RegExp(`^/demos/${demo.name}/api`);
   return (req, res) => {
-    const targetPath = req.url.replace(prefix, '/api');
+    const targetPath = '/api' + req.url;
     const options = {
       hostname: '127.0.0.1',
       port:     demo.port,
