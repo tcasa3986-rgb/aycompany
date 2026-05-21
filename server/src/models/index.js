@@ -46,7 +46,7 @@ Usuario.hasMany(Cliente, { foreignKey: 'vendedor_id', as: 'clientesVendedor' });
 Empresa.hasMany(Usuario,  { foreignKey: 'empresa_id', as: 'usuarios' });
 Usuario.belongsTo(Empresa,  { foreignKey: 'empresa_id', as: 'empresa' });
 Empresa.hasMany(Cliente,  { foreignKey: 'empresa_id', as: 'clientes' });
-Cliente.belongsTo(Empresa,  { foreignKey: 'empresa_id', as: 'empresa' });
+Cliente.belongsTo(Empresa,  { foreignKey: 'empresa_id', as: 'empresaObj' });
 
 Cliente.hasMany(Ticket, { foreignKey: 'cliente_id', as: 'tickets' });
 Ticket.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
