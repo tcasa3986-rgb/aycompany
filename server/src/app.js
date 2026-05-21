@@ -142,19 +142,39 @@ async function seedAdmin() {
 
 const PORT = process.env.PORT || 5000;
 
+// Agrega una columna si no existe; ignora el error si ya existe
+async function addCol(table, col, opts) {
+    try {
+        await sequelize.getQueryInterface().addColumn(table, col, opts);
+        console.log(`  + columna agregada: ${table}.${col}`);
+    } catch (_) { /* ya existe — ok */ }
+}
+
 async function syncSchema() {
     try {
         await sequelize.sync({ alter: true });
         console.log('✅ Schema sincronizado (alter)');
     } catch (alterErr) {
-        console.warn('⚠️  sync alter falló, intentando sync básico:', alterErr.message);
-        try {
-            await sequelize.sync();
-            console.log('✅ Schema sincronizado (básico)');
-        } catch (syncErr) {
-            // Si las tablas ya existen en la BD, continuamos igual
-            console.warn('⚠️  sync básico falló, continuando con esquema actual:', syncErr.message);
-        }
+        console.warn('⚠️  sync alter falló, aplicando migraciones manuales:', alterErr.message);
+        try { await sequelize.sync(); } catch (_) {}
+
+        const { DataTypes } = require('sequelize');
+        // usuarios — columnas del sistema de vendedores
+        await addCol('usuarios', 'telefono',        { type: DataTypes.STRING(20),  allowNull: true });
+        await addCol('usuarios', 'ciudad',          { type: DataTypes.STRING(100), allowNull: true });
+        await addCol('usuarios', 'activo',          { type: DataTypes.BOOLEAN, defaultValue: true });
+        await addCol('usuarios', 'referido_por',    { type: DataTypes.INTEGER,     allowNull: true });
+        await addCol('usuarios', 'codigo_referido', { type: DataTypes.STRING(20),  allowNull: true });
+        await addCol('usuarios', 'empresa_id',      { type: DataTypes.INTEGER,     allowNull: true });
+        // productos — columnas de demo
+        await addCol('productos', 'demo_url',       { type: DataTypes.STRING(300), allowNull: true });
+        await addCol('productos', 'demo_usuario',   { type: DataTypes.STRING(100), allowNull: true });
+        await addCol('productos', 'demo_password',  { type: DataTypes.STRING(100), allowNull: true });
+        await addCol('productos', 'descripcion_venta', { type: DataTypes.TEXT,     allowNull: true });
+        await addCol('productos', 'categoria',      { type: DataTypes.STRING(60),  defaultValue: 'Sistema' });
+        await addCol('productos', 'visible_vendedor', { type: DataTypes.BOOLEAN,   defaultValue: true });
+        await addCol('productos', 'imagen_url',     { type: DataTypes.STRING(300), allowNull: true });
+        console.log('✅ Migraciones manuales completadas');
     }
 }
 
