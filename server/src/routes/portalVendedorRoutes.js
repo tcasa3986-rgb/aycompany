@@ -9,5 +9,6 @@ router.post('/leads',          auth, ctrl.crearLead);
 router.put('/leads/:id',       auth, ctrl.actualizarLead);
 router.post('/reuniones',      auth, ctrl.agendarReunion);
 router.get('/clientes',        auth, ctrl.clientes);
+router.get('/mi-equipo',       auth, ctrl.miEquipo);
 
 module.exports = router;

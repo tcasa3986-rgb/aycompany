@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -16,8 +16,15 @@ export default function UnirseVendedor() {
     const [form,    setForm]    = useState({ nombre: '', email: '', password: '', confirmar: '', telefono: '', ciudad: '' });
     const [loading, setLoading] = useState(false);
     const [listo,   setListo]   = useState(false);
+    const [codigoRef, setCodigoRef] = useState('');
     const { login } = useAuthStore();
     const navigate  = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const ref = searchParams.get('ref');
+        if (ref) setCodigoRef(ref.toUpperCase());
+    }, [searchParams]);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -29,11 +36,12 @@ export default function UnirseVendedor() {
         setLoading(true);
         try {
             const { data } = await api.post('/auth/registro-vendedor', {
-                nombre:   form.nombre,
-                email:    form.email,
-                password: form.password,
-                telefono: form.telefono,
-                ciudad:   form.ciudad
+                nombre:     form.nombre,
+                email:      form.email,
+                password:   form.password,
+                telefono:   form.telefono,
+                ciudad:     form.ciudad,
+                codigo_ref: codigoRef || undefined
             });
             login(data.token, data.user);
             setListo(true);

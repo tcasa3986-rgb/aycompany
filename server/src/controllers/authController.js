@@ -97,10 +97,17 @@ exports.login = async (req, res) => {
     }
 };
 
+function generarCodigoReferido() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 7; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
 // ── Registro público de vendedores ───────────────────────────────────────────
 exports.registroVendedor = async (req, res) => {
     try {
-        const { nombre, email, password, telefono, ciudad } = req.body;
+        const { nombre, email, password, telefono, ciudad, codigo_ref } = req.body;
 
         if (!nombre || !email || !password)
             return res.status(400).json({ ok: false, msg: 'Nombre, email y contraseña son requeridos' });
@@ -112,8 +119,27 @@ exports.registroVendedor = async (req, res) => {
         if (existe)
             return res.status(409).json({ ok: false, msg: 'Este email ya está registrado' });
 
+        // Resolver referidor
+        let referido_por = null;
+        if (codigo_ref) {
+            const ref = await Usuario.findOne({ where: { codigo_referido: codigo_ref.toUpperCase(), rol: 'vendedor' } });
+            if (ref) referido_por = ref.id;
+        }
+
+        // Generar código único para este nuevo vendedor
+        let codigo_referido;
+        let intentos = 0;
+        do {
+            codigo_referido = generarCodigoReferido();
+            intentos++;
+        } while (intentos < 10 && await Usuario.findOne({ where: { codigo_referido } }));
+
         const hash    = await bcrypt.hash(password, 10);
-        const usuario = await Usuario.create({ nombre, email: emailLimpio, password: hash, rol: 'vendedor' });
+        const usuario = await Usuario.create({
+            nombre, email: emailLimpio, password: hash, rol: 'vendedor',
+            telefono: telefono || null, ciudad: ciudad || null,
+            referido_por, codigo_referido
+        });
 
         // Notificar al admin por Telegram
         telegramService.enviar(

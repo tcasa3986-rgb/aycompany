@@ -30,6 +30,7 @@ import Analitica      from './pages/Analitica';
 import Empresas       from './pages/Empresas';
 import PortalVendedor  from './pages/PortalVendedor';
 import UnirseVendedor  from './pages/UnirseVendedor';
+import Vendedores      from './pages/Vendedores';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="reportes"       element={<Reportes />} />
           <Route path="analitica"      element={<Analitica />} />
           <Route path="empresas"       element={<Empresas />} />
+          <Route path="vendedores"     element={<Vendedores />} />
         </Route>
       </Routes>
     </BrowserRouter>

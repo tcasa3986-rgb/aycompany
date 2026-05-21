@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Calendar, Package, LogOut,
     Plus, X, Phone, Mail, ChevronRight, CheckCircle,
-    Clock, UserPlus, TrendingUp, ExternalLink
+    Clock, UserPlus, TrendingUp, ExternalLink, Copy, Share2
 } from 'lucide-react';
 
 const TABS = [
@@ -14,6 +14,7 @@ const TABS = [
     { key: 'leads',      label: 'Mis leads',    icon: Users },
     { key: 'reuniones',  label: 'Reuniones',    icon: Calendar },
     { key: 'catalogo',   label: 'Catálogo',     icon: Package },
+    { key: 'equipo',     label: 'Mi equipo',    icon: Share2 },
 ];
 
 const ESTADOS = [
@@ -32,6 +33,7 @@ export default function PortalVendedor() {
     const [stats,      setStats]      = useState(null);
     const [leads,      setLeads]      = useState([]);
     const [catalogo,   setCatalogo]   = useState([]);
+    const [equipo,     setEquipo]     = useState(null);
     const [modalLead,  setModalLead]  = useState(false);
     const [modalReu,   setModalReu]   = useState(false);
     const [formLead,   setFormLead]   = useState({ nombre:'', telefono:'', email:'', empresa:'', sistema_interes:'', notas:'' });
@@ -44,6 +46,7 @@ export default function PortalVendedor() {
         api.get('/vendedor/stats').then(r => setStats(r.data.data)).catch(() => {});
         api.get('/vendedor/leads').then(r => setLeads(r.data.data || [])).catch(() => {});
         api.get('/vendedor/catalogo').then(r => setCatalogo(r.data.data || [])).catch(() => {});
+        api.get('/vendedor/mi-equipo').then(r => setEquipo(r.data.data)).catch(() => {});
     }, []);
 
     function handleLogout() { logout(); navigate('/'); }
@@ -294,6 +297,80 @@ export default function PortalVendedor() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* ── MI EQUIPO ── */}
+                {tab === 'equipo' && (
+                    <div style={{ padding: 28 }}>
+                        <h1 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>Mi equipo</h1>
+                        <p style={{ color: '#64748b', fontSize: '.88rem', marginBottom: 24 }}>Invita a otros vendedores y ve su actividad</p>
+
+                        {/* Enlace de invitación */}
+                        <div style={{ background: '#fff', borderRadius: 12, padding: '20px 22px', boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
+                            <div style={{ fontWeight: 700, fontSize: '.95rem', color: '#1e293b', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Share2 size={16} color="#6366f1"/> Tu enlace de invitación
+                            </div>
+                            {equipo?.codigo_referido ? (
+                                <>
+                                    <p style={{ fontSize: '.84rem', color: '#64748b', marginBottom: 12 }}>
+                                        Comparte este enlace. Cuando alguien se registre con él, aparece en tu equipo.
+                                    </p>
+                                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                        <code style={{ flex: 1, background: '#f1f5f9', padding: '10px 14px', borderRadius: 8, fontSize: '.85rem', color: '#334155', overflowX: 'auto' }}>
+                                            {window.location.origin}/unirse?ref={equipo.codigo_referido}
+                                        </code>
+                                        <button onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/unirse?ref=${equipo.codigo_referido}`);
+                                            toast.success('Enlace copiado');
+                                        }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: '.85rem', cursor: 'pointer', flexShrink: 0 }}>
+                                            <Copy size={14}/> Copiar
+                                        </button>
+                                    </div>
+                                    <div style={{ marginTop: 10, background: '#ede9fe', borderRadius: 8, padding: '8px 12px', fontSize: '.8rem', color: '#6366f1' }}>
+                                        Tu código: <strong>{equipo.codigo_referido}</strong>
+                                    </div>
+                                </>
+                            ) : (
+                                <p style={{ color: '#94a3b8', fontSize: '.9rem' }}>Cargando tu código de invitación...</p>
+                            )}
+                        </div>
+
+                        {/* Tabla del equipo */}
+                        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.07)', overflow: 'hidden' }}>
+                            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: '.9rem', color: '#1e293b' }}>
+                                Vendedores que invitaste ({equipo?.equipo?.length || 0})
+                            </div>
+                            {!equipo?.equipo?.length ? (
+                                <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+                                    <UserPlus size={36} color="#e2e8f0" style={{ marginBottom: 10 }}/>
+                                    <p style={{ color: '#94a3b8', fontSize: '.9rem' }}>Aún no has invitado a nadie.</p>
+                                    <p style={{ color: '#94a3b8', fontSize: '.82rem', marginTop: 4 }}>Comparte tu enlace y cuando alguien se registre aparecerá aquí.</p>
+                                </div>
+                            ) : (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.88rem' }}>
+                                    <thead><tr style={{ background: '#f8fafc' }}>
+                                        {['Nombre','Email','Ciudad','Leads','Clientes','Se unió'].map(h => (
+                                            <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '.78rem', color: '#64748b', fontWeight: 600 }}>{h}</th>
+                                        ))}
+                                    </tr></thead>
+                                    <tbody>
+                                        {equipo.equipo.map(m => (
+                                            <tr key={m.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                                                <td style={{ padding: '11px 16px', fontWeight: 600 }}>{m.nombre}</td>
+                                                <td style={{ padding: '11px 16px', color: '#64748b' }}>{m.email}</td>
+                                                <td style={{ padding: '11px 16px', color: '#64748b' }}>{m.ciudad || '—'}</td>
+                                                <td style={{ padding: '11px 16px', color: '#f59e0b', fontWeight: 700 }}>{m.leads}</td>
+                                                <td style={{ padding: '11px 16px', color: '#10b981', fontWeight: 700 }}>{m.clientes}</td>
+                                                <td style={{ padding: '11px 16px', color: '#94a3b8', fontSize: '.82rem' }}>
+                                                    {m.created_at ? new Date(m.created_at).toLocaleDateString('es') : '—'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
                     </div>
                 )}
             </main>

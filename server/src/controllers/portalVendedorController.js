@@ -167,6 +167,26 @@ exports.agendarReunion = async (req, res) => {
     res.status(201).json({ ok: true, data: reunion, msg: 'Reunión agendada y notificada al admin' });
 };
 
+// GET /api/vendedor/mi-equipo
+exports.miEquipo = async (req, res) => {
+    const yo = await Usuario.findByPk(req.user.id, { attributes: ['id', 'nombre', 'codigo_referido'] });
+
+    const equipo = await Usuario.findAll({
+        where: { referido_por: req.user.id, rol: 'vendedor' },
+        attributes: ['id', 'nombre', 'email', 'ciudad', 'activo', 'created_at']
+    });
+
+    const equipoEnriquecido = await Promise.all(equipo.map(async m => {
+        const [leads, clientes] = await Promise.all([
+            Lead.count({ where: { vendedor_id: m.id } }),
+            Cliente.count({ where: { vendedor_id: m.id } })
+        ]);
+        return { ...m.toJSON(), leads, clientes };
+    }));
+
+    res.json({ ok: true, data: { codigo_referido: yo?.codigo_referido, equipo: equipoEnriquecido } });
+};
+
 // GET /api/vendedor/clientes
 exports.clientes = async (req, res) => {
     const clientes = await Cliente.findAll({

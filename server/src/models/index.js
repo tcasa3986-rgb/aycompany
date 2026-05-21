@@ -43,6 +43,10 @@ Usuario.hasMany(Lead, { foreignKey: 'vendedor_id', as: 'leads' });
 Cliente.belongsTo(Usuario, { foreignKey: 'vendedor_id', as: 'vendedor' });
 Usuario.hasMany(Cliente, { foreignKey: 'vendedor_id', as: 'clientesVendedor' });
 
+// Equipos de vendedores (auto-referencia)
+Usuario.belongsTo(Usuario, { foreignKey: 'referido_por', as: 'referidor' });
+Usuario.hasMany(Usuario,   { foreignKey: 'referido_por', as: 'equipo' });
+
 Empresa.hasMany(Usuario,  { foreignKey: 'empresa_id', as: 'usuarios' });
 Usuario.belongsTo(Empresa,  { foreignKey: 'empresa_id', as: 'empresa' });
 Empresa.hasMany(Cliente,  { foreignKey: 'empresa_id', as: 'clientes' });
