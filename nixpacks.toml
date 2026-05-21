@@ -1,17 +1,18 @@
 [phases.setup]
-nixPkgs = ["php82", "phpPackages.composer"]
+nixPkgs = ["php82"]
 
 [phases.install]
 cmds = [
+  "php -r \"copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');\" && php /tmp/composer-setup.php --install-dir=/tmp --filename=composer",
   "cd server && npm ci --omit=dev",
   "cd server/demos/viaje360/backend && npm ci --omit=dev",
   "cd server/demos/condominio/backend && npm ci --omit=dev",
   "cd server/demos/odontologia/server && npm ci --omit=dev",
   "cd server/demos/ventas/backend && npm ci --omit=dev",
-  "cd server/demos/php/delivery && composer install --no-dev --optimize-autoloader --no-interaction",
-  "cd server/demos/php/celulares && composer install --no-dev --optimize-autoloader --no-interaction",
-  "cd server/demos/php/colegio && composer install --no-dev --optimize-autoloader --no-interaction",
-  "cd server/demos/php/farmacia && composer install --no-dev --optimize-autoloader --no-interaction"
+  "cd server/demos/php/delivery && /tmp/composer install --no-dev --optimize-autoloader --no-interaction",
+  "cd server/demos/php/celulares && /tmp/composer install --no-dev --optimize-autoloader --no-interaction",
+  "cd server/demos/php/colegio && /tmp/composer install --no-dev --optimize-autoloader --no-interaction",
+  "cd server/demos/php/farmacia && /tmp/composer install --no-dev --optimize-autoloader --no-interaction"
 ]
 
 [phases.build]
