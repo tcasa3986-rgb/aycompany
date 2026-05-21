@@ -8,6 +8,7 @@ import Productos from './pages/Productos';
 import Licencias from './pages/Licencias';
 import Pagos          from './pages/Pagos';
 import PagarLicencia  from './pages/PagarLicencia';
+import PortalCliente  from './pages/PortalCliente';
 import Facturas       from './pages/Facturas';
 import Marketing      from './pages/Marketing';
 import Calendario     from './pages/Calendario';
@@ -27,7 +28,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/pagar/:license_key" element={<PagarLicencia />} />
+        <Route path="/pagar/:license_key"  element={<PagarLicencia />} />
+        <Route path="/cliente/:token"     element={<PortalCliente />} />
         <Route path="/" element={<Private><Layout /></Private>}>
           <Route path="dashboard"  element={<Dashboard />} />
           <Route path="clientes"   element={<Clientes />} />

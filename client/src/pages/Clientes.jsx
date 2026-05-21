@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { Plus, Search, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, X, ExternalLink, Copy } from 'lucide-react';
 
 const VACIO = { nombre: '', email: '', telefono: '', empresa: '', direccion: '', notas: '' };
 
@@ -44,6 +44,17 @@ export default function Clientes() {
     cargar();
   }
 
+  async function abrirPortal(c) {
+    try {
+      const r = await api.post(`/clientes/${c.id}/portal-token`, { enviarEmail: !!c.email });
+      const url = r.data.portalUrl;
+      await navigator.clipboard.writeText(url);
+      toast.success(c.email ? `Link copiado y enviado a ${c.email}` : 'Link copiado al portapapeles');
+    } catch {
+      toast.error('Error al generar el portal');
+    }
+  }
+
   return (
     <div style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -61,7 +72,7 @@ export default function Clientes() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc' }}>
-              {['Nombre', 'Empresa', 'Teléfono', 'Email', 'Acciones'].map(h => (
+              {['Nombre', 'Empresa', 'Teléfono', 'Email', 'Portal', 'Acciones'].map(h => (
                 <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>{h}</th>
               ))}
             </tr>
@@ -73,6 +84,13 @@ export default function Clientes() {
                 <td style={td}>{c.empresa || '—'}</td>
                 <td style={td}>{c.telefono || '—'}</td>
                 <td style={td}>{c.email || '—'}</td>
+                <td style={td}>
+                  <button onClick={() => abrirPortal(c)}
+                    title={c.email ? 'Generar link y enviar por email' : 'Copiar link del portal'}
+                    style={btnSmall('#7c3aed')}>
+                    {c.email ? <ExternalLink size={13} /> : <Copy size={13} />}
+                  </button>
+                </td>
                 <td style={td}>
                   <button onClick={() => abrirEditar(c)} style={btnSmall('#6366f1')}><Pencil size={13} /></button>
                   <button onClick={() => eliminar(c.id)} style={btnSmall('#ef4444')}><Trash2 size={13} /></button>

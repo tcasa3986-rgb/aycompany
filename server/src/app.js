@@ -82,6 +82,7 @@ if (isProd) {
     }
 }
 
+app.use('/api/portal',    require('./routes/portalRoutes'));
 app.use('/api/auth',      require('./routes/authRoutes'));
 app.use('/api/clientes',  require('./routes/clientesRoutes'));
 app.use('/api/productos', require('./routes/productosRoutes'));
