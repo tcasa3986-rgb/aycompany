@@ -38,6 +38,10 @@ const NODE_DEMOS = [
       path.join(__dirname, '../demos/viaje360/seed_costos.sql'),
     ],
     checkTable: 'usuarios',
+    // El hash en schema.sql no coincide con ninguna contraseña conocida → forzar reset
+    pwReset: [
+      "UPDATE usuarios SET password_hash = '$2a$10$bFq1P7NwDlsq5K/LyYUz1uZofBPrgvBNiU3Cnfl/HILT0TaSBhfY6' WHERE email = 'admin@viaje360.com'",
+    ],
   },
   {
     name: 'condominio',
@@ -51,6 +55,10 @@ const NODE_DEMOS = [
       path.join(__dirname, '../demos/condominio/database/seed.sql'),
     ],
     checkTable: 'usuarios',
+    // Hash en seed.sql no coincide con 'Admin123!' → forzar reset
+    pwReset: [
+      "UPDATE usuarios SET password_hash = '$2a$10$RIy4CiG2RhOgnVbxTeZrFugH6B1iQRiUtRK0td3HS2k.U91qxh2pW' WHERE email = 'admin@laspalmas.com'",
+    ],
   },
   {
     name: 'odontologia',
@@ -97,7 +105,8 @@ const NODE_DEMOS = [
     entry: 'src/app.js',
     dist: path.join(__dirname, '../demos/polleria/frontend/dist'),
     sqlFiles: [
-      path.join(__dirname, '../demos/polleria/backend/polleria_db.sql'),
+      // polleria_db.sql tiene encoding UTF-16 que falla como utf8; usar bk_basededatos.sql
+      path.join(__dirname, '../demos/polleria/backend/bk_basededatos.sql'),
     ],
     checkTable: 'usuarios',
   },
@@ -194,6 +203,24 @@ async function seedDemo(demo) {
     }
   } catch (err) {
     console.error(`[${demo.name}] seedDemo error: ${err.message}`);
+  } finally {
+    if (conn) conn.end().catch(() => {});
+  }
+}
+
+// ── Force-reset demo passwords after seeding ─────────────────────
+async function resetDemoPasswords(demo) {
+  if (!demo.pwReset || !demo.pwReset.length) return;
+  const { host, port, user, password } = getDbConfig();
+  let conn;
+  try {
+    conn = await mysql2.createConnection({ host, port: parseInt(port), user, password, database: demo.db });
+    for (const sql of demo.pwReset) {
+      try { await conn.execute(sql); } catch (e) { console.warn(`[${demo.name}] pwReset warn: ${e.message}`); }
+    }
+    console.log(`[${demo.name}] Credenciales demo reiniciadas.`);
+  } catch (err) {
+    console.error(`[${demo.name}] resetDemoPasswords error: ${err.message}`);
   } finally {
     if (conn) conn.end().catch(() => {});
   }
@@ -332,6 +359,7 @@ async function initDemos() {
   console.log('=== Inicializando demos ===');
   for (const demo of NODE_DEMOS) {
     try { await seedDemo(demo); } catch (e) { console.error(`[${demo.name}] seed failed: ${e.message}`); }
+    try { await resetDemoPasswords(demo); } catch (e) { console.error(`[${demo.name}] pwReset failed: ${e.message}`); }
     spawnNodeDemo(demo);
   }
   for (const demo of PHP_DEMOS) {

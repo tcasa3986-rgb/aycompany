@@ -41,9 +41,9 @@ const CATALOGO = [
     { nombre: 'Sistema Restaurante',                 categoria: 'Comercio',descripcion_venta: 'Mesas, comandas, cocina, caja y reportes de ventas para restaurantes y cafeterías.',
       demo_url: '/demos/restaurante/', demo_usuario: 'admin@admin.com', demo_password: 'Xvito2013$' },
     { nombre: 'Sistema Pollería',                    categoria: 'Comercio',descripcion_venta: 'Gestión de ventas, combos, caja y control de inventario especializado para pollerías y asaderos.',
-      demo_url: '/demos/polleria/', demo_usuario: 'admin@polleria.com', demo_password: 'admin' },
+      demo_url: '/demos/polleria/', demo_usuario: 'admin@polleria.com', demo_password: 'admin123' },
     { nombre: 'Sistema Salón de Belleza',            categoria: 'Comercio',descripcion_venta: 'Agenda de citas, servicios, comisiones de estilistas, ventas de productos y caja para salones de belleza.',
-      demo_url: '/demos/salon/', demo_usuario: 'admin@salon.com', demo_password: 'password' },
+      demo_url: '/demos/salon/', demo_usuario: 'admin@salon.com', demo_password: 'admin123' },
     // ── Servicios ─────────────────────────────────────────────────────────────
     { nombre: 'Sistema Panadería y Pastelería',      categoria: 'Servicios',descripcion_venta: 'Producción, ventas, caja, insumos y control de recetas para panaderías y negocios de repostería.',
       demo_url: '/demos/panaderia/', demo_usuario: 'admin@panaderia.com', demo_password: 'Xvito2013$' },
@@ -69,7 +69,8 @@ async function seedProductos() {
         const existe = await Producto.findOne({ where: { nombre: p.nombre } });
         if (!existe) {
             await Producto.create({ ...p, precio_mensual: 250000, visible_vendedor: true, activo: true });
-        } else if (p.demo_url && !existe.demo_url) {
+        } else if (p.demo_url) {
+            // Siempre sincroniza credenciales para que el portal muestre datos correctos
             await existe.update({ demo_url: p.demo_url, demo_usuario: p.demo_usuario, demo_password: p.demo_password });
         }
     }
