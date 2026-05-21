@@ -6,10 +6,12 @@ import { Plus, X, Trash2 } from 'lucide-react';
 const VACIO = { licencia_id: '', cliente_id: '', monto: '', fecha_pago: new Date().toISOString().split('T')[0], metodo_pago: 'efectivo', meses: '1', notas: '' };
 
 export default function Pagos() {
-  const [pagos,     setPagos]     = useState([]);
-  const [licencias, setLicencias] = useState([]);
-  const [modal,     setModal]     = useState(false);
-  const [form,      setForm]      = useState(VACIO);
+  const [pagos,         setPagos]         = useState([]);
+  const [licencias,     setLicencias]     = useState([]);
+  const [modal,         setModal]         = useState(false);
+  const [form,          setForm]          = useState(VACIO);
+  const [precioBase,    setPrecioBase]    = useState(0); // precio mensual de la licencia seleccionada
+  const [vencimientoActual, setVencimientoActual] = useState(null);
 
   const cargar = () => api.get('/pagos').then(r => setPagos(r.data.data));
   useEffect(() => {
@@ -19,7 +21,30 @@ export default function Pagos() {
 
   function seleccionarLicencia(licId) {
     const lic = licencias.find(l => String(l.id) === String(licId));
-    setForm({ ...form, licencia_id: licId, cliente_id: lic?.cliente_id || '', monto: lic?.producto?.precio_mensual || '' });
+    const precio = Number(lic?.producto?.precio_mensual || 0);
+    const meses  = parseInt(form.meses) || 1;
+    setPrecioBase(precio);
+    setVencimientoActual(lic?.fecha_vencimiento || null);
+    setForm({ ...form, licencia_id: licId, cliente_id: lic?.cliente_id || '', monto: String(precio * meses) });
+  }
+
+  function cambiarMeses(nuevosMeses) {
+    const meses = parseInt(nuevosMeses) || 1;
+    setForm(f => ({ ...f, meses: String(meses), monto: precioBase > 0 ? String(precioBase * meses) : f.monto }));
+  }
+
+  function calcularNuevoVencimiento() {
+    if (!vencimientoActual || !form.meses) return null;
+    const base = new Date(vencimientoActual) > new Date() ? new Date(vencimientoActual) : new Date();
+    base.setMonth(base.getMonth() + parseInt(form.meses));
+    return base.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function abrirModal() {
+    setForm(VACIO);
+    setPrecioBase(0);
+    setVencimientoActual(null);
+    setModal(true);
   }
 
   async function crear(e) {
@@ -29,6 +54,8 @@ export default function Pagos() {
       toast.success(r.data.msg);
       setModal(false);
       setForm(VACIO);
+      setPrecioBase(0);
+      setVencimientoActual(null);
       cargar();
     } catch { toast.error('Error al registrar'); }
   }
@@ -55,7 +82,7 @@ export default function Pagos() {
           <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Pagos</h1>
           <p style={{ color: '#64748b', fontSize: '.88rem', marginTop: 2 }}>Ingresos este mes: <strong style={{ color: '#10b981' }}>${totalMes.toLocaleString('es')}</strong></p>
         </div>
-        <button onClick={() => setModal(true)} style={btn('#4f46e5')}><Plus size={16} /> Registrar pago</button>
+        <button onClick={abrirModal} style={btn('#4f46e5')}><Plus size={16} /> Registrar pago</button>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.07)', overflow: 'hidden' }}>
@@ -93,7 +120,7 @@ export default function Pagos() {
           <div style={modalBox}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Registrar pago</h2>
-              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none' }}><X size={20} /></button>
+              <button onClick={() => { setModal(false); setPrecioBase(0); setVencimientoActual(null); }} style={{ background: 'none', border: 'none' }}><X size={20} /></button>
             </div>
             <form onSubmit={crear}>
               <Field label="Licencia *">
@@ -106,20 +133,62 @@ export default function Pagos() {
                   ))}
                 </select>
               </Field>
+              {/* Selector de meses */}
+              <Field label="Meses a renovar">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 6 }}>
+                  {[1,2,3,6,12,24].map(m => (
+                    <button key={m} type="button" onClick={() => cambiarMeses(m)}
+                      style={{
+                        padding: '8px 4px', borderRadius: 8, border: '2px solid',
+                        borderColor: parseInt(form.meses) === m ? '#4f46e5' : '#e2e8f0',
+                        background:  parseInt(form.meses) === m ? '#ede9fe' : '#fafafa',
+                        color:       parseInt(form.meses) === m ? '#4f46e5' : '#374151',
+                        fontWeight:  parseInt(form.meses) === m ? 700 : 500,
+                        fontSize: '.82rem', cursor: 'pointer'
+                      }}>
+                      {m} {m === 1 ? 'mes' : 'meses'}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
+              {/* Preview: monto calculado + nuevo vencimiento */}
+              {precioBase > 0 && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: '.75rem', color: '#64748b', fontWeight: 600 }}>MONTO A COBRAR</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#059669' }}>
+                      ${(precioBase * parseInt(form.meses)).toLocaleString('es-CO')} COP
+                    </div>
+                    <div style={{ fontSize: '.75rem', color: '#94a3b8' }}>
+                      ${precioBase.toLocaleString('es-CO')} × {form.meses} mes{parseInt(form.meses) > 1 ? 'es' : ''}
+                    </div>
+                  </div>
+                  {calcularNuevoVencimiento() && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '.75rem', color: '#64748b', fontWeight: 600 }}>NUEVA FECHA VENCIMIENTO</div>
+                      <div style={{ fontSize: '.92rem', fontWeight: 700, color: '#1e1b4b' }}>{calcularNuevoVencimiento()}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Field label="Monto ($)"><input type="number" min="0" step="0.01" value={form.monto} onChange={e => setForm({...form, monto: e.target.value})} required /></Field>
-                <Field label="Fecha de pago"><input type="date" value={form.fecha_pago} onChange={e => setForm({...form, fecha_pago: e.target.value})} required /></Field>
+                <Field label="Monto ($) — editable">
+                  <input type="number" min="0" step="1000" value={form.monto}
+                    onChange={e => setForm({...form, monto: e.target.value})} required />
+                </Field>
+                <Field label="Fecha de pago">
+                  <input type="date" value={form.fecha_pago} onChange={e => setForm({...form, fecha_pago: e.target.value})} required />
+                </Field>
                 <Field label="Método de pago">
                   <select value={form.metodo_pago} onChange={e => setForm({...form, metodo_pago: e.target.value})}>
                     <option value="efectivo">Efectivo</option>
                     <option value="transferencia">Transferencia</option>
+                    <option value="nequi">Nequi</option>
+                    <option value="daviplata">Daviplata</option>
                     <option value="tarjeta">Tarjeta</option>
                     <option value="otro">Otro</option>
-                  </select>
-                </Field>
-                <Field label="Meses a renovar">
-                  <select value={form.meses} onChange={e => setForm({...form, meses: e.target.value})}>
-                    {[1,3,6,12].map(m => <option key={m} value={m}>{m} mes{m > 1 ? 'es' : ''}</option>)}
                   </select>
                 </Field>
               </div>
