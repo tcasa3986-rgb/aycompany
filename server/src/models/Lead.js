@@ -16,7 +16,9 @@ const Lead = sequelize.define('Lead', {
     intentos_contacto:  { type: DataTypes.INTEGER, defaultValue: 0 },
     link_reunion:       { type: DataTypes.STRING(300) }, // link Calendly generado/enviado
     fecha_reunion:      { type: DataTypes.DATE },
-    agente_activo:      { type: DataTypes.BOOLEAN, defaultValue: true }, // si el agente gestiona este lead
+    agente_activo:      { type: DataTypes.BOOLEAN, defaultValue: true },
+    vendedor_id:        { type: DataTypes.INTEGER, allowNull: true },
+    sistema_interes:    { type: DataTypes.STRING(150) },
 }, { tableName: 'leads', timestamps: true, createdAt: 'created_at', updatedAt: 'updated_at' });
 
 module.exports = Lead;

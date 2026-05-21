@@ -98,6 +98,7 @@ app.use('/api/contratos',      require('./routes/contratosRoutes'));
 app.use('/api/usuarios',       require('./routes/usuariosRoutes'));
 app.use('/api/reportes',       require('./routes/reportesRoutes'));
 app.use('/api/analitica',      require('./routes/analiticaRoutes'));
+app.use('/api/vendedor',       require('./routes/portalVendedorRoutes'));
 app.use('/api/empresas',       require('./routes/empresaRoutes'));
 app.use('/api/marketing',  require('./routes/marketingRoutes'));
 app.use('/api/reuniones',  require('./routes/reunionesRoutes'));

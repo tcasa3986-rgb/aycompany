@@ -38,6 +38,10 @@ Factura.belongsTo(Pago,    { foreignKey: 'pago_id',    as: 'pago' });
 
 Lead.hasMany(AgentActividad, { foreignKey: 'lead_id', as: 'actividad' });
 AgentActividad.belongsTo(Lead, { foreignKey: 'lead_id', as: 'lead' });
+Lead.belongsTo(Usuario, { foreignKey: 'vendedor_id', as: 'vendedor' });
+Usuario.hasMany(Lead, { foreignKey: 'vendedor_id', as: 'leads' });
+Cliente.belongsTo(Usuario, { foreignKey: 'vendedor_id', as: 'vendedor' });
+Usuario.hasMany(Cliente, { foreignKey: 'vendedor_id', as: 'clientesVendedor' });
 
 Empresa.hasMany(Usuario,  { foreignKey: 'empresa_id', as: 'usuarios' });
 Usuario.belongsTo(Empresa,  { foreignKey: 'empresa_id', as: 'empresa' });

@@ -28,10 +28,18 @@ import Usuarios       from './pages/Usuarios';
 import Reportes       from './pages/Reportes';
 import Analitica      from './pages/Analitica';
 import Empresas       from './pages/Empresas';
+import PortalVendedor from './pages/PortalVendedor';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
   return token ? children : <Navigate to="/" replace />;
+}
+
+function PrivateVendedor() {
+  const { token, user } = useAuthStore();
+  if (!token) return <Navigate to="/" replace />;
+  if (user?.rol === 'vendedor') return <PortalVendedor />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
@@ -39,6 +47,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/vendedor" element={<PrivateVendedor />} />
         <Route path="/pagar/:license_key"  element={<PagarLicencia />} />
         <Route path="/cliente/:token"     element={<PortalCliente />} />
         <Route path="/" element={<Private><Layout /></Private>}>

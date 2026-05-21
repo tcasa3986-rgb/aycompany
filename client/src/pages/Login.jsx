@@ -16,7 +16,7 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', form);
       login(data.token, data.user);
-      navigate('/dashboard');
+      navigate(data.user?.rol === 'vendedor' ? '/vendedor' : '/dashboard');
     } catch {
       toast.error('Credenciales incorrectas');
     } finally {
