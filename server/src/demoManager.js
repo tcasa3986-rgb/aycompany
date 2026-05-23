@@ -4,7 +4,7 @@ const http      = require('http');
 const path      = require('path');
 const fs        = require('fs');
 
-const MOCK = path.join(__dirname, '../../demos/universal-mock.js');
+const MOCK = path.join(__dirname, '../demos/universal-mock.js');
 
 // ── Node.js demos ─────────────────────────────────────────────
 const NODE_DEMOS = [
