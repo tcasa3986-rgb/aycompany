@@ -545,6 +545,18 @@ const loginResp = (res) => res.json({
     user:demoUser, usuario:demoUser, data:demoUser
 });
 
+// Condominio usa { data: { accessToken, refreshToken, usuario } }
+if (DEMO === 'condominio') {
+    app.post(['/api/auth/login','/api/login'], (_, res) => res.json({
+        ok:true, success:true,
+        data:{ accessToken:token(), refreshToken:'refresh-'+Date.now(), usuario:demoUser }
+    }));
+    app.post('/api/auth/refresh', (_, res) => res.json({
+        ok:true,
+        data:{ accessToken:token(), refreshToken:'refresh-'+Date.now() }
+    }));
+}
+
 app.post(['/api/auth/login','/api/login','/api/usuarios/login','/api/users/login',
           '/api/auth/register','/api/register'], (_, res) => loginResp(res));
 app.post(['/api/auth/logout','/api/logout'], (_, res) => res.json({ ok:true }));
@@ -649,6 +661,277 @@ if (DEMO === 'polleria') {
     app.put('/api/pedidos/:id/estado',        (req, res) => res.json({ ok:true, success:true }));
     app.get('/api/productos/movimientos',     (_, res) => res.json({ ok:true, data:[] }));
     app.put('/api/productos/:id/ajustar-stock',(req, res) => res.json({ ok:true, success:true }));
+}
+
+// ── Viaje360 ───────────────────────────────────────────────────────────────────
+if (DEMO === 'viaje360') {
+    const meses5 = ['2026-01','2026-02','2026-03','2026-04','2026-05'];
+    app.get('/api/dashboard/kpis', (_, res) => res.json({ ok:true, data:{
+        esAdmin:true,
+        reservas:       { valor:24,       cambio:12 },
+        ingresos:       { valor:24500000, cambio:8  },
+        nuevosClientes: { valor:12,       cambio:5  },
+        tasaConversion: { valor:68,       cambio:3  },
+        utilidad:       { valor:8200000,  cambio:11 },
+    }}));
+    app.get('/api/dashboard/ingresos-mensuales', (_, res) => res.json({ ok:true,
+        data: meses5.map((m,i) => ({ mes:m, total:[8200000,9100000,10500000,11200000,12800000][i], utilidad:[2500000,2800000,3200000,3500000,4100000][i] }))
+    }));
+    app.get('/api/dashboard/top-destinos', (_, res) => res.json({ ok:true, data:[
+        { destino:'Cartagena', total:8 }, { destino:'San Andrés', total:6 }, { destino:'Medellín', total:5 }
+    ]}));
+    app.get('/api/dashboard/actividad-reciente', (_, res) => res.json({ ok:true, data:[
+        { Cliente:'María González', tipo:'Reserva', descripcion:'Cartagena Mágica', usuario:'Admin', fecha:'2026-05-23T12:00:00' }
+    ]}));
+    app.get('/api/dashboard/tareas-pendientes', (_, res) => res.json({ ok:true, data:[
+        { id:1, titulo:'Confirmar vuelos Cartagena', prioridad:'alta', cliente:'María González', fecha_vence:'2026-05-25' }
+    ]}));
+    app.get('/api/dashboard/reservas-por-estado', (_, res) => res.json({ ok:true, data:[
+        { estado:'confirmada', total:18 }, { estado:'pendiente', total:7 }, { estado:'cancelada', total:2 }
+    ]}));
+    app.get('/api/dashboard/oportunidades-etapa', (_, res) => res.json({ ok:true, data:[
+        { etapa:'Prospecto', total:12, valor_total:15000000 }, { etapa:'Cotizado', total:8, valor_total:28000000 }, { etapa:'Confirmado', total:5, valor_total:18500000 }
+    ]}));
+    app.get('/api/dashboard/reservas-por-mes', (_, res) => res.json({ ok:true,
+        data: meses5.map((m,i) => ({ mes:m, total:[8,10,12,9,11][i], completadas:[6,8,10,8,9][i], canceladas:[0,1,1,0,1][i] }))
+    }));
+    app.get('/api/dashboard/clientes-por-fuente', (_, res) => res.json({ ok:true, data:[
+        { fuente:'Referido', total:18 }, { fuente:'Web', total:12 }, { fuente:'Redes sociales', total:8 }
+    ]}));
+    app.get('/api/pipeline',       (_, res) => okL(res, 'cotizaciones'));
+    app.get('/api/tareas',         (_, res) => res.json({ ok:true, data:[ { id:1, titulo:'Confirmar vuelos Cartagena', prioridad:'alta', estado:'pendiente' } ]}));
+    app.get('/api/destinos',       (_, res) => res.json({ ok:true, data:[ { id:1, nombre:'Cartagena' }, { id:2, nombre:'San Andrés' }, { id:3, nombre:'Medellín' } ]}));
+    app.get('/api/proveedores',    (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/pagos',          (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/campanas',       (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/reportes',       (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/configuracion',  (_, res) => res.json({ ok:true, data:{ nombre:'Viaje360 CRM', moneda:'COP' } }));
+    app.get('/api/mantenimiento',  (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/usuarios',       (_, res) => res.json({ ok:true, data:[demoUser] }));
+}
+
+// ── Condominio ─────────────────────────────────────────────────────────────────
+if (DEMO === 'condominio') {
+    app.get('/api/dashboard/kpis', (_, res) => res.json({ ok:true, data:{
+        cobradoMes: 24000000,
+        cuotasPendientes: { monto:2450000, cantidad:7 },
+        gastosMes: 1800000,
+        fondoReserva: 15000000,
+        unidades: { total:48, habitadas:44, vacias:4, en_venta:2 },
+        ordenesAbiertas: 3,
+        visitantesHoy: 12,
+    }}));
+    app.get('/api/dashboard/ingresos-egresos', (_, res) => res.json({ ok:true, data:[
+        { mes:'2026-01', ingresos:22000000, egresos:8500000 },
+        { mes:'2026-02', ingresos:23500000, egresos:9200000 },
+        { mes:'2026-03', ingresos:24000000, egresos:8800000 },
+    ]}));
+    app.get('/api/dashboard/distribucion-gastos', (_, res) => res.json({ ok:true, data:[
+        { categoria:'Mantenimiento', total:850000 }, { categoria:'Servicios', total:650000 }, { categoria:'Administración', total:300000 }
+    ]}));
+    app.get('/api/dashboard/morosos', (_, res) => res.json({ ok:true, data:[
+        { unidad:'201', torre:'A', cuotas_vencidas:2, deuda_total:700000, dias_mora:35 }
+    ]}));
+    app.get('/api/dashboard/actividad-reciente', (_, res) => res.json({ ok:true, data:[
+        { tipo:'Pago', descripcion:'Cuota administración 101-A', fecha:'2026-05-05', monto:350000 }
+    ]}));
+    app.get('/api/unidades',       (_, res) => okL(res, 'apartamentos'));
+    app.get('/api/residentes',     (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/cobranza',       (_, res) => okL(res, 'pagos'));
+    app.get('/api/contabilidad',   (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/amenidades',     (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/acceso',         (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/comunicaciones', (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/proveedores',    (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/reportes',       (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/configuracion',  (_, res) => res.json({ ok:true, data:{ nombre:'Condominio Las Palmas', moneda:'COP' } }));
+    app.get('/api/sistema',        (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/mantenimiento',  (_, res) => okL(res, 'mantenimientos'));
+    app.get('/api/usuarios',       (_, res) => res.json({ ok:true, data:[demoUser] }));
+}
+
+// ── Odontologia ────────────────────────────────────────────────────────────────
+if (DEMO === 'odontologia') {
+    app.get('/api/dashboard', (_, res) => res.json({
+        ok:true,
+        estadisticas:{
+            totalPacientes:  lst('pacientes').length || 234,
+            citasHoy:        lst('citas').length || 8,
+            citasPendientes: lst('citas').filter(c=>c.estado==='pendiente').length || 3,
+            ingresosMes:     demoDash.ingresos_mes || 8500000,
+        },
+        proximasCitas: lst('citas').map(c => ({
+            id:c.id,
+            paciente:{ nombre:(c.paciente||'').split(' ')[0], apellido:(c.paciente||'').split(' ')[1]||'' },
+            doctor:{ apellido:(c.doctor||'').split(' ').pop() },
+            motivo:c.tratamiento, fecha:c.fecha, hora_inicio:c.hora,
+        })),
+        pacientesRecientes: lst('pacientes').slice(0,5).map(p => ({
+            id:p.id,
+            nombre:(p.nombre||'').split(' ')[0],
+            apellido:(p.nombre||'').split(' ')[1]||'',
+            dni:p.documento,
+        })),
+        presupuestosPendientes: [],
+        doctorStats:[
+            { id:1, nombre:'Dr. García', especialidad:'Odontología General', citasMes:45, citasCompletadas:38, ingresos:3800000 }
+        ],
+    }));
+    app.get('/api/presupuestos',  (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/pagos',         (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/reportes',      (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/actividad',     (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/mantenimiento', (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/configuracion', (_, res) => res.json({ ok:true, data:{ nombre:'Clínica Dental García', moneda:'COP' } }));
+    app.put('/api/configuracion', (req, res) => res.json({ ok:true, success:true }));
+    app.get('/api/usuarios',      (_, res) => res.json({ ok:true, data:[demoUser] }));
+}
+
+// ── Ventas ─────────────────────────────────────────────────────────────────────
+if (DEMO === 'ventas') {
+    app.get('/api/settings', (_, res) => res.json({
+        ok:true, data:{
+            company_name:'Empresa Demo S.A.S.', currency:'COP', theme:'dark',
+            language:'es', notifications:true, crm_token:'demo',
+        }
+    }));
+    app.put('/api/settings', (req, res) => res.json({ ok:true, success:true }));
+    app.get('/api/reports/dashboard', (_, res) => res.json({
+        ok:true,
+        stats:{
+            total_contacts:       lst('clientes').length || 89,
+            total_opportunities:  lst('cotizaciones').length || 12,
+            total_activities: 45,
+            pipeline_value:   28500000,
+            revenue_won:      45800000,
+            total_users: 5,
+        },
+        monthly:[
+            { month:'2026-01', count:8,  amount:12500000 },
+            { month:'2026-02', count:10, amount:18200000 },
+            { month:'2026-03', count:12, amount:22400000 },
+            { month:'2026-04', count:9,  amount:19800000 },
+            { month:'2026-05', count:11, amount:24500000 },
+        ],
+        pipeline:[
+            { name:'Prospecto',  count:8, amount:12000000 },
+            { name:'Cotizado',   count:6, amount:18500000 },
+            { name:'Negociando', count:4, amount:24000000 },
+            { name:'Ganado',     count:5, amount:35000000 },
+        ],
+        top_sellers:[
+            { name:'Carlos Ramírez', total_amount:18500000 },
+            { name:'Ana Martínez',   total_amount:15200000 },
+        ],
+        upcoming:[
+            { id:1, title:'Llamada Tech Solutions', contact_name:'Juan Pérez', scheduled_at:'2026-05-23T14:00:00', type:'llamada' }
+        ],
+    }));
+    app.get('/api/contacts',       (_, res) => okL(res, 'clientes'));
+    app.get('/api/opportunities',  (_, res) => okL(res, 'cotizaciones'));
+    app.get('/api/activities',     (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/quotes',         (_, res) => okL(res, 'cotizaciones'));
+    app.get('/api/invoices',       (_, res) => okL(res, 'facturas'));
+    app.get('/api/users',          (_, res) => res.json({ ok:true, data:[{ id:1, name:'Admin Ventas', email:'admin@empresa.com', role:'admin' }] }));
+    app.get('/api/communications', (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/automations',    (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/workflows',      (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/reports',        (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/forecast',       (_, res) => res.json({ ok:true, data:{ total:45000000, meta:50000000 } }));
+    app.get('/api/admin',          (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/backups',        (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/reportes',       (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/configuracion',  (_, res) => res.json({ ok:true, data:{ nombre:'CRM Ventas', moneda:'COP' } }));
+}
+
+// ── Ferreteria ─────────────────────────────────────────────────────────────────
+if (DEMO === 'ferreteria') {
+    app.get('/api/dashboard', (_, res) => res.json({
+        ok:true,
+        kpis:{
+            ventasHoyMonto: demoDash.ventas_hoy || 2850000,
+            totalProductos: lst('productos').length || 487,
+            totalClientes:  lst('clientes').length  || 124,
+            cajaAbierta: true,
+            ventasHoy: 18,
+        },
+        distribucion:{ compras:12000000, ventas:45000000, margen:33000000 },
+        tendenciaVentas:{
+            fechas:  ['2026-05-17','2026-05-18','2026-05-19','2026-05-20','2026-05-21','2026-05-22','2026-05-23'],
+            totales: [2100000,2450000,1980000,2800000,2600000,2350000,2850000],
+        },
+        comparativa6Dias:{
+            fechas:  ['May 18','May 19','May 20','May 21','May 22','May 23'],
+            ventas:  [2450000,1980000,2800000,2600000,2350000,2850000],
+            compras: [800000, 650000,1200000, 900000, 750000,1100000],
+        },
+        ventasPorCategoria:[
+            { categoria:'Construcción', total_vendido:18500000 },
+            { categoria:'Herramientas', total_vendido:9200000  },
+            { categoria:'Eléctrico',    total_vendido:7800000  },
+            { categoria:'Pintura',      total_vendido:6500000  },
+        ],
+        stockCritico:[
+            { nombre:'Taladro DeWalt 3/8"', stock:5, stock_minimo:10 }
+        ],
+        ultimasVentas: lst('ventas').map(v => ({ id:v.id, cliente:{ nombre:v.cliente }, total:v.total, created_at:v.fecha })),
+    }));
+    app.get('/api/pos',           (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/categorias',    (_, res) => res.json({ ok:true, data:[ {id:1,nombre:'Construcción'},{id:2,nombre:'Herramientas'},{id:3,nombre:'Eléctrico'},{id:4,nombre:'Pintura'} ]}));
+    app.get('/api/devoluciones',  (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/cotizaciones',  (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/compras',       (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/caja',          (_, res) => res.json({ ok:true, data:{ id:1, estado:'abierta', saldo_inicial:500000, total_ventas:2850000, saldo_actual:3350000 } }));
+    app.get('/api/caja/activa',   (_, res) => res.json({ ok:true, data:{ id:1, estado:'abierta', saldo_inicial:500000, total_ventas:2850000, saldo_actual:3350000 } }));
+    app.get('/api/cuentas-cobrar',(_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/cuentas-pagar', (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/inventario',    (_, res) => okL(res, 'productos'));
+    app.get('/api/reportes',      (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/configuracion', (_, res) => res.json({ ok:true, data:{ nombre:'Ferretería Demo', moneda:'COP' } }));
+    app.put('/api/configuracion', (req, res) => res.json({ ok:true, success:true }));
+    app.get('/api/logs',          (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/mantenimiento', (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/proveedores',   (_, res) => res.json({ ok:true, data:[ {id:1,nombre:'Argos Colombia',nit:'890903939-2',telefono:'6014441111',ciudad:'Medellín'} ]}));
+    app.get('/api/usuarios',      (_, res) => res.json({ ok:true, data:[demoUser] }));
+}
+
+// ── Parqueo ────────────────────────────────────────────────────────────────────
+if (DEMO === 'parqueo') {
+    app.get('/api/reportes/dashboard', (_, res) => res.json({
+        ok:true,
+        ingreso_hoy:       demoDash.ingresos_hoy  || 185000,
+        ingreso_mes:       demoDash.ingresos_mes  || 4200000,
+        vehiculos_hoy:     45,
+        vehiculos_activos: lst('vehiculos').filter(v=>v.estado==='adentro').length || 23,
+        espacios:{ total:40, ocupados:23, libres:17 },
+        ingresos_7dias:[
+            { fecha:'2026-05-17', total:145000 }, { fecha:'2026-05-18', total:162000 },
+            { fecha:'2026-05-19', total:180000 }, { fecha:'2026-05-20', total:120000 },
+            { fecha:'2026-05-21', total:95000  }, { fecha:'2026-05-22', total:168000 },
+            { fecha:'2026-05-23', total:185000 },
+        ],
+        vehiculos_7dias:[
+            { fecha:'2026-05-17', total:38 }, { fecha:'2026-05-18', total:42 },
+            { fecha:'2026-05-19', total:45 }, { fecha:'2026-05-20', total:28 },
+            { fecha:'2026-05-21', total:22 }, { fecha:'2026-05-22', total:40 },
+            { fecha:'2026-05-23', total:45 },
+        ],
+        vehiculos_tipos:[
+            { name:'Carro', value:28 }, { name:'Moto', value:15 }, { name:'Bicicleta', value:2 }
+        ],
+        ultimas_entradas: lst('vehiculos').map(v => ({
+            placa:v.placa, tipo_vehiculo:v.tipo, espacio:'A-'+v.id,
+            hora_entrada:v.hora_entrada, estado:v.estado,
+        })),
+    }));
+    app.get('/api/entrada',       (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/salida',        (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/mapa',          (_, res) => res.json({ ok:true, data:{ total:40, ocupados:23, espacios:[] } }));
+    app.get('/api/clientes',      (_, res) => res.json({ ok:true, data:[] }));
+    app.get('/api/reportes',      (_, res) => res.json({ ok:true, data:{} }));
+    app.get('/api/usuarios',      (_, res) => res.json({ ok:true, data:[demoUser] }));
+    app.get('/api/configuracion', (_, res) => res.json({ ok:true, data:{ nombre:'Parqueadero Demo', moneda:'COP', capacidad:40 } }));
+    app.put('/api/configuracion', (req, res) => res.json({ ok:true, success:true }));
 }
 
 // ─── Dashboard genérico ─────────────────────────────────────────────────────────
