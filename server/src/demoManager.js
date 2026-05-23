@@ -67,23 +67,31 @@ function spawnPhpDemo(demo) {
     const sqliteFile = `/tmp/demo_${demo.name}.sqlite`;
     try { fs.unlinkSync(sqliteFile); } catch (_) {}
 
-    // Borrar .env para que start.sh lo regenere con la config correcta
+    // Escribir .env con SQLite directamente — más confiable que depender de
+    // que las env vars del proceso ganen sobre el .env generado por start.sh
     const envFile = path.join(demo.cwd, '.env');
-    try { fs.unlinkSync(envFile); } catch (_) {}
+    fs.writeFileSync(envFile, [
+        `APP_NAME="${demo.name}"`,
+        `APP_ENV=production`,
+        `APP_KEY=`,
+        `APP_DEBUG=false`,
+        `APP_URL=https://mi-plataforma-production.up.railway.app/demos/${demo.name}`,
+        `LOG_CHANNEL=stderr`,
+        `DB_CONNECTION=sqlite`,
+        `DB_DATABASE=${sqliteFile}`,
+        `CACHE_DRIVER=file`,
+        `SESSION_DRIVER=file`,
+        `SESSION_COOKIE=${demo.name}_session`,
+        `SESSION_SECURE_COOKIE=false`,
+        `SESSION_DOMAIN=`,
+        `QUEUE_CONNECTION=sync`,
+        `FILESYSTEM_DISK=local`,
+        `BROADCAST_CONNECTION=log`,
+    ].join('\n') + '\n');
 
     const env = {
         ...process.env,
-        DEMO_PORT:        String(demo.port),
-        APP_ENV:          'production',
-        APP_DEBUG:        'false',
-        APP_URL:          `https://mi-plataforma-production.up.railway.app/demos/${demo.name}`,
-        DB_CONNECTION:    'sqlite',
-        DB_DATABASE:      sqliteFile,
-        CACHE_DRIVER:     'file',
-        SESSION_DRIVER:   'file',   // ← file para que la sesión persista entre requests
-        QUEUE_CONNECTION: 'sync',
-        SESSION_SECURE_COOKIE: 'false',
-        SESSION_DOMAIN:   '',
+        DEMO_PORT: String(demo.port),
     };
     const child = spawn('bash', ['start.sh'], { cwd: demo.cwd, env, stdio: 'pipe' });
     child.stdout.on('data', d => process.stdout.write(`[${demo.name}] ${d}`));
