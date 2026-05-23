@@ -74,7 +74,7 @@ function spawnPhpDemo(demo) {
         `APP_NAME="${demo.name}"`,
         `APP_ENV=production`,
         `APP_KEY=`,
-        `APP_DEBUG=false`,
+        `APP_DEBUG=true`,
         `APP_URL=https://mi-plataforma-production.up.railway.app/demos/${demo.name}`,
         `LOG_CHANNEL=stderr`,
         `DB_CONNECTION=sqlite`,
