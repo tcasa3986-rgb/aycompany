@@ -7,7 +7,7 @@ const fs        = require('fs');
 const MOCK     = path.join(__dirname, '../demos/universal-mock.js');
 const SPA_DIST = path.join(__dirname, '../demos/universal-spa/dist');
 
-// ── Todos los demos usan el mock universal ─────────────────────────────────────
+// ── Node.js demos (React frontend + mock universal) ────────────────────────────
 const NODE_DEMOS = [
     { name:'viaje360',    port:5200, dist: path.join(__dirname,'../demos/viaje360/frontend/dist')    },
     { name:'condominio',  port:5201, dist: path.join(__dirname,'../demos/condominio/frontend/dist')  },
@@ -17,26 +17,29 @@ const NODE_DEMOS = [
     { name:'polleria',    port:5205, dist: path.join(__dirname,'../demos/polleria/frontend/dist')    },
     { name:'salon',       port:5206, dist: path.join(__dirname,'../demos/salon/frontend/dist')       },
     { name:'parqueo',     port:5207, dist: path.join(__dirname,'../demos/parqueo/frontend/dist')     },
-    // Antes EJS/dist:null — ahora usa la SPA universal
-    { name:'prestamos',   port:5208, dist: SPA_DIST },
-    // Ex-PHP demos — convertidos a React SPA universal
-    { name:'delivery',    port:5210, dist: SPA_DIST },
-    { name:'celulares',   port:5211, dist: SPA_DIST },
-    { name:'colegio',     port:5212, dist: SPA_DIST },
-    { name:'farmacia',    port:5213, dist: SPA_DIST },
-    { name:'panaderia',   port:5214, dist: SPA_DIST },
-    { name:'restaurante', port:5215, dist: SPA_DIST },
-    { name:'citas',       port:5216, dist: SPA_DIST },
-    { name:'hospedaje',   port:5217, dist: SPA_DIST },
-    { name:'inventario',  port:5218, dist: SPA_DIST },
-    { name:'laboratorio', port:5219, dist: SPA_DIST },
-    { name:'cotizacion',  port:5220, dist: SPA_DIST },
+    // prestamos es EJS server-side — dist:null lo enruta como PHP (proxy total)
+    { name:'prestamos',   port:5208, dist: null },
 ];
 
-const PHP_DEMOS = []; // Todos migrados a Node.js + SPA universal
-const DEMOS     = NODE_DEMOS;
+// ── PHP/Laravel demos (originales — proxy total de todas las requests) ─────────
+const PHP_DEMOS = [
+    { name:'delivery',    port:5210, cwd: path.join(__dirname,'../demos/php/delivery')    },
+    { name:'celulares',   port:5211, cwd: path.join(__dirname,'../demos/php/celulares')   },
+    { name:'colegio',     port:5212, cwd: path.join(__dirname,'../demos/php/colegio')     },
+    { name:'farmacia',    port:5213, cwd: path.join(__dirname,'../demos/php/farmacia')    },
+    { name:'panaderia',   port:5214, cwd: path.join(__dirname,'../demos/php/panaderia')   },
+    { name:'restaurante', port:5215, cwd: path.join(__dirname,'../demos/php/restaurante') },
+    { name:'citas',       port:5216, cwd: path.join(__dirname,'../demos/php/citas')       },
+    { name:'hospedaje',   port:5217, cwd: path.join(__dirname,'../demos/php/hospedaje')   },
+    { name:'inventario',  port:5218, cwd: path.join(__dirname,'../demos/php/inventario')  },
+    { name:'laboratorio', port:5219, cwd: path.join(__dirname,'../demos/php/laboratorio') },
+    { name:'cotizacion',  port:5220, cwd: path.join(__dirname,'../demos/php/cotizacion')  },
+    { name:'botica',      port:5221, cwd: path.join(__dirname,'../demos/php/botica')      },
+];
 
-// ── Spawn demo con mock universal ──────────────────────────────────────────────
+const DEMOS = [...NODE_DEMOS, ...PHP_DEMOS];
+
+// ── Spawn Node.js demo con mock universal ──────────────────────────────────────
 function spawnNodeDemo(demo) {
     if (!fs.existsSync(MOCK)) {
         console.warn(`[${demo.name}] universal-mock.js no encontrado, omitiendo.`);
@@ -54,7 +57,44 @@ function spawnNodeDemo(demo) {
     });
 }
 
-// ── Proxy: /demos/[name]/api → puerto interno ──────────────────────────────────
+// ── Spawn PHP demo con SQLite (sin MySQL) ──────────────────────────────────────
+function spawnPhpDemo(demo) {
+    const startSh = path.join(demo.cwd, 'start.sh');
+    if (!fs.existsSync(startSh)) {
+        console.warn(`[${demo.name}] start.sh no encontrado, omitiendo.`);
+        return;
+    }
+    const sqliteFile = `/tmp/demo_${demo.name}.sqlite`;
+    try { fs.unlinkSync(sqliteFile); } catch (_) {}
+
+    // Borrar .env para que start.sh lo regenere con la config correcta
+    const envFile = path.join(demo.cwd, '.env');
+    try { fs.unlinkSync(envFile); } catch (_) {}
+
+    const env = {
+        ...process.env,
+        DEMO_PORT:        String(demo.port),
+        APP_ENV:          'production',
+        APP_DEBUG:        'false',
+        APP_URL:          `https://mi-plataforma-production.up.railway.app/demos/${demo.name}`,
+        DB_CONNECTION:    'sqlite',
+        DB_DATABASE:      sqliteFile,
+        CACHE_DRIVER:     'file',
+        SESSION_DRIVER:   'file',   // ← file para que la sesión persista entre requests
+        QUEUE_CONNECTION: 'sync',
+        SESSION_SECURE_COOKIE: 'false',
+        SESSION_DOMAIN:   '',
+    };
+    const child = spawn('bash', ['start.sh'], { cwd: demo.cwd, env, stdio: 'pipe' });
+    child.stdout.on('data', d => process.stdout.write(`[${demo.name}] ${d}`));
+    child.stderr.on('data', d => process.stderr.write(`[${demo.name}] ${d}`));
+    child.on('exit', code => {
+        console.log(`[${demo.name}] PHP reiniciando en 10s... (exit ${code})`);
+        setTimeout(() => spawnPhpDemo(demo), 10000);
+    });
+}
+
+// ── Proxy Node.js: /demos/[name]/api → puerto interno ─────────────────────────
 function nodeProxyMiddleware(demo) {
     return (req, res) => {
         const opts = {
@@ -75,16 +115,68 @@ function nodeProxyMiddleware(demo) {
     };
 }
 
-// phpProxyMiddleware se mantiene para compatibilidad pero PHP_DEMOS está vacío
+// ── Proxy PHP: /demos/[name]/* → php artisan serve ────────────────────────────
 function phpProxyMiddleware(demo) {
-    return nodeProxyMiddleware(demo);
+    return (req, res) => {
+        const opts = {
+            hostname: '127.0.0.1',
+            port:     demo.port,
+            path:     req.url || '/',
+            method:   req.method,
+            headers:  {
+                ...req.headers,
+                host:                 `127.0.0.1:${demo.port}`,
+                'x-forwarded-proto':  'https',
+                'x-forwarded-host':   req.headers['host'] || 'mi-plataforma-production.up.railway.app',
+            },
+        };
+        const proxy = http.request(opts, r => {
+            const headers = { ...r.headers };
+
+            // Reescribir Location para que el browser siga el redirect correcto
+            if (headers['location']) {
+                let loc = headers['location'];
+
+                // 1) URL absoluta con 127.0.0.1:PUERTO → /demos/nombre/ruta
+                loc = loc.replace(
+                    /^https?:\/\/127\.0\.0\.1:\d+(\/.*)?$/,
+                    (_, p) => `/demos/${demo.name}${p || '/'}`
+                );
+
+                // 2) Ruta relativa que empieza en / y aún no tiene el prefijo del demo
+                //    (evita doble-prefijo en caso de que Laravel devuelva la URL completa)
+                if (loc.startsWith('/') && !loc.startsWith(`/demos/${demo.name}`)) {
+                    loc = `/demos/${demo.name}${loc}`;
+                }
+
+                headers['location'] = loc;
+            }
+
+            res.writeHead(r.statusCode, headers);
+            r.pipe(res, { end:true });
+        });
+        proxy.on('error', err => {
+            console.error(`[${demo.name}] PHP proxy error: ${err.message}`);
+            if (!res.headersSent) {
+                res.status(502).send(`
+                    <html><body style="font-family:sans-serif;padding:2rem;background:#0f172a;color:#e2e8f0">
+                    <h2>⏳ Demo cargando...</h2>
+                    <p>El sistema está iniciando. Espera 10 segundos y recarga la página.</p>
+                    <button onclick="location.reload()" style="padding:.5rem 1rem;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">
+                        Recargar
+                    </button></body></html>`);
+            }
+        });
+        req.pipe(proxy, { end:true });
+    };
 }
 
 // ── Inicializar todos los demos ────────────────────────────────────────────────
 async function initDemos() {
-    console.log('=== Iniciando demos (mock universal) ===');
+    console.log('=== Iniciando demos ===');
     for (const demo of NODE_DEMOS) spawnNodeDemo(demo);
-    console.log(`=== ${NODE_DEMOS.length} demos iniciados ===`);
+    for (const demo of PHP_DEMOS)  spawnPhpDemo(demo);
+    console.log('=== Demos en marcha ===');
 }
 
 module.exports = { DEMOS, NODE_DEMOS, PHP_DEMOS, initDemos, nodeProxyMiddleware, phpProxyMiddleware };
