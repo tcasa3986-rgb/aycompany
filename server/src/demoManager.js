@@ -17,8 +17,8 @@ const NODE_DEMOS = [
     { name:'polleria',    port:5205, dist: path.join(__dirname,'../demos/polleria/frontend/dist')    },
     { name:'salon',       port:5206, dist: path.join(__dirname,'../demos/salon/frontend/dist')       },
     { name:'parqueo',     port:5207, dist: path.join(__dirname,'../demos/parqueo/frontend/dist')     },
-    // prestamos es EJS server-side — dist:null lo enruta como PHP (proxy total)
-    { name:'prestamos',   port:5208, dist: null },
+    // prestamos: original requiere MySQL — usa SPA universal + mock API
+    { name:'prestamos',   port:5208, dist: SPA_DIST },
 ];
 
 // ── PHP/Laravel demos (originales — proxy total de todas las requests) ─────────
