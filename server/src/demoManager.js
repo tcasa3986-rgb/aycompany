@@ -91,6 +91,11 @@ function spawnPhpDemo(demo) {
         `BROADCAST_CONNECTION=log`,
     ].join('\n') + '\n');
 
+    // Borrar cache de Laravel para que lea el .env recién escrito
+    for (const cache of ['bootstrap/cache/config.php', 'bootstrap/cache/routes-v7.php', 'bootstrap/cache/services.php']) {
+        try { fs.unlinkSync(path.join(demo.cwd, cache)); } catch (_) {}
+    }
+
     const env = {
         ...process.env,
         DEMO_PORT: String(demo.port),
