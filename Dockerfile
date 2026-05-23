@@ -30,6 +30,7 @@ COPY . .
 
 # ── Servidor principal (crítico) ───────────────────────────────────────────────
 RUN cd server && npm ci --omit=dev
+RUN cd server && npx playwright install chromium --with-deps || echo "⚠️ playwright chromium skip"
 
 # ── Backends Node.js de demos (cada uno independiente) ────────────────────────
 RUN cd server/demos/viaje360/backend    && npm ci --omit=dev   || echo "⚠️ viaje360 backend skip"
