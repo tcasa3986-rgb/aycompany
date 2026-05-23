@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema Inventario TI</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{}}}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+.page-section{display:none}
+.page-section.active{display:block}
+.sidebar-link{display:flex;align-items:center;padding:12px 16px;color:#d1d5db;border-radius:8px;cursor:pointer;transition:all .15s;text-decoration:none;font-size:14px;}
+.sidebar-link:hover{background:#374151;color:#fff}
+.sidebar-link.active{background:linear-gradient(to right,#2563eb,#0891b2);color:#fff}
+.sidebar-link svg{width:20px;height:20px;margin-right:12px;flex-shrink:0}
+.nav-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;padding:12px 16px 4px}
+.dropdown-children{margin-left:16px;margin-top:4px}
+.dropdown-child{display:flex;align-items:center;padding:8px 16px;color:#9ca3af;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s}
+.dropdown-child:hover{background:#374151;color:#fff}
+.dropdown-child.active{background:#374151;color:#fff}
+</style>
+</head>
+<body class="font-sans antialiased bg-gray-900 text-gray-200">
+
+<!-- LOGIN -->
+<div id="login-page" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111827">
+  <div class="text-center mb-6">
+    <svg class="w-16 h-16 text-blue-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+    <h1 class="text-2xl font-bold text-white">Sistema Inventario TI</h1>
+    <p class="text-gray-400 text-sm mt-1">Panel de Administración</p>
+  </div>
+  <div class="w-full max-w-sm px-6 py-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
+    <form id="login-form">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
+        <input type="email" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500" value="admin@inventario.com" placeholder="admin@inventario.com">
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
+        <input type="password" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500" value="password" placeholder="••••••••">
+      </div>
+      <div class="flex items-center mb-6">
+        <input type="checkbox" id="remember" class="rounded border-gray-600 bg-gray-700 text-blue-500 mr-2">
+        <label for="remember" class="text-sm text-gray-400">Recordarme</label>
+      </div>
+      <button type="submit" class="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:opacity-90 transition">Iniciar Sesión</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none">
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-screen sticky top-0 overflow-y-auto" style="min-height:100vh">
+    <div class="flex items-center justify-center h-20 bg-gray-900 border-b border-gray-700 px-4 flex-shrink-0">
+      <h1 class="text-lg font-bold text-center" style="background:linear-gradient(to right,#60a5fa,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Sistema Inventario TI</h1>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-1">
+      <a class="sidebar-link active" onclick="showPage('dashboard',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </a>
+      <a class="sidebar-link" onclick="showPage('equipos',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Equipos
+      </a>
+      <a class="sidebar-link" onclick="showPage('empleados',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        Empleados
+      </a>
+      <a class="sidebar-link" onclick="showPage('asignaciones',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Asignaciones
+      </a>
+      <a class="sidebar-link" onclick="showPage('reparaciones',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Reparaciones
+      </a>
+      <a class="sidebar-link" onclick="showPage('bajas',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Bajas
+      </a>
+      <a class="sidebar-link" onclick="showPage('reportes',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Reportes PDF
+      </a>
+      <div class="nav-label">Administración</div>
+      <a class="sidebar-link" onclick="showPage('usuarios',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        Usuarios
+      </a>
+      <a class="sidebar-link" onclick="showPage('configuracion',this)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Configuración
+      </a>
+    </nav>
+    <div class="p-4 border-t border-gray-700 flex-shrink-0">
+      <div class="flex items-center gap-3 px-2 py-2">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(to right,#2563eb,#0891b2)">A</div>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-white truncate">Admin</p>
+          <p class="text-xs text-gray-400 truncate">admin@inventario.com</p>
+        </div>
+      </div>
+      <button onclick="logout()" class="mt-2 w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded-lg transition">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+      <h2 id="page-heading" class="text-xl font-bold text-white">Dashboard</h2>
+      <span class="text-gray-400 text-sm">Sistema Inventario TI</span>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6 bg-gray-900">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page-section active">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="rounded-lg shadow p-5" style="background:linear-gradient(to right,#3b82f6,#2563eb)">
+            <div class="text-white text-sm opacity-90">Total Equipos</div>
+            <div class="text-4xl font-bold text-white mt-2">48</div>
+          </div>
+          <div class="rounded-lg shadow p-5" style="background:linear-gradient(to right,#22c55e,#16a34a)">
+            <div class="text-white text-sm opacity-90">Disponibles</div>
+            <div class="text-4xl font-bold text-white mt-2">21</div>
+          </div>
+          <div class="rounded-lg shadow p-5" style="background:linear-gradient(to right,#a855f7,#7c3aed)">
+            <div class="text-white text-sm opacity-90">Asignados</div>
+            <div class="text-4xl font-bold text-white mt-2">19</div>
+          </div>
+          <div class="rounded-lg shadow p-5" style="background:linear-gradient(to right,#f97316,#ea580c)">
+            <div class="text-white text-sm opacity-90">En Reparación</div>
+            <div class="text-4xl font-bold text-white mt-2">8</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-white mb-4">Distribución por Estado</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-green-500"></div><span class="text-gray-300 text-sm">Disponible</span></div>
+                <span class="text-white font-semibold">21</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-purple-500"></div><span class="text-gray-300 text-sm">Asignado</span></div>
+                <span class="text-white font-semibold">19</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-orange-500"></div><span class="text-gray-300 text-sm">En Reparación</span></div>
+                <span class="text-white font-semibold">8</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-white mb-4">Top 5 Empleados con Equipos</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">LC</div>
+                  <div><div class="text-white font-medium text-sm">Luis Castillo</div><div class="text-gray-400 text-xs">Desarrollador Senior</div></div>
+                </div>
+                <span class="px-3 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded-full text-xs font-semibold">3 equipos</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">AM</div>
+                  <div><div class="text-white font-medium text-sm">Ana Martínez</div><div class="text-gray-400 text-xs">Diseñadora UX</div></div>
+                </div>
+                <span class="px-3 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded-full text-xs font-semibold">2 equipos</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">CR</div>
+                  <div><div class="text-white font-medium text-sm">Carlos Ruiz</div><div class="text-gray-400 text-xs">Soporte TI</div></div>
+                </div>
+                <span class="px-3 py-1 bg-blue-500 bg-opacity-20 text-blue-400 rounded-full text-xs font-semibold">2 equipos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-4">
+          <h3 class="text-yellow-400 font-semibold mb-3">⚠️ Alertas Importantes</h3>
+          <div class="flex items-center justify-between p-3 bg-gray-800 bg-opacity-50 rounded">
+            <span class="text-white text-sm">3 equipos en reparación llevan más de 15 días</span>
+            <button class="px-4 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm transition">Ver</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EQUIPOS -->
+      <div id="page-equipos" class="page-section">
+        <div class="bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div class="p-4 flex justify-between items-center border-b border-gray-700">
+            <h3 class="text-white font-semibold">Equipos</h3>
+            <button class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">+ Nuevo Equipo</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-700 text-gray-400 text-xs uppercase"><tr><th class="px-4 py-3 text-left">Equipo</th><th class="px-4 py-3 text-left">Tipo</th><th class="px-4 py-3 text-left">Marca/Modelo</th><th class="px-4 py-3 text-left">Serie</th><th class="px-4 py-3 text-left">Estado</th><th class="px-4 py-3 text-left">Sucursal</th></tr></thead>
+              <tbody class="divide-y divide-gray-700">
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Laptop HP EliteBook</td><td class="px-4 py-3">Laptop</td><td class="px-4 py-3">HP / EliteBook 840</td><td class="px-4 py-3">5CG9320T8P</td><td class="px-4 py-3"><span class="px-2 py-1 bg-purple-500 bg-opacity-20 text-purple-400 rounded-full text-xs">Asignado</span></td><td class="px-4 py-3">Lima Centro</td></tr>
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Desktop Dell OptiPlex</td><td class="px-4 py-3">Desktop</td><td class="px-4 py-3">Dell / OptiPlex 7090</td><td class="px-4 py-3">HTLD3C3</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Disponible</span></td><td class="px-4 py-3">Lima Norte</td></tr>
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Monitor LG 27"</td><td class="px-4 py-3">Monitor</td><td class="px-4 py-3">LG / 27UK650</td><td class="px-4 py-3">708NXKE8W289</td><td class="px-4 py-3"><span class="px-2 py-1 bg-orange-500 bg-opacity-20 text-orange-400 rounded-full text-xs">En Reparación</span></td><td class="px-4 py-3">Lima Sur</td></tr>
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Impresora Epson L3210</td><td class="px-4 py-3">Impresora</td><td class="px-4 py-3">Epson / L3210</td><td class="px-4 py-3">X72M013345</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Disponible</span></td><td class="px-4 py-3">Lima Centro</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMPLEADOS -->
+      <div id="page-empleados" class="page-section">
+        <div class="bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div class="p-4 flex justify-between items-center border-b border-gray-700">
+            <h3 class="text-white font-semibold">Empleados</h3>
+            <button class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">+ Nuevo Empleado</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-700 text-gray-400 text-xs uppercase"><tr><th class="px-4 py-3 text-left">Nombre</th><th class="px-4 py-3 text-left">Cargo</th><th class="px-4 py-3 text-left">Área</th><th class="px-4 py-3 text-left">Equipos Asignados</th><th class="px-4 py-3 text-left">Estado</th></tr></thead>
+              <tbody class="divide-y divide-gray-700">
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Luis Castillo Vargas</td><td class="px-4 py-3">Desarrollador Senior</td><td class="px-4 py-3">Tecnología</td><td class="px-4 py-3">3</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Activo</span></td></tr>
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Ana Martínez López</td><td class="px-4 py-3">Diseñadora UX</td><td class="px-4 py-3">Diseño</td><td class="px-4 py-3">2</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Activo</span></td></tr>
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Carlos Ruiz Torres</td><td class="px-4 py-3">Soporte TI</td><td class="px-4 py-3">Tecnología</td><td class="px-4 py-3">2</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Activo</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASIGNACIONES -->
+      <div id="page-asignaciones" class="page-section">
+        <div class="bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div class="p-4 flex justify-between items-center border-b border-gray-700">
+            <h3 class="text-white font-semibold">Asignaciones</h3>
+            <button class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg">+ Nueva Asignación</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-700 text-gray-400 text-xs uppercase"><tr><th class="px-4 py-3 text-left">Equipo</th><th class="px-4 py-3 text-left">Empleado</th><th class="px-4 py-3 text-left">Fecha Asignación</th><th class="px-4 py-3 text-left">Estado</th></tr></thead>
+              <tbody class="divide-y divide-gray-700">
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Laptop HP EliteBook</td><td class="px-4 py-3">Luis Castillo</td><td class="px-4 py-3">10/01/2026</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Activa</span></td></tr>
+                <tr class="text-gray-300 hover:bg-gray-700 transition"><td class="px-4 py-3">Mouse Logitech MX3</td><td class="px-4 py-3">Ana Martínez</td><td class="px-4 py-3">15/01/2026</td><td class="px-4 py-3"><span class="px-2 py-1 bg-green-500 bg-opacity-20 text-green-400 rounded-full text-xs">Activa</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPARACIONES -->
+      <div id="page-reparaciones" class="page-section">
+        <div class="bg-gray-800 rounded-lg p-6 text-center">
+          <svg class="w-16 h-16 text-gray-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <p class="text-gray-400">Gestión de reparaciones de equipos</p>
+        </div>
+      </div>
+
+      <div id="page-bajas" class="page-section"><div class="bg-gray-800 rounded-lg p-6 text-center"><p class="text-gray-400">Registro de bajas de equipos</p></div></div>
+      <div id="page-reportes" class="page-section"><div class="bg-gray-800 rounded-lg p-6 text-center"><p class="text-gray-400">Reportes PDF del inventario</p></div></div>
+      <div id="page-usuarios" class="page-section"><div class="bg-gray-800 rounded-lg p-6 text-center"><p class="text-gray-400">Gestión de usuarios del sistema</p></div></div>
+      <div id="page-configuracion" class="page-section"><div class="bg-gray-800 rounded-lg p-6 text-center"><p class="text-gray-400">Configuración del sistema</p></div></div>
+
+    </main>
+  </div>
+</div>
+</div>
+
+<script>
+function showPage(name, el) {
+  document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const labels = {dashboard:'Dashboard',equipos:'Equipos',empleados:'Empleados',asignaciones:'Asignaciones',reparaciones:'Reparaciones',bajas:'Bajas',reportes:'Reportes PDF',usuarios:'Usuarios',configuracion:'Configuración'};
+  document.getElementById('page-heading').textContent = labels[name] || name;
+}
+function logout() {
+  document.getElementById('app-page').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+}
+document.getElementById('login-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'block';
+});
+</script>
+</body>
+</html>

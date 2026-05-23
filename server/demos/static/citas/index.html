@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Citas Médicas</title>
+<link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{font-family:'figtree',sans-serif;background:#F0F5F9;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:.55rem .75rem;color:#64748b;font-size:.875rem;cursor:pointer;border-radius:8px;transition:all .2s;}
+.nav-item:hover{background:#e2e8f0;color:#0f172a;}
+.nav-item.active{background:#4f46e5;color:#fff;}
+.nav-section{padding:.6rem .75rem .2rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page" class="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-4" style="display:flex;">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="inline-flex w-16 h-16 bg-white/20 rounded-2xl items-center justify-center text-white text-3xl mb-4">🏥</div>
+      <h1 class="text-2xl font-bold text-white">Sistema de Citas</h1>
+      <p class="text-white/70 text-sm mt-1">Gestión Médica Integral</p>
+    </div>
+    <div class="bg-white rounded-2xl p-8 shadow-2xl">
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+          <input type="email" value="admin@citas.med" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400" placeholder="admin@citas.med">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+          <input type="password" value="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400" placeholder="••••••••">
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition">Iniciar Sesión</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none;min-height:100vh;display:none;">
+  <!-- SIDEBAR -->
+  <aside class="fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-40 flex flex-col overflow-y-auto" style="width:260px;">
+    <div class="p-4 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-lg">🏥</div>
+        <div><div class="font-bold text-gray-900 text-sm">Sistema Citas</div><div class="text-xs text-gray-500">Gestión Médica</div></div>
+      </div>
+    </div>
+    <nav class="p-3 flex-1">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)">📊 Dashboard</div>
+      <div class="nav-section">Agenda</div>
+      <div class="nav-item" onclick="showPage('citas',this)">📅 Citas</div>
+      <div class="nav-item" onclick="showPage('calendario',this)">🗓️ Calendario</div>
+      <div class="nav-item" onclick="showPage('listaespera',this)">⏳ Lista de Espera</div>
+      <div class="nav-section">Pacientes</div>
+      <div class="nav-item" onclick="showPage('pacientes',this)">👤 Pacientes</div>
+      <div class="nav-item" onclick="showPage('historial',this)">📋 Historial Clínico</div>
+      <div class="nav-item" onclick="showPage('recetas',this)">💊 Recetas</div>
+      <div class="nav-section">Personal</div>
+      <div class="nav-item" onclick="showPage('medicos',this)">👨‍⚕️ Médicos</div>
+      <div class="nav-item" onclick="showPage('especialidades',this)">🔬 Especialidades</div>
+      <div class="nav-section">Facturación</div>
+      <div class="nav-item" onclick="showPage('facturas',this)">🧾 Facturas</div>
+      <div class="nav-section">Análisis</div>
+      <div class="nav-item" onclick="showPage('reportes',this)">📈 Reportes</div>
+    </nav>
+    <div class="p-3 border-t border-gray-100">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">A</div>
+        <div><div class="text-sm font-semibold text-gray-900">Admin</div><div class="text-xs text-gray-500">Administrador</div></div>
+      </div>
+      <button onclick="logout()" class="w-full text-xs text-red-500 py-1.5 rounded-lg hover:bg-red-50 transition text-center cursor-pointer">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <!-- TOPBAR + CONTENT -->
+  <div style="margin-left:260px;">
+    <header class="sticky top-0 bg-white border-b border-gray-200 z-30 h-14 flex items-center px-6">
+      <span id="topbar-title" class="font-semibold text-gray-800">Dashboard</span>
+      <div class="ml-auto flex items-center gap-2">
+        <span class="text-sm text-gray-600">Dr. Admin Sistema</span>
+      </div>
+    </header>
+    <main class="p-6">
+
+      <div id="page-dashboard" class="page-section active">
+        <h5 class="font-bold text-gray-900 mb-4">Dashboard Clínico</h5>
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-indigo-600 rounded-xl p-4 text-white"><div class="text-3xl font-bold">24</div><div class="text-sm opacity-80 mt-1">Citas Hoy</div></div>
+          <div class="bg-emerald-600 rounded-xl p-4 text-white"><div class="text-3xl font-bold">156</div><div class="text-sm opacity-80 mt-1">Pacientes Activos</div></div>
+          <div class="bg-amber-500 rounded-xl p-4 text-white"><div class="text-3xl font-bold">8</div><div class="text-sm opacity-80 mt-1">Médicos Disponibles</div></div>
+          <div class="bg-purple-600 rounded-xl p-4 text-white"><div class="text-3xl font-bold">$3,200</div><div class="text-sm opacity-80 mt-1">Ingresos del Mes</div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div class="p-4 border-b border-gray-100 font-semibold text-gray-800">Próximas Citas</div>
+          <table class="w-full"><thead><tr class="bg-gray-50"><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Paciente</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Médico</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Especialidad</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Hora</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Estado</th></tr></thead>
+          <tbody>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm">Carlos Vega</td><td class="px-4 py-3 text-sm">Dr. Ramírez</td><td class="px-4 py-3 text-sm text-gray-500">Cardiología</td><td class="px-4 py-3 text-sm">09:00</td><td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">Confirmada</span></td></tr>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm">María Soto</td><td class="px-4 py-3 text-sm">Dra. López</td><td class="px-4 py-3 text-sm text-gray-500">Pediatría</td><td class="px-4 py-3 text-sm">09:30</td><td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">Confirmada</span></td></tr>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm">José Herrera</td><td class="px-4 py-3 text-sm">Dr. Torres</td><td class="px-4 py-3 text-sm text-gray-500">Medicina General</td><td class="px-4 py-3 text-sm">10:00</td><td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">Pendiente</span></td></tr>
+            <tr><td class="px-4 py-3 text-sm">Ana Morales</td><td class="px-4 py-3 text-sm">Dra. López</td><td class="px-4 py-3 text-sm text-gray-500">Pediatría</td><td class="px-4 py-3 text-sm">10:30</td><td class="px-4 py-3"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">En consulta</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="page-citas" class="page-section">
+        <div class="flex justify-between items-center mb-4"><h5 class="font-bold text-gray-900">Gestión de Citas</h5><button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nueva Cita</button></div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+          <table class="w-full"><thead><tr class="bg-gray-50"><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Paciente</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Médico</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Fecha</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Motivo</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Estado</th></tr></thead>
+          <tbody>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm font-medium">Carlos Vega</td><td class="px-4 py-3 text-sm">Dr. Ramírez</td><td class="px-4 py-3 text-sm text-gray-500">23/05/2026 09:00</td><td class="px-4 py-3 text-sm text-gray-500">Chequeo anual</td><td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">Confirmada</span></td></tr>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm font-medium">María Soto</td><td class="px-4 py-3 text-sm">Dra. López</td><td class="px-4 py-3 text-sm text-gray-500">23/05/2026 09:30</td><td class="px-4 py-3 text-sm text-gray-500">Control pediátrico</td><td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">Confirmada</span></td></tr>
+            <tr><td class="px-4 py-3 text-sm font-medium">José Herrera</td><td class="px-4 py-3 text-sm">Dr. Torres</td><td class="px-4 py-3 text-sm text-gray-500">23/05/2026 10:00</td><td class="px-4 py-3 text-sm text-gray-500">Consulta general</td><td class="px-4 py-3"><span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">Pendiente</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="page-pacientes" class="page-section">
+        <div class="flex justify-between items-center mb-4"><h5 class="font-bold text-gray-900">Pacientes</h5><button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nuevo Paciente</button></div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+          <table class="w-full"><thead><tr class="bg-gray-50"><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Nombre</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">DNI</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Teléfono</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Edad</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Citas</th></tr></thead>
+          <tbody>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm font-medium">Carlos Vega</td><td class="px-4 py-3 text-sm text-gray-500">12345678</td><td class="px-4 py-3 text-sm text-gray-500">555-0301</td><td class="px-4 py-3 text-sm">45</td><td class="px-4 py-3 text-sm">5</td></tr>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm font-medium">María Soto</td><td class="px-4 py-3 text-sm text-gray-500">23456789</td><td class="px-4 py-3 text-sm text-gray-500">555-0302</td><td class="px-4 py-3 text-sm">32</td><td class="px-4 py-3 text-sm">3</td></tr>
+            <tr><td class="px-4 py-3 text-sm font-medium">José Herrera</td><td class="px-4 py-3 text-sm text-gray-500">34567890</td><td class="px-4 py-3 text-sm text-gray-500">555-0303</td><td class="px-4 py-3 text-sm">28</td><td class="px-4 py-3 text-sm">1</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="page-medicos" class="page-section">
+        <div class="flex justify-between items-center mb-4"><h5 class="font-bold text-gray-900">Médicos</h5><button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Nuevo Médico</button></div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+          <table class="w-full"><thead><tr class="bg-gray-50"><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Médico</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Especialidad</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Consultorio</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Citas hoy</th><th class="px-4 py-2.5 text-left text-xs uppercase text-gray-500 font-medium">Estado</th></tr></thead>
+          <tbody>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm font-medium">Dr. Carlos Ramírez</td><td class="px-4 py-3 text-sm text-gray-500">Cardiología</td><td class="px-4 py-3 text-sm text-gray-500">Cons. 1</td><td class="px-4 py-3 text-sm">6</td><td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">Disponible</span></td></tr>
+            <tr class="border-b border-gray-50"><td class="px-4 py-3 text-sm font-medium">Dra. Ana López</td><td class="px-4 py-3 text-sm text-gray-500">Pediatría</td><td class="px-4 py-3 text-sm text-gray-500">Cons. 2</td><td class="px-4 py-3 text-sm">8</td><td class="px-4 py-3"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">En consulta</span></td></tr>
+            <tr><td class="px-4 py-3 text-sm font-medium">Dr. Roberto Torres</td><td class="px-4 py-3 text-sm text-gray-500">Medicina General</td><td class="px-4 py-3 text-sm text-gray-500">Cons. 3</td><td class="px-4 py-3 text-sm">10</td><td class="px-4 py-3"><span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">Disponible</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div id="page-calendario" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Calendario de Citas</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">🗓️</p><p>Vista de calendario de citas</p></div></div>
+      <div id="page-listaespera" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Lista de Espera</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">⏳</p><p>Gestión de lista de espera</p></div></div>
+      <div id="page-historial" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Historial Clínico</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">📋</p><p>Historial médico de pacientes</p></div></div>
+      <div id="page-recetas" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Recetas Médicas</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">💊</p><p>Gestión de recetas médicas</p></div></div>
+      <div id="page-especialidades" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Especialidades</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">🔬</p><p>Especialidades médicas</p></div></div>
+      <div id="page-facturas" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Facturación</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">🧾</p><p>Gestión de facturas y cobros</p></div></div>
+      <div id="page-reportes" class="page-section"><h5 class="font-bold text-gray-900 mb-4">Reportes</h5><div class="bg-white rounded-xl p-8 text-center text-gray-400 shadow-sm border border-gray-100"><p class="text-4xl mb-2">📈</p><p>Reportes clínicos y financieros</p></div></div>
+    </main>
+  </div>
+</div>
+
+<script>
+function showPage(name,el){
+  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(l=>l.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('topbar-title').textContent=el?el.textContent.trim():name;
+}
+function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
+document.getElementById('login-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+});
+</script>
+</body>
+</html>

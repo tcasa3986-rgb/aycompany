@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Hospedaje</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+<style>
+.page-section{display:none!important;}
+.page-section.active{display:block!important;}
+.sidebar-custom .nav-link{color:rgba(255,255,255,.8);cursor:pointer;}
+.sidebar-custom .nav-link:hover,.sidebar-custom .nav-link.active{background:rgba(255,255,255,.1);color:#fff;}
+#login-page{background:linear-gradient(135deg,#1a2035 0%,#2c3e6b 100%);}
+</style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed" style="font-family:'Source Sans Pro',sans-serif;">
+
+<!-- LOGIN -->
+<div id="login-page" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a2035 0%,#2c3e6b 100%);">
+<div class="login-box" style="width:380px;">
+  <div class="login-logo text-center mb-4">
+    <i class="fas fa-hotel" style="font-size:3rem;color:rgba(255,255,255,.8);display:block;margin-bottom:8px;"></i>
+    <a href="#" style="color:#fff;font-size:1.6rem;font-weight:700;text-decoration:none;"><b>Sistema</b> Hospedaje</a>
+    <small style="display:block;color:rgba(255,255,255,.6);font-size:.85rem;">Panel de Administración</small>
+  </div>
+  <div class="card" style="border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <div class="card-body" style="padding:2rem;">
+      <p class="text-muted mb-4 text-center">Ingresa tus credenciales para continuar</p>
+      <form id="login-form">
+        <div class="input-group mb-3">
+          <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-envelope"></i></span></div>
+          <input type="email" class="form-control" value="admin@hospedaje.com" placeholder="Correo electrónico">
+        </div>
+        <div class="input-group mb-4">
+          <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-lock"></i></span></div>
+          <input type="password" class="form-control" value="password" placeholder="Contraseña">
+        </div>
+        <button type="submit" class="btn btn-block" style="background:#1a2035;color:#fff;border-radius:8px;padding:.7rem;font-weight:600;">Ingresar</button>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none;min-height:100vh;">
+<div class="wrapper">
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <ul class="navbar-nav"><li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a></li></ul>
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <div style="width:32px;height:32px;border-radius:50%;background:#1a2035;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700;">A</div>
+          <span class="ml-2">Administrador</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right">
+          <a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión</a>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="main-sidebar sidebar-dark-primary elevation-4 sidebar-custom">
+    <a href="#" class="brand-link">
+      <i class="fas fa-hotel ml-3 mr-2" style="color:#fff;font-size:1.2rem;"></i>
+      <span class="brand-text font-weight-bold">Sistema Hospedaje</span>
+    </a>
+    <div class="sidebar">
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image"><div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">A</div></div>
+        <div class="info"><a href="#" class="d-block" style="color:rgba(255,255,255,.8);">Admin</a></div>
+      </div>
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview">
+          <li class="nav-item"><a class="nav-link active" onclick="showPage('dashboard',this)"><i class="nav-icon fas fa-tachometer-alt"></i><p>Dashboard</p></a></li>
+          <li class="nav-header">GESTIÓN</li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('habitaciones',this)"><i class="nav-icon fas fa-bed"></i><p>Habitaciones</p></a></li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('reservas',this)"><i class="nav-icon fas fa-calendar-alt"></i><p>Reservas</p></a></li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('huespedes',this)"><i class="nav-icon fas fa-user-friends"></i><p>Huéspedes</p></a></li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('checkin',this)"><i class="nav-icon fas fa-sign-in-alt"></i><p>Check In / Check Out</p></a></li>
+          <li class="nav-header">FINANZAS</li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('pagos',this)"><i class="nav-icon fas fa-money-bill-wave"></i><p>Pagos</p></a></li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('reportes',this)"><i class="nav-icon fas fa-chart-bar"></i><p>Reportes</p></a></li>
+          <li class="nav-header">SISTEMA</li>
+          <li class="nav-item"><a class="nav-link" onclick="showPage('configuracion',this)"><i class="nav-icon fas fa-cog"></i><p>Configuración</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Content Wrapper -->
+  <div class="content-wrapper">
+    <div class="content-header"><div class="container-fluid"><h1 class="m-0" id="page-heading">Dashboard</h1></div></div>
+    <div class="content"><div class="container-fluid">
+
+      <div id="page-dashboard" class="page-section active">
+        <div class="row">
+          <div class="col-lg-3 col-6"><div class="small-box bg-info"><div class="inner"><h3>12</h3><p>Habitaciones Ocupadas</p></div><div class="icon"><i class="fas fa-bed"></i></div></div></div>
+          <div class="col-lg-3 col-6"><div class="small-box bg-success"><div class="inner"><h3>6</h3><p>Nuevas Reservas</p></div><div class="icon"><i class="fas fa-calendar-check"></i></div></div></div>
+          <div class="col-lg-3 col-6"><div class="small-box bg-warning"><div class="inner"><h3>3</h3><p>Salidas Pendientes</p></div><div class="icon"><i class="fas fa-sign-out-alt"></i></div></div></div>
+          <div class="col-lg-3 col-6"><div class="small-box bg-danger"><div class="inner"><h3>$4,850</h3><p>Ingresos del Mes</p></div><div class="icon"><i class="fas fa-dollar-sign"></i></div></div></div>
+        </div>
+        <div class="card card-primary card-outline">
+          <div class="card-header"><h3 class="card-title">Reservas Recientes</h3></div>
+          <div class="card-body p-0">
+            <table class="table table-sm">
+              <thead><tr><th>Huésped</th><th>Habitación</th><th>Check In</th><th>Check Out</th><th>Estado</th><th>Total</th></tr></thead>
+              <tbody>
+                <tr><td>Juan Pérez</td><td>101 - Simple</td><td>23/05/2026</td><td>25/05/2026</td><td><span class="badge badge-success">Activa</span></td><td>$120</td></tr>
+                <tr><td>María García</td><td>205 - Doble</td><td>22/05/2026</td><td>24/05/2026</td><td><span class="badge badge-warning">Por salir</span></td><td>$180</td></tr>
+                <tr><td>Carlos López</td><td>301 - Suite</td><td>20/05/2026</td><td>23/05/2026</td><td><span class="badge badge-info">Check out hoy</span></td><td>$450</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-habitaciones" class="page-section">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Habitaciones</h3><button class="btn btn-sm btn-primary">+ Nueva Habitación</button></div>
+          <div class="card-body p-0">
+            <table class="table table-hover">
+              <thead><tr><th>N°</th><th>Tipo</th><th>Piso</th><th>Precio/noche</th><th>Estado</th></tr></thead>
+              <tbody>
+                <tr><td>101</td><td>Simple</td><td>1</td><td>$60</td><td><span class="badge badge-danger">Ocupada</span></td></tr>
+                <tr><td>102</td><td>Simple</td><td>1</td><td>$60</td><td><span class="badge badge-success">Disponible</span></td></tr>
+                <tr><td>201</td><td>Doble</td><td>2</td><td>$90</td><td><span class="badge badge-success">Disponible</span></td></tr>
+                <tr><td>205</td><td>Doble</td><td>2</td><td>$90</td><td><span class="badge badge-danger">Ocupada</span></td></tr>
+                <tr><td>301</td><td>Suite</td><td>3</td><td>$150</td><td><span class="badge badge-warning">Mantenimiento</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-reservas" class="page-section">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Reservas</h3><button class="btn btn-sm btn-primary">+ Nueva Reserva</button></div>
+          <div class="card-body p-0">
+            <table class="table table-hover">
+              <thead><tr><th>Huésped</th><th>Habitación</th><th>Check In</th><th>Check Out</th><th>Adultos</th><th>Estado</th><th>Total</th></tr></thead>
+              <tbody>
+                <tr><td>Juan Pérez</td><td>101</td><td>23/05/2026</td><td>25/05/2026</td><td>1</td><td><span class="badge badge-success">Activa</span></td><td>$120</td></tr>
+                <tr><td>María García</td><td>205</td><td>22/05/2026</td><td>24/05/2026</td><td>2</td><td><span class="badge badge-warning">Por salir</span></td><td>$180</td></tr>
+                <tr><td>Carlos López</td><td>301</td><td>20/05/2026</td><td>23/05/2026</td><td>2</td><td><span class="badge badge-info">Check out</span></td><td>$450</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-huespedes" class="page-section"><div class="card"><div class="card-header"><h3 class="card-title">Huéspedes</h3></div><div class="card-body"><p class="text-muted text-center py-4"><i class="fas fa-user-friends fa-3x mb-2 d-block"></i>Registro de huéspedes</p></div></div></div>
+      <div id="page-checkin" class="page-section"><div class="card"><div class="card-header"><h3 class="card-title">Check In / Check Out</h3></div><div class="card-body"><p class="text-muted text-center py-4"><i class="fas fa-sign-in-alt fa-3x mb-2 d-block"></i>Gestión de entradas y salidas</p></div></div></div>
+      <div id="page-pagos" class="page-section"><div class="card"><div class="card-header"><h3 class="card-title">Pagos</h3></div><div class="card-body"><p class="text-muted text-center py-4"><i class="fas fa-money-bill-wave fa-3x mb-2 d-block"></i>Registro de pagos</p></div></div></div>
+      <div id="page-reportes" class="page-section"><div class="card"><div class="card-header"><h3 class="card-title">Reportes</h3></div><div class="card-body"><p class="text-muted text-center py-4"><i class="fas fa-chart-bar fa-3x mb-2 d-block"></i>Reportes del hospedaje</p></div></div></div>
+      <div id="page-configuracion" class="page-section"><div class="card"><div class="card-header"><h3 class="card-title">Configuración</h3></div><div class="card-body"><p class="text-muted text-center py-4"><i class="fas fa-cog fa-3x mb-2 d-block"></i>Configuración del sistema</p></div></div></div>
+
+    </div></div>
+  </div>
+
+  <footer class="main-footer"><strong>Sistema Hospedaje</strong></footer>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<script>
+function showPage(name,el){
+  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('page-heading').textContent=el?el.querySelector('p')?.textContent||name:name;
+}
+function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
+document.getElementById('login-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Tienda Celulares</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{font-family:'Poppins',sans-serif;background:#f4f0fb;margin:0;}
+:root{--sidebar-bg:#1a0a3e;--sidebar-w:260px;--accent:#a855f7;--accent2:#ec4899;--gradient:linear-gradient(135deg,var(--accent),var(--accent2));}
+/* SIDEBAR */
+#sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);min-height:100vh;position:fixed;top:0;left:0;z-index:1040;overflow-y:auto;}
+.sidebar-header{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.08);}
+.brand-wrap{display:flex;align-items:center;gap:12px;}
+.brand-icon{width:42px;height:42px;background:var(--gradient);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;}
+.brand-name{color:#fff;font-weight:700;font-size:1rem;line-height:1.2;}
+.brand-sub{color:rgba(255,255,255,.5);font-size:.72rem;}
+.nav-section{padding:.75rem 1rem .25rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.35);}
+.nav-link-item{display:flex;align-items:center;gap:10px;padding:.6rem 1.2rem;color:rgba(255,255,255,.7);font-size:.875rem;cursor:pointer;transition:all .2s;text-decoration:none;}
+.nav-link-item:hover{background:rgba(168,85,247,.15);color:#fff;}
+.nav-link-item.active{background:rgba(168,85,247,.2);color:#a855f7;border-right:3px solid #a855f7;}
+.nav-link-item i{width:20px;text-align:center;font-size:.95rem;}
+/* TOPBAR */
+#topbar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:60px;background:#fff;z-index:1030;display:flex;align-items:center;padding:0 1.5rem;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+/* MAIN */
+#main-content{margin-left:var(--sidebar-w);padding:76px 1.5rem 2rem;}
+.card{border:none;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);}
+.kpi-card{border-radius:14px;padding:1.3rem;color:#fff;position:relative;overflow:hidden;}
+.kpi-val{font-size:2rem;font-weight:700;}
+.kpi-label{font-size:.82rem;opacity:.85;margin-top:3px;}
+.kpi-icon-bg{position:absolute;right:-10px;bottom:-10px;font-size:4.5rem;opacity:.12;}
+.table th{font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;}
+.table td{font-size:.875rem;vertical-align:middle;}
+.badge{font-size:.72rem;padding:.3em .65em;border-radius:6px;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+/* LOGIN */
+#login-page{background:linear-gradient(135deg,#1a0a3e 0%,#2d1b69 50%,#4c1d95 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-container{display:flex;width:100%;max-width:900px;min-height:560px;border-radius:24px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.4);}
+.login-left{flex:1;background:var(--gradient);padding:48px 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.login-left::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,.12);border-radius:50%;}
+.brand{display:flex;align-items:center;gap:14px;position:relative;z-index:1;}
+.brand-ic{width:52px;height:52px;background:rgba(255,255,255,.25);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;}
+.brand h1{color:#fff;font-size:20px;font-weight:700;margin:0;}
+.brand p{color:rgba(255,255,255,.8);font-size:12px;margin:0;}
+.login-features{position:relative;z-index:1;}
+.feat-item{display:flex;align-items:center;gap:12px;margin-bottom:14px;color:rgba(255,255,255,.85);font-size:13px;}
+.feat-dot{width:8px;height:8px;background:#fff;border-radius:50%;flex-shrink:0;}
+.login-right{width:420px;background:#fff;padding:48px 40px;display:flex;align-items:center;}
+.login-form-wrap{width:100%;}
+.login-form-wrap h2{font-size:1.5rem;font-weight:700;color:#1a0a3e;margin-bottom:6px;}
+.login-form-wrap p{color:#9ca3af;font-size:.875rem;margin-bottom:2rem;}
+.form-group{margin-bottom:1rem;}
+.form-label{font-size:.8rem;font-weight:600;color:#4b5563;margin-bottom:.4rem;display:block;}
+.form-ctrl{width:100%;padding:.65rem 1rem;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.875rem;font-family:'Poppins',sans-serif;outline:none;transition:border .2s;}
+.form-ctrl:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.1);}
+.btn-login{width:100%;padding:.75rem;background:var(--gradient);border:none;border-radius:10px;color:#fff;font-weight:600;font-size:.95rem;cursor:pointer;font-family:'Poppins',sans-serif;}
+@media(max-width:640px){.login-left{display:none;}.login-container{border-radius:16px;}.login-right{width:100%;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+<div class="login-container">
+  <div class="login-left">
+    <div class="brand">
+      <div class="brand-ic"><i class="fas fa-mobile-alt"></i></div>
+      <div><h1>CRM Celulares</h1><p>Sistema de Gestión</p></div>
+    </div>
+    <div class="login-features">
+      <div class="feat-item"><div class="feat-dot"></div>Control de ventas y reparaciones</div>
+      <div class="feat-item"><div class="feat-dot"></div>Gestión de inventario de equipos</div>
+      <div class="feat-item"><div class="feat-dot"></div>Seguimiento de clientes y garantías</div>
+      <div class="feat-item"><div class="feat-dot"></div>Reportes financieros en tiempo real</div>
+    </div>
+    <div style="color:rgba(255,255,255,.5);font-size:11px;">© 2026 CRM Tienda Celulares</div>
+  </div>
+  <div class="login-right">
+    <div class="login-form-wrap">
+      <h2>Bienvenido de nuevo</h2>
+      <p>Ingresa tus credenciales para acceder</p>
+      <form id="login-form">
+        <div class="form-group"><label class="form-label">Correo electrónico</label><input type="email" class="form-ctrl" value="admin@celulares.com" placeholder="admin@celulares.com"></div>
+        <div class="form-group"><label class="form-label">Contraseña</label><input type="password" class="form-ctrl" value="password" placeholder="••••••••"></div>
+        <button type="submit" class="btn-login mt-2">Iniciar Sesión</button>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none">
+<nav id="sidebar">
+  <div class="sidebar-header"><div class="brand-wrap"><div class="brand-icon"><i class="fas fa-mobile-alt"></i></div><div><div class="brand-name">CRM Celulares</div><div class="brand-sub">Gestión de Tienda</div></div></div></div>
+  <div class="nav-section">Principal</div>
+  <a class="nav-link-item active" onclick="showPage('dashboard',this)"><i class="fas fa-chart-pie"></i>Dashboard</a>
+  <div class="nav-section">Ventas</div>
+  <a class="nav-link-item" onclick="showPage('ventas',this)"><i class="fas fa-receipt"></i>Ventas</a>
+  <a class="nav-link-item" onclick="showPage('clientes',this)"><i class="fas fa-users"></i>Clientes</a>
+  <div class="nav-section">Servicio Técnico</div>
+  <a class="nav-link-item" onclick="showPage('reparaciones',this)"><i class="fas fa-tools"></i>Reparaciones</a>
+  <div class="nav-section">Inventario</div>
+  <a class="nav-link-item" onclick="showPage('productos',this)"><i class="fas fa-mobile-alt"></i>Productos</a>
+  <a class="nav-link-item" onclick="showPage('proveedores',this)"><i class="fas fa-truck"></i>Proveedores</a>
+  <div class="nav-section">Análisis</div>
+  <a class="nav-link-item" onclick="showPage('reportes',this)"><i class="fas fa-chart-bar"></i>Reportes</a>
+  <div class="nav-section">Admin</div>
+  <a class="nav-link-item" onclick="showPage('usuarios',this)"><i class="fas fa-user-cog"></i>Usuarios</a>
+</nav>
+<header id="topbar">
+  <div class="fw-semibold" id="topbar-title" style="color:#1a0a3e">Dashboard</div>
+  <div class="ms-auto d-flex align-items-center gap-2">
+    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">A</div>
+    <span style="font-size:.875rem;font-weight:600;color:#1a0a3e">Admin</span>
+    <button class="btn btn-sm text-muted" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+</header>
+<main id="main-content">
+
+<div id="page-dashboard" class="page-section active">
+  <h5 class="fw-bold mb-4">Dashboard</h5>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="kpi-card" style="background:linear-gradient(135deg,#a855f7,#7c3aed)"><i class="fas fa-receipt kpi-icon-bg"></i><div class="kpi-val">84</div><div class="kpi-label">Ventas del Mes</div></div></div>
+    <div class="col-md-3"><div class="kpi-card" style="background:linear-gradient(135deg,#ec4899,#be185d)"><i class="fas fa-tools kpi-icon-bg"></i><div class="kpi-val">12</div><div class="kpi-label">Reparaciones Activas</div></div></div>
+    <div class="col-md-3"><div class="kpi-card" style="background:linear-gradient(135deg,#06b6d4,#0284c7)"><i class="fas fa-mobile-alt kpi-icon-bg"></i><div class="kpi-val">$5,280</div><div class="kpi-label">Ingresos del Mes</div></div></div>
+    <div class="col-md-3"><div class="kpi-card" style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fas fa-users kpi-icon-bg"></i><div class="kpi-val">145</div><div class="kpi-label">Clientes Registrados</div></div></div>
+  </div>
+  <div class="card"><div class="card-header border-0 fw-semibold pt-3">Ventas Recientes</div>
+  <div class="card-body p-0"><table class="table table-hover mb-0"><thead><tr><th class="ps-3">Cliente</th><th>Producto</th><th>Fecha</th><th>Total</th><th>Pago</th></tr></thead><tbody>
+    <tr><td class="ps-3">Carlos Mendez</td><td>iPhone 15 Pro</td><td>23/05/2026</td><td>$1,200</td><td><span class="badge bg-success">Pagado</span></td></tr>
+    <tr><td class="ps-3">Laura Rojas</td><td>Samsung A54</td><td>23/05/2026</td><td>$380</td><td><span class="badge bg-success">Pagado</span></td></tr>
+    <tr><td class="ps-3">Miguel Torres</td><td>Xiaomi Redmi Note 12</td><td>22/05/2026</td><td>$220</td><td><span class="badge bg-warning text-dark">Crédito</span></td></tr>
+    <tr><td class="ps-3">Sandra Vega</td><td>AirPods Pro</td><td>22/05/2026</td><td>$280</td><td><span class="badge bg-success">Pagado</span></td></tr>
+  </tbody></table></div></div>
+</div>
+
+<div id="page-ventas" class="page-section">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold mb-0">Ventas</h5><button class="btn btn-sm" style="background:var(--gradient);color:#fff"><i class="fas fa-plus me-1"></i>Nueva Venta</button></div>
+  <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0"><thead><tr><th class="ps-3">Cliente</th><th>Producto</th><th>IMEI</th><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+    <tr><td class="ps-3">Carlos Mendez</td><td>iPhone 15 Pro</td><td>354798110123456</td><td>23/05/2026</td><td>$1,200</td><td><span class="badge bg-success">Completada</span></td></tr>
+    <tr><td class="ps-3">Laura Rojas</td><td>Samsung A54</td><td>356123987654321</td><td>23/05/2026</td><td>$380</td><td><span class="badge bg-success">Completada</span></td></tr>
+    <tr><td class="ps-3">Miguel Torres</td><td>Xiaomi Redmi Note 12</td><td>357456123456789</td><td>22/05/2026</td><td>$220</td><td><span class="badge bg-warning text-dark">En cuotas</span></td></tr>
+  </tbody></table></div></div>
+</div>
+
+<div id="page-clientes" class="page-section">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold mb-0">Clientes</h5><button class="btn btn-sm" style="background:var(--gradient);color:#fff"><i class="fas fa-plus me-1"></i>Nuevo Cliente</button></div>
+  <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0"><thead><tr><th class="ps-3">Nombre</th><th>Teléfono</th><th>Email</th><th>Compras</th><th>Última visita</th></tr></thead><tbody>
+    <tr><td class="ps-3">Carlos Mendez</td><td>555-1001</td><td>carlos@mail.com</td><td>3</td><td>23/05/2026</td></tr>
+    <tr><td class="ps-3">Laura Rojas</td><td>555-1002</td><td>laura@mail.com</td><td>1</td><td>23/05/2026</td></tr>
+    <tr><td class="ps-3">Miguel Torres</td><td>555-1003</td><td>miguel@mail.com</td><td>2</td><td>22/05/2026</td></tr>
+    <tr><td class="ps-3">Sandra Vega</td><td>555-1004</td><td>sandra@mail.com</td><td>5</td><td>22/05/2026</td></tr>
+  </tbody></table></div></div>
+</div>
+
+<div id="page-reparaciones" class="page-section">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold mb-0">Reparaciones</h5><button class="btn btn-sm" style="background:var(--gradient);color:#fff"><i class="fas fa-plus me-1"></i>Nueva Reparación</button></div>
+  <div class="card"><div class="card-body p-0"><table class="table table-hover mb-0"><thead><tr><th class="ps-3">Equipo</th><th>Cliente</th><th>Falla</th><th>Técnico</th><th>Estado</th><th>Costo</th></tr></thead><tbody>
+    <tr><td class="ps-3">iPhone 12</td><td>Pedro Suarez</td><td>Pantalla rota</td><td>Juan López</td><td><span class="badge bg-primary">En proceso</span></td><td>$120</td></tr>
+    <tr><td class="ps-3">Samsung S21</td><td>Ana García</td><td>No enciende</td><td>Juan López</td><td><span class="badge bg-warning text-dark">Diagnóstico</span></td><td>$80</td></tr>
+    <tr><td class="ps-3">Motorola G60</td><td>Luis Castro</td><td>Batería agotada</td><td>María López</td><td><span class="badge bg-success">Listo</span></td><td>$45</td></tr>
+  </tbody></table></div></div>
+</div>
+
+<div id="page-productos" class="page-section"><h5 class="fw-bold mb-4">Productos / Inventario</h5><div class="card"><div class="card-body p-0"><table class="table table-hover mb-0"><thead><tr><th class="ps-3">Producto</th><th>Marca</th><th>Precio</th><th>Stock</th><th>Estado</th></tr></thead><tbody>
+<tr><td class="ps-3">iPhone 15 Pro</td><td>Apple</td><td>$1,200</td><td>5</td><td><span class="badge bg-success">Disponible</span></td></tr>
+<tr><td class="ps-3">Samsung Galaxy A54</td><td>Samsung</td><td>$380</td><td>12</td><td><span class="badge bg-success">Disponible</span></td></tr>
+<tr><td class="ps-3">Xiaomi Redmi Note 12</td><td>Xiaomi</td><td>$220</td><td>8</td><td><span class="badge bg-success">Disponible</span></td></tr>
+<tr><td class="ps-3">AirPods Pro 2da Gen</td><td>Apple</td><td>$280</td><td>3</td><td><span class="badge bg-warning text-dark">Bajo stock</span></td></tr>
+</tbody></table></div></div></div>
+
+<div id="page-proveedores" class="page-section"><h5 class="fw-bold mb-4">Proveedores</h5><div class="card p-4 text-center text-muted"><i class="fas fa-truck" style="font-size:3rem"></i><p class="mt-2">Gestión de proveedores y compras</p></div></div>
+<div id="page-reportes" class="page-section"><h5 class="fw-bold mb-4">Reportes</h5><div class="card p-4 text-center text-muted"><i class="fas fa-chart-bar" style="font-size:3rem"></i><p class="mt-2">Reportes y análisis del negocio</p></div></div>
+<div id="page-usuarios" class="page-section"><h5 class="fw-bold mb-4">Usuarios</h5><div class="card p-4 text-center text-muted"><i class="fas fa-user-cog" style="font-size:3rem"></i><p class="mt-2">Gestión de usuarios del sistema</p></div></div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function showPage(name,el){
+  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-link-item').forEach(l=>l.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const titles={dashboard:'Dashboard',ventas:'Ventas',clientes:'Clientes',reparaciones:'Reparaciones',productos:'Productos',proveedores:'Proveedores',reportes:'Reportes',usuarios:'Usuarios'};
+  document.getElementById('topbar-title').textContent=titles[name]||name;
+}
+function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
+document.getElementById('login-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+});
+</script>
+</body>
+</html>

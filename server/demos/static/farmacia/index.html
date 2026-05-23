@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP Farmacia</title>
+<link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{farmacia:{50:'#ecfdf6',100:'#d1fae9',200:'#a7f0d4',300:'#6fe0bb',400:'#3fc99e',500:'#22b388',600:'#199172',700:'#16735c',800:'#155b4b',900:'#114a3e'},topbar:'#2a8f88',sidebar:'#46b8a4'}}}}}
+</script>
+<style>
+[x-cloak]{display:none!important;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:.55rem 1rem;color:rgba(255,255,255,.8);font-size:.875rem;cursor:pointer;border-radius:8px;transition:all .2s;}
+.nav-item:hover{background:rgba(255,255,255,.12);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.2);color:#fff;font-weight:600;}
+.nav-section{padding:.6rem 1rem .2rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.4);}
+</style>
+</head>
+<body class="font-sans antialiased" style="background:#f0fdf4;font-family:'figtree',sans-serif;">
+
+<!-- LOGIN -->
+<div id="login-page" class="min-h-screen flex items-center justify-center p-4" style="background:linear-gradient(135deg,#22b388,#46b8a4,#6ee7b7);display:flex;">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-6">
+      <div class="inline-flex h-16 w-16 rounded-2xl items-center justify-center text-3xl text-white font-bold backdrop-blur" style="background:rgba(255,255,255,.3);">F+</div>
+      <h1 class="mt-4 text-2xl text-white font-semibold">ERP Farmacia</h1>
+      <p class="text-white/80 text-sm">Sistema de Gestión Farmacéutica</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-xl p-8">
+      <h2 class="text-lg font-semibold text-gray-800 mb-6">Iniciar sesión</h2>
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+          <input type="email" value="admin@farmacia.test" class="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-green-400">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+          <input type="password" value="password" class="block w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-green-400">
+        </div>
+        <button type="submit" class="w-full py-2 rounded-lg text-white font-semibold text-sm" style="background:#22b388;">Ingresar</button>
+      </form>
+      <div class="mt-4 pt-4 border-t text-xs text-gray-500">
+        <p class="font-semibold text-gray-700 mb-1">Credenciales demo:</p>
+        <p>admin@farmacia.test / password</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none;min-height:100vh;">
+  <!-- SIDEBAR -->
+  <aside style="width:260px;background:linear-gradient(160deg,#2a8f88,#46b8a4);position:fixed;top:0;left:0;bottom:0;z-index:40;overflow-y:auto;display:flex;flex-direction:column;">
+    <div style="padding:1.2rem;border-bottom:1px solid rgba(255,255,255,.12);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:42px;height:42px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;font-weight:700;">F+</div>
+        <div><div style="color:#fff;font-weight:700;font-size:.95rem;">ERP Farmacia</div><div style="color:rgba(255,255,255,.65);font-size:.72rem;">Gestión Farmacéutica</div></div>
+      </div>
+    </div>
+    <nav style="padding:.75rem .5rem;flex:1;">
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</div>
+      <div class="nav-section">Ventas</div>
+      <div class="nav-item" onclick="showPage('pos',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Punto de Venta</div>
+      <div class="nav-item" onclick="showPage('ventas',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Historial Ventas</div>
+      <div class="nav-section">Inventario</div>
+      <div class="nav-item" onclick="showPage('productos',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>Productos</div>
+      <div class="nav-item" onclick="showPage('clientes',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Clientes</div>
+      <div class="nav-item" onclick="showPage('proveedores',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Proveedores</div>
+      <div class="nav-section">Análisis</div>
+      <div class="nav-item" onclick="showPage('reportes',this)"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Reportes</div>
+    </nav>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header style="position:fixed;top:0;left:260px;right:0;height:58px;background:#fff;z-index:30;display:flex;align-items:center;padding:0 1.5rem;border-bottom:1px solid #e5e7eb;">
+    <span id="topbar-title" style="font-weight:600;color:#155b4b;">Dashboard</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#22b388,#46b8a4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;">A</div>
+      <span style="font-size:.875rem;font-weight:500;">Admin</span>
+      <button style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:.875rem;" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main style="margin-left:260px;padding:74px 1.5rem 2rem;">
+
+    <div id="page-dashboard" class="page-section active">
+      <h5 style="font-weight:700;margin-bottom:1.2rem;color:#155b4b;">Dashboard</h5>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
+        <div style="background:linear-gradient(135deg,#22b388,#46b8a4);border-radius:14px;padding:1.3rem;color:#fff;"><div style="font-size:2rem;font-weight:700;">$3,250</div><div style="font-size:.82rem;opacity:.85;">Ventas del Día</div></div>
+        <div style="background:linear-gradient(135deg,#0284c7,#0ea5e9);border-radius:14px;padding:1.3rem;color:#fff;"><div style="font-size:2rem;font-weight:700;">58</div><div style="font-size:.82rem;opacity:.85;">Ventas Hoy</div></div>
+        <div style="background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:1.3rem;color:#fff;"><div style="font-size:2rem;font-weight:700;">12</div><div style="font-size:.82rem;opacity:.85;">Productos Bajo Stock</div></div>
+        <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:14px;padding:1.3rem;color:#fff;"><div style="font-size:2rem;font-weight:700;">245</div><div style="font-size:.82rem;opacity:.85;">Clientes Registrados</div></div>
+      </div>
+      <div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        <div style="padding:.9rem 1.2rem;font-weight:600;border-bottom:1px solid #f0fdf4;font-size:.9rem;color:#155b4b;">Últimas Ventas</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#f0fdf4;"><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Cliente</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Productos</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Total</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Hora</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:.7rem .9rem;font-size:.875rem;">María Pérez</td><td style="padding:.7rem .9rem;font-size:.875rem;">Paracetamol, Ibuprofeno</td><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:600;color:#22b388;">$24.50</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#9ca3af;">10:30 am</td></tr>
+            <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:.7rem .9rem;font-size:.875rem;">Carlos López</td><td style="padding:.7rem .9rem;font-size:.875rem;">Amoxicilina 500mg</td><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:600;color:#22b388;">$18.00</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#9ca3af;">10:15 am</td></tr>
+            <tr><td style="padding:.7rem .9rem;font-size:.875rem;">Ana Torres</td><td style="padding:.7rem .9rem;font-size:.875rem;">Vitamina C, Zinc</td><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:600;color:#22b388;">$35.00</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#9ca3af;">09:50 am</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="page-pos" class="page-section">
+      <h5 style="font-weight:700;margin-bottom:1.2rem;color:#155b4b;">Punto de Venta</h5>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
+        <div>
+          <div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:1rem;margin-bottom:1rem;">
+            <input type="text" placeholder="Buscar medicamento..." style="width:100%;padding:.65rem 1rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.875rem;outline:none;">
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;">
+            <div onclick="addToCart(this,'Paracetamol 500mg',4.50)" style="background:#fff;border-radius:10px;padding:1rem;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px solid transparent;transition:.2s;" onmouseover="this.style.borderColor='#22b388'" onmouseout="this.style.borderColor='transparent'">
+              <div style="font-weight:600;font-size:.875rem;margin-bottom:4px;">Paracetamol 500mg</div>
+              <div style="font-size:.75rem;color:#9ca3af;">Analgésico</div>
+              <div style="font-weight:700;color:#22b388;margin-top:6px;">$4.50</div>
+            </div>
+            <div onclick="addToCart(this,'Ibuprofeno 400mg',6.00)" style="background:#fff;border-radius:10px;padding:1rem;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px solid transparent;transition:.2s;" onmouseover="this.style.borderColor='#22b388'" onmouseout="this.style.borderColor='transparent'">
+              <div style="font-weight:600;font-size:.875rem;margin-bottom:4px;">Ibuprofeno 400mg</div>
+              <div style="font-size:.75rem;color:#9ca3af;">Antiinflamatorio</div>
+              <div style="font-weight:700;color:#22b388;margin-top:6px;">$6.00</div>
+            </div>
+            <div onclick="addToCart(this,'Amoxicilina 500mg',9.00)" style="background:#fff;border-radius:10px;padding:1rem;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px solid transparent;transition:.2s;" onmouseover="this.style.borderColor='#22b388'" onmouseout="this.style.borderColor='transparent'">
+              <div style="font-weight:600;font-size:.875rem;margin-bottom:4px;">Amoxicilina 500mg</div>
+              <div style="font-size:.75rem;color:#9ca3af;">Antibiótico</div>
+              <div style="font-weight:700;color:#22b388;margin-top:6px;">$9.00</div>
+            </div>
+            <div onclick="addToCart(this,'Vitamina C 1g',5.50)" style="background:#fff;border-radius:10px;padding:1rem;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px solid transparent;" onmouseover="this.style.borderColor='#22b388'" onmouseout="this.style.borderColor='transparent'">
+              <div style="font-weight:600;font-size:.875rem;margin-bottom:4px;">Vitamina C 1g</div>
+              <div style="font-size:.75rem;color:#9ca3af;">Vitaminas</div>
+              <div style="font-weight:700;color:#22b388;margin-top:6px;">$5.50</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:1rem;display:flex;flex-direction:column;">
+          <h6 style="font-weight:700;margin-bottom:.75rem;color:#155b4b;">Carrito</h6>
+          <div id="cart-items" style="flex:1;min-height:200px;border:1px dashed #e5e7eb;border-radius:8px;padding:.75rem;font-size:.875rem;color:#9ca3af;">Selecciona productos...</div>
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e5e7eb;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.875rem;"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;"><span>Total</span><span id="total" style="color:#22b388;">$0.00</span></div>
+            <button onclick="clearCart()" style="width:100%;margin-top:1rem;padding:.65rem;background:linear-gradient(135deg,#22b388,#46b8a4);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;">Cobrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-productos" class="page-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;"><h5 style="font-weight:700;margin:0;color:#155b4b;">Productos</h5><button style="background:linear-gradient(135deg,#22b388,#46b8a4);color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:.875rem;">+ Nuevo Producto</button></div>
+      <div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);"><table style="width:100%;border-collapse:collapse;"><thead style="background:#f0fdf4;"><tr><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Producto</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Categoría</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Precio</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Stock</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:#6b7280;text-align:left;">Venc.</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:500;">Paracetamol 500mg</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#6b7280;">Analgésico</td><td style="padding:.7rem .9rem;font-size:.875rem;">$4.50</td><td style="padding:.7rem .9rem;font-size:.875rem;"><span style="background:#dcfce7;color:#166534;padding:.2em .6em;border-radius:6px;font-size:.75rem;font-weight:600;">180 unid.</span></td><td style="padding:.7rem .9rem;font-size:.875rem;color:#9ca3af;">12/2026</td></tr>
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:500;">Ibuprofeno 400mg</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#6b7280;">Antiinflamatorio</td><td style="padding:.7rem .9rem;font-size:.875rem;">$6.00</td><td style="padding:.7rem .9rem;font-size:.875rem;"><span style="background:#dcfce7;color:#166534;padding:.2em .6em;border-radius:6px;font-size:.75rem;font-weight:600;">95 unid.</span></td><td style="padding:.7rem .9rem;font-size:.875rem;color:#9ca3af;">06/2027</td></tr>
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:500;">Amoxicilina 500mg</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#6b7280;">Antibiótico</td><td style="padding:.7rem .9rem;font-size:.875rem;">$9.00</td><td style="padding:.7rem .9rem;font-size:.875rem;"><span style="background:#fef3c7;color:#92400e;padding:.2em .6em;border-radius:6px;font-size:.75rem;font-weight:600;">8 unid.</span></td><td style="padding:.7rem .9rem;font-size:.875rem;color:#ef4444;">03/2026</td></tr>
+          <tr><td style="padding:.7rem .9rem;font-size:.875rem;font-weight:500;">Vitamina C 1g</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#6b7280;">Vitaminas</td><td style="padding:.7rem .9rem;font-size:.875rem;">$5.50</td><td style="padding:.7rem .9rem;font-size:.875rem;"><span style="background:#dcfce7;color:#166534;padding:.2em .6em;border-radius:6px;font-size:.75rem;font-weight:600;">240 unid.</span></td><td style="padding:.7rem .9rem;font-size:.875rem;color:#9ca3af;">09/2027</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div id="page-ventas" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;color:#155b4b;">Historial Ventas</h5><div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:2rem;text-align:center;color:#9ca3af;"><p style="font-size:3rem;">📋</p><p>Historial de ventas y comprobantes</p></div></div>
+    <div id="page-clientes" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;color:#155b4b;">Clientes</h5><div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:2rem;text-align:center;color:#9ca3af;"><p style="font-size:3rem;">👥</p><p>Gestión de clientes y historial de compras</p></div></div>
+    <div id="page-proveedores" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;color:#155b4b;">Proveedores</h5><div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:2rem;text-align:center;color:#9ca3af;"><p style="font-size:3rem;">🏭</p><p>Gestión de proveedores y compras</p></div></div>
+    <div id="page-reportes" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;color:#155b4b;">Reportes</h5><div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:2rem;text-align:center;color:#9ca3af;"><p style="font-size:3rem;">📊</p><p>Reportes de ventas e inventario</p></div></div>
+  </main>
+</div>
+
+<script>
+let cart=[];
+function addToCart(el,name,price){
+  cart.push({name,price});
+  renderCart();
+}
+function renderCart(){
+  const div=document.getElementById('cart-items');
+  const total=cart.reduce((s,i)=>s+i.price,0);
+  div.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>${i.name}</span><span style="color:#22b388;font-weight:600;">$${i.price.toFixed(2)}</span></div>`).join('');
+  div.style.color='#374151';
+  document.getElementById('subtotal').textContent='$'+total.toFixed(2);
+  document.getElementById('total').textContent='$'+total.toFixed(2);
+}
+function clearCart(){cart=[];document.getElementById('cart-items').innerHTML='Selecciona productos...';document.getElementById('cart-items').style.color='#9ca3af';document.getElementById('subtotal').textContent='$0.00';document.getElementById('total').textContent='$0.00';}
+function showPage(name,el){
+  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(l=>l.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('topbar-title').textContent=el?el.textContent.trim():name;
+}
+function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
+document.getElementById('login-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+});
+</script>
+</body>
+</html>

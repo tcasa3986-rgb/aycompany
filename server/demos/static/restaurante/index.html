@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurante POS</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fa;margin:0;}
+:root{--primary:#4f46e5;--sidebar-bg:#0f172a;--sidebar-w:260px;}
+#sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);min-height:100vh;position:fixed;top:0;left:0;z-index:1040;overflow-y:auto;}
+.sb-brand{padding:1.3rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;}
+.sb-icon{width:40px;height:40px;background:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;}
+.sb-name{color:#fff;font-weight:700;font-size:.95rem;}
+.sb-sub{color:rgba(255,255,255,.4);font-size:.72rem;}
+.sb-section{padding:.7rem 1.2rem .2rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.3);}
+.sb-link{display:flex;align-items:center;gap:10px;padding:.6rem 1.2rem;color:rgba(255,255,255,.7);font-size:.875rem;cursor:pointer;transition:all .2s;}
+.sb-link:hover{background:rgba(255,255,255,.06);color:#fff;}
+.sb-link.active{background:rgba(79,70,229,.25);color:#818cf8;border-left:3px solid #4f46e5;}
+.sb-link i{width:20px;text-align:center;}
+#topbar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:60px;background:#fff;z-index:1030;display:flex;align-items:center;padding:0 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+#main-content{margin-left:var(--sidebar-w);padding:76px 1.5rem 2rem;}
+.card{border:none;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+.kpi-c{border-radius:14px;padding:1.2rem;color:#fff;position:relative;overflow:hidden;}
+.kpi-v{font-size:2rem;font-weight:800;}
+.kpi-l{font-size:.82rem;opacity:.85;margin-top:2px;}
+.kpi-ic{position:absolute;right:-6px;bottom:-6px;font-size:4rem;opacity:.15;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+/* TABLE STYLE */
+.table th{font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;font-weight:600;border-bottom:1px solid #f3f4f6;}
+.table td{font-size:.875rem;vertical-align:middle;border-bottom:1px solid #f9fafb;}
+/* LOGIN */
+#login-page{background:#f8f9fa;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-card{background:#fff;border-radius:15px;box-shadow:0 10px 25px rgba(0,0,0,.08);width:100%;max-width:400px;overflow:hidden;}
+.login-header{background:var(--primary);color:#fff;padding:30px 20px;text-align:center;}
+.login-body{padding:2rem;}
+.form-control{border-radius:8px;border:1.5px solid #e5e7eb;padding:.65rem 1rem;font-size:.875rem;}
+.form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1);outline:none;}
+.btn-login{background:var(--primary);border:none;border-radius:8px;padding:.75rem;font-weight:700;font-size:.95rem;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+<div class="login-card">
+  <div class="login-header">
+    <h3 class="fw-bold mb-0" style="font-family:'Plus Jakarta Sans',sans-serif;">Restaurante POS</h3>
+    <small style="opacity:.8;">Sistema de Gestión Profesional</small>
+  </div>
+  <div class="login-body">
+    <h5 class="text-center text-muted mb-4">Bienvenido de nuevo</h5>
+    <form id="login-form">
+      <div class="mb-3">
+        <label class="form-label fw-semibold text-secondary">Correo Electrónico</label>
+        <input type="email" class="form-control" value="admin@restaurante.com" placeholder="admin@restaurante.com">
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold text-secondary">Contraseña</label>
+        <input type="password" class="form-control" value="password" placeholder="••••••••">
+      </div>
+      <div class="d-grid">
+        <button type="submit" class="btn btn-primary btn-login">INGRESAR AL SISTEMA</button>
+      </div>
+    </form>
+  </div>
+  <div class="text-center py-3 border-top"><small class="text-muted">Sistema POS Restaurante</small></div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none">
+<nav id="sidebar">
+  <div class="sb-brand"><div class="sb-icon"><i class="bi bi-shop"></i></div><div><div class="sb-name">Restaurante POS</div><div class="sb-sub">Gestión de Restaurante</div></div></div>
+  <div class="sb-section">Principal</div>
+  <div class="sb-link active" onclick="showPage('dashboard',this)"><i class="bi bi-grid-1x2"></i>Dashboard</div>
+  <div class="sb-section">Operaciones</div>
+  <div class="sb-link" onclick="showPage('pos',this)"><i class="bi bi-cash-register"></i>POS / Caja</div>
+  <div class="sb-link" onclick="showPage('pedidos',this)"><i class="bi bi-bag"></i>Pedidos</div>
+  <div class="sb-link" onclick="showPage('menu',this)"><i class="bi bi-journal-text"></i>Menú / Carta</div>
+  <div class="sb-link" onclick="showPage('reservas',this)"><i class="bi bi-calendar-check"></i>Reservas</div>
+  <div class="sb-section">Gestión</div>
+  <div class="sb-link" onclick="showPage('clientes',this)"><i class="bi bi-people"></i>Clientes</div>
+  <div class="sb-link" onclick="showPage('mesas',this)"><i class="bi bi-grid"></i>Mesas</div>
+  <div class="sb-section">Análisis</div>
+  <div class="sb-link" onclick="showPage('reportes',this)"><i class="bi bi-bar-chart"></i>Reportes</div>
+  <div class="sb-section">Admin</div>
+  <div class="sb-link" onclick="showPage('configuracion',this)"><i class="bi bi-gear"></i>Configuración</div>
+</nav>
+
+<header id="topbar">
+  <span id="topbar-title" class="fw-semibold" style="color:#0f172a;">Dashboard</span>
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <div style="width:34px;height:34px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;">A</div>
+    <span style="font-size:.875rem;font-weight:600;">Administrador</span>
+    <button class="btn btn-sm text-muted" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+  </div>
+</header>
+
+<main id="main-content">
+  <div id="page-dashboard" class="page-section active">
+    <h5 class="fw-bold mb-4">Dashboard</h5>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3"><div class="kpi-c" style="background:linear-gradient(135deg,#4f46e5,#4338ca)"><i class="bi bi-bag-check kpi-ic"></i><div class="kpi-v">$4,280</div><div class="kpi-l">Ventas del Día</div></div></div>
+      <div class="col-md-3"><div class="kpi-c" style="background:linear-gradient(135deg,#059669,#10b981)"><i class="bi bi-receipt kpi-ic"></i><div class="kpi-v">67</div><div class="kpi-l">Órdenes Hoy</div></div></div>
+      <div class="col-md-3"><div class="kpi-c" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><i class="bi bi-table kpi-ic"></i><div class="kpi-v">8/12</div><div class="kpi-l">Mesas Ocupadas</div></div></div>
+      <div class="col-md-3"><div class="kpi-c" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><i class="bi bi-clock kpi-ic"></i><div class="kpi-v">3</div><div class="kpi-l">Pedidos Pendientes</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header border-0 pt-3 fw-semibold">Órdenes Recientes</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th class="ps-3">Mesa</th><th>Mesero</th><th>Productos</th><th>Total</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="ps-3"><span class="badge bg-primary">Mesa 3</span></td><td>Ana Ríos</td><td>Lomo Saltado, 2 Cervezas</td><td>$38.00</td><td><span class="badge bg-success">Servido</span></td></tr>
+            <tr><td class="ps-3"><span class="badge bg-warning text-dark">Mesa 7</span></td><td>Pedro Cruz</td><td>Pollo a la Brasa, Ensalada</td><td>$22.50</td><td><span class="badge bg-warning text-dark">Cocinando</span></td></tr>
+            <tr><td class="ps-3"><span class="badge bg-info">Mesa 1</span></td><td>Ana Ríos</td><td>Ceviche, Chicha Morada</td><td>$18.00</td><td><span class="badge bg-danger">Pendiente</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-pedidos" class="page-section">
+    <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold mb-0">Pedidos</h5><button class="btn btn-sm" style="background:var(--primary);color:#fff;border-radius:8px;">+ Nueva Orden</button></div>
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th class="ps-3">Orden</th><th>Mesa</th><th>Mesero</th><th>Fecha/Hora</th><th>Total</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td class="ps-3">#ORD-045</td><td>Mesa 3</td><td>Ana Ríos</td><td>23/05 10:30</td><td>$38.00</td><td><span class="badge bg-success">Completado</span></td></tr>
+            <tr><td class="ps-3">#ORD-044</td><td>Mesa 7</td><td>Pedro Cruz</td><td>23/05 10:15</td><td>$22.50</td><td><span class="badge bg-warning text-dark">En proceso</span></td></tr>
+            <tr><td class="ps-3">#ORD-043</td><td>Mesa 1</td><td>Ana Ríos</td><td>23/05 10:00</td><td>$18.00</td><td><span class="badge bg-danger">Pendiente</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-menu" class="page-section">
+    <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold mb-0">Menú / Carta</h5><button class="btn btn-sm" style="background:var(--primary);color:#fff;border-radius:8px;">+ Nuevo Plato</button></div>
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead><tr><th class="ps-3">Plato</th><th>Categoría</th><th>Precio</th><th>Disponible</th></tr></thead>
+          <tbody>
+            <tr><td class="ps-3">Lomo Saltado</td><td>Platos de Fondo</td><td>$18.00</td><td><span class="badge bg-success">Sí</span></td></tr>
+            <tr><td class="ps-3">Ceviche de Pescado</td><td>Entradas</td><td>$12.00</td><td><span class="badge bg-success">Sí</span></td></tr>
+            <tr><td class="ps-3">Pollo a la Brasa</td><td>Platos de Fondo</td><td>$15.00</td><td><span class="badge bg-success">Sí</span></td></tr>
+            <tr><td class="ps-3">Arroz con Leche</td><td>Postres</td><td>$5.50</td><td><span class="badge bg-success">Sí</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-pos" class="page-section"><h5 class="fw-bold mb-4">POS / Caja</h5><div class="card p-4 text-center text-muted"><i class="bi bi-cash-register" style="font-size:3rem"></i><p class="mt-2">Sistema de punto de venta</p></div></div>
+  <div id="page-reservas" class="page-section"><h5 class="fw-bold mb-4">Reservas</h5><div class="card p-4 text-center text-muted"><i class="bi bi-calendar-check" style="font-size:3rem"></i><p class="mt-2">Gestión de reservas de mesas</p></div></div>
+  <div id="page-clientes" class="page-section"><h5 class="fw-bold mb-4">Clientes</h5><div class="card p-4 text-center text-muted"><i class="bi bi-people" style="font-size:3rem"></i><p class="mt-2">Registro de clientes frecuentes</p></div></div>
+  <div id="page-mesas" class="page-section"><h5 class="fw-bold mb-4">Mesas</h5><div class="card p-4 text-center text-muted"><i class="bi bi-grid" style="font-size:3rem"></i><p class="mt-2">Gestión de mesas del restaurante</p></div></div>
+  <div id="page-reportes" class="page-section"><h5 class="fw-bold mb-4">Reportes</h5><div class="card p-4 text-center text-muted"><i class="bi bi-bar-chart" style="font-size:3rem"></i><p class="mt-2">Reportes de ventas y desempeño</p></div></div>
+  <div id="page-configuracion" class="page-section"><h5 class="fw-bold mb-4">Configuración</h5><div class="card p-4 text-center text-muted"><i class="bi bi-gear" style="font-size:3rem"></i><p class="mt-2">Configuración del sistema</p></div></div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function showPage(name,el){
+  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.sb-link').forEach(l=>l.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('topbar-title').textContent=el?el.textContent.trim():name;
+}
+function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
+document.getElementById('login-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+});
+</script>
+</body>
+</html>

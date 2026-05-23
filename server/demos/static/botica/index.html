@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Botica — Sistema de Farmacia</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+--bg-dark:#F4F7F6;--bg-card:#FFFFFF;
+--text-primary:#2C3E50;--text-secondary:#7F8C8D;
+--accent-primary:#00A896;--accent-hover:#028090;--accent-light:rgba(0,168,150,.1);
+--success:#02C39A;--success-bg:rgba(2,195,154,.1);
+--danger:#E63946;--danger-bg:rgba(230,57,70,.1);
+--warning:#F4A261;--border-color:#E2E8F0;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background-color:var(--bg-dark);color:var(--text-primary);margin:0;overflow-x:hidden;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}
+#wrapper{display:flex;height:100vh;overflow:hidden;}
+.page-section{display:none}.page-section.active{display:block}
+
+/* ── SIDEBAR ── */
+#sidebar{width:260px;background-color:var(--bg-card);border-right:1px solid var(--border-color);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;box-shadow:2px 0 10px rgba(0,0,0,.02);z-index:10;}
+.sidebar-logo{display:flex;align-items:center;padding:0 20px 30px;font-size:22px;font-weight:700;color:var(--accent-primary);text-decoration:none;gap:12px;}
+.sidebar-logo i{font-size:28px;background:linear-gradient(135deg,var(--accent-primary) 0%,var(--success) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sidebar-nav{list-style:none;padding:0 15px;margin:0;flex-grow:1;overflow-y:auto;}
+.sidebar-nav .nav-item{margin-bottom:4px;}
+.sidebar-nav .nav-link{display:flex;align-items:center;padding:10px 15px;color:var(--text-secondary);border-radius:10px;font-size:14px;font-weight:500;transition:all .2s;cursor:pointer;text-decoration:none;border:none;background:transparent;width:100%;text-align:left;}
+.sidebar-nav .nav-link i{width:22px;margin-right:12px;font-size:16px;flex-shrink:0;}
+.sidebar-nav .nav-link:hover{background:var(--accent-light);color:var(--accent-primary);}
+.sidebar-nav .nav-link.active{background:var(--accent-light);color:var(--accent-primary);font-weight:600;}
+.sidebar-nav .nav-link.active-pos{background:linear-gradient(135deg,var(--accent-primary),var(--success));color:#fff;font-weight:700;}
+.sidebar-section{margin:20px 15px 5px;font-size:11px;font-weight:700;color:#555;text-transform:uppercase;}
+.badge-sidebar{background:var(--danger);color:#fff;font-size:11px;padding:2px 7px;border-radius:20px;margin-left:auto;}
+.submenu-icon{margin-left:auto;font-size:12px;transition:transform .2s;}
+
+/* ── CONTENT WRAPPER ── */
+#content-wrapper{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px;background:#fff;border-bottom:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,.03);flex-shrink:0;}
+.search-box{display:flex;align-items:center;gap:10px;background:#F4F7F6;border:1px solid var(--border-color);border-radius:10px;padding:8px 16px;width:350px;}
+.search-box i{color:var(--text-secondary);font-size:14px;}
+.search-box input{border:none;background:transparent;outline:none;font-size:14px;color:var(--text-primary);width:100%;font-family:inherit;}
+.search-box input::placeholder{color:var(--text-secondary);}
+.topbar-actions{display:flex;align-items:center;gap:16px;}
+.topbar-icon{width:40px;height:40px;background:#F4F7F6;border:1px solid var(--border-color);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:16px;cursor:pointer;position:relative;text-decoration:none;}
+.user-profile{display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 12px;border-radius:10px;transition:background .2s;}
+.user-profile:hover{background:#F4F7F6;}
+.user-profile img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
+.user-name{font-size:13px;font-weight:600;color:var(--text-primary);}
+.user-role{font-size:11px;color:var(--text-secondary);}
+#main-content{flex:1;overflow-y:auto;padding:24px;}
+
+/* ── CARDS ── */
+.kpi-card{background:var(--bg-card);border-radius:16px;padding:20px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.kpi-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px;}
+.kpi-value{font-size:28px;font-weight:800;color:var(--text-primary);margin-bottom:4px;}
+.kpi-label{font-size:13px;color:var(--text-secondary);}
+.kpi-change{font-size:12px;margin-top:6px;}
+.card-custom{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.card-header-custom{padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;}
+.card-title-custom{font-size:15px;font-weight:700;color:var(--text-primary);}
+
+/* ── TABLES ── */
+.table-custom{width:100%;border-collapse:collapse;font-size:13px;}
+.table-custom thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border-color);background:#FAFBFC;}
+.table-custom tbody tr{border-bottom:1px solid #F0F4F8;transition:background .15s;}
+.table-custom tbody tr:hover{background:#F8FFFE;}
+.table-custom td{padding:12px 16px;vertical-align:middle;}
+.badge-custom{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-success-c{background:var(--success-bg);color:var(--success);}
+.badge-danger-c{background:var(--danger-bg);color:var(--danger);}
+.badge-warning-c{background:rgba(244,162,97,.12);color:#D97706;}
+.badge-info-c{background:rgba(0,168,150,.1);color:var(--accent-primary);}
+
+/* ── BUTTONS ── */
+.btn-accent{background:var(--accent-primary);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .2s;}
+.btn-accent:hover{background:var(--accent-hover);}
+
+/* ── POS ── */
+.pos-container{display:grid;grid-template-columns:1fr 380px;gap:20px;height:calc(100vh - 112px);}
+.pos-products{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-color);overflow:hidden;display:flex;flex-direction:column;}
+.pos-search{padding:16px;border-bottom:1px solid var(--border-color);}
+.pos-search input{width:100%;padding:10px 16px;border:1px solid var(--border-color);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:#F4F7F6;}
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:16px;overflow-y:auto;flex:1;}
+.pos-product{padding:16px;border:1px solid var(--border-color);border-radius:12px;cursor:pointer;transition:all .2s;text-align:center;background:#fff;}
+.pos-product:hover{border-color:var(--accent-primary);box-shadow:0 4px 12px rgba(0,168,150,.15);}
+.pos-product .p-name{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+.pos-product .p-price{font-size:15px;font-weight:800;color:var(--accent-primary);}
+.pos-product .p-stock{font-size:11px;color:var(--text-secondary);}
+.pos-cart{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-color);display:flex;flex-direction:column;overflow:hidden;}
+.pos-cart-header{padding:16px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;}
+.pos-cart-items{flex:1;overflow-y:auto;padding:12px;}
+.cart-item{display:flex;align-items:center;justify-content:space-between;padding:10px;background:#F8FFFE;border:1px solid var(--border-color);border-radius:10px;margin-bottom:8px;}
+.pos-cart-footer{padding:16px;border-top:1px solid var(--border-color);}
+.total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.total-label{font-size:13px;color:var(--text-secondary);}
+.total-value{font-size:13px;font-weight:600;color:var(--text-primary);}
+.grand-total{font-size:20px;font-weight:800;color:var(--accent-primary);}
+
+/* ── LOGIN ── */
+.login-body{min-height:100vh;background:linear-gradient(135deg,#F0F8F7 0%,#E8F4F3 100%);display:flex;align-items:center;justify-content:center;}
+.login-card{background:var(--bg-card);border-radius:24px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,168,150,.15),0 4px 20px rgba(0,0,0,.08);}
+.login-logo{font-size:28px;font-weight:800;color:var(--accent-primary);margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+.login-title{font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:6px;}
+.login-subtitle{font-size:14px;color:var(--text-secondary);margin-bottom:32px;}
+.form-group{margin-bottom:20px;}
+.form-label-c{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
+.form-control-custom{width:100%;padding:12px 16px;border:1.5px solid var(--border-color);border-radius:12px;font-size:14px;font-family:inherit;outline:none;transition:border .2s;background:#F4F7F6;}
+.form-control-custom:focus{border-color:var(--accent-primary);background:#fff;box-shadow:0 0 0 3px rgba(0,168,150,.1);}
+.btn-primary-custom{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent-primary),var(--success));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;font-family:inherit;}
+.btn-primary-custom:hover{opacity:.9;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page" class="login-body">
+<div class="login-card">
+  <div class="login-logo"><i class="bi bi-heart-pulse-fill"></i> Mi Botica</div>
+  <div class="login-title">Bienvenido de nuevo 👋</div>
+  <div class="login-subtitle">Inicia sesión con tus credenciales para continuar.</div>
+  <form id="login-form">
+    <div class="form-group">
+      <label class="form-label-c">Usuario</label>
+      <input type="text" class="form-control-custom" placeholder="Ej: admin" value="admin">
+    </div>
+    <div class="form-group">
+      <div class="d-flex justify-content-between mb-2">
+        <label class="form-label-c mb-0">Contraseña</label>
+        <a href="#" style="font-size:13px;color:var(--accent-primary);text-decoration:none;">¿Olvidaste la clave?</a>
+      </div>
+      <input type="password" class="form-control-custom" placeholder="••••••••" value="admin">
+    </div>
+    <div class="form-check mb-4">
+      <input type="checkbox" class="form-check-input" id="remember" checked>
+      <label class="form-check-label" for="remember" style="font-size:13px;color:var(--text-secondary)">Recordarme en este equipo</label>
+    </div>
+    <button type="submit" class="btn-primary-custom">Iniciar Sesión</button>
+  </form>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none;width:100%">
+<div id="wrapper">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <a href="#" class="sidebar-logo"><i class="bi bi-heart-pulse-fill"></i> Mi Botica</a>
+    <ul class="sidebar-nav">
+      <li class="nav-item">
+        <a class="nav-link active" onclick="showPage('dashboard',this)"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" data-bs-target="#menuCaja" style="color:#ff9800">
+          <i class="bi bi-box-arrow-in-right"></i> Gestión de Caja
+          <i class="bi bi-chevron-down ms-auto submenu-icon" style="font-size:12px"></i>
+        </a>
+        <div class="collapse" id="menuCaja">
+          <ul class="nav flex-column ms-3 mt-1" style="font-size:13px">
+            <li class="nav-item"><a class="nav-link" onclick="showPage('caja-apertura',this)"><i class="bi bi-circle"></i> Abrir Turno (Caja)</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showPage('caja-cierre',this)"><i class="bi bi-circle"></i> Cerrar / Arqueo</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showPage('caja-historial',this)"><i class="bi bi-circle"></i> Historial Arqueos</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('pos',this)"><i class="bi bi-cart-fill"></i> PUNTO DE VENTA (POS)</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('ventas',this)"><i class="bi bi-receipt"></i> Historial Ventas</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('clientes',this)"><i class="bi bi-people"></i> Clientes</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" data-bs-target="#menuProductos">
+          <i class="bi bi-box-seam"></i> Catálogo Maestro
+          <i class="bi bi-chevron-down ms-auto submenu-icon" style="font-size:12px"></i>
+        </a>
+        <div class="collapse" id="menuProductos">
+          <ul class="nav flex-column ms-3 mt-1" style="font-size:13px">
+            <li class="nav-item"><a class="nav-link" onclick="showPage('productos',this)"><i class="bi bi-circle"></i> Productos</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showPage('categorias',this)"><i class="bi bi-circle"></i> Categorías</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showPage('laboratorios',this)"><i class="bi bi-circle"></i> Laboratorios</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('compras',this)"><i class="bi bi-cart"></i> Compras</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('proveedores',this)"><i class="bi bi-truck"></i> Proveedores</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" data-bs-target="#menuInventario">
+          <i class="bi bi-clipboard-data"></i> Inventario
+          <i class="bi bi-chevron-down ms-auto submenu-icon" style="font-size:12px"></i>
+        </a>
+        <div class="collapse" id="menuInventario">
+          <ul class="nav flex-column ms-3 mt-1" style="font-size:13px">
+            <li class="nav-item"><a class="nav-link" onclick="showPage('lotes',this)"><i class="bi bi-circle"></i> Fechas Vencimiento</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showPage('kardex',this)"><i class="bi bi-circle"></i> Kardex General</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('alertas',this)"><i class="bi bi-bell"></i> Alertas Sanitarias <span class="badge-sidebar">2</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('reportes',this)"><i class="bi bi-bar-chart-fill"></i> Reportes PDF/Excel</a>
+      </li>
+      <li class="sidebar-section">Ajustes</li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('personal',this)"><i class="bi bi-person-badge"></i> Gestión de Personal</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('configuracion',this)"><i class="bi bi-gear-fill"></i> Configuración General</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="showPage('auditoria',this)" style="color:#00bcd4"><i class="bi bi-shield-check"></i> Logs de Auditoría</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" onclick="logout()" style="color:var(--danger)"><i class="bi bi-box-arrow-right"></i> Salir</a>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Content Wrapper -->
+  <div id="content-wrapper">
+    <header id="topbar">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Buscar producto o código de barras...">
+      </div>
+      <div class="topbar-actions">
+        <a href="#" class="topbar-icon"><i class="bi bi-bell-fill"></i><span class="badge rounded-pill bg-danger" style="position:absolute;top:-4px;right:-4px;font-size:10px">2</span></a>
+        <div class="user-profile">
+          <img src="https://ui-avatars.com/api/?name=Admin&background=00A896&color=fff&bold=true" alt="Avatar">
+          <div class="user-info">
+            <span class="user-name">Administrador</span>
+            <span class="user-role">Administrador</span>
+          </div>
+          <i class="bi bi-chevron-down ms-1" style="color:var(--text-secondary);font-size:12px"></i>
+        </div>
+      </div>
+    </header>
+
+    <div id="main-content">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page-section active">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <h2 style="font-size:20px;font-weight:800;margin:0">Dashboard</h2>
+          <button class="btn-accent"><i class="bi bi-download"></i> Exportar Reporte</button>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(0,168,150,.1)"><i class="bi bi-cart-check-fill" style="color:var(--accent-primary)"></i></div>
+              <div class="kpi-value">148</div>
+              <div class="kpi-label">Ventas Hoy</div>
+              <div class="kpi-change" style="color:var(--success)"><i class="bi bi-arrow-up-right"></i> +12% vs ayer</div>
+            </div>
+          </div>
+          <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(2,195,154,.1)"><i class="bi bi-currency-dollar" style="color:var(--success)"></i></div>
+              <div class="kpi-value">S/ 4,285</div>
+              <div class="kpi-label">Ingresos del Día</div>
+              <div class="kpi-change" style="color:var(--success)"><i class="bi bi-arrow-up-right"></i> +8% vs ayer</div>
+            </div>
+          </div>
+          <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(244,162,97,.1)"><i class="bi bi-exclamation-triangle-fill" style="color:var(--warning)"></i></div>
+              <div class="kpi-value">12</div>
+              <div class="kpi-label">Stock Bajo</div>
+              <div class="kpi-change" style="color:var(--warning)"><i class="bi bi-exclamation-circle"></i> Requieren reposición</div>
+            </div>
+          </div>
+          <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background:rgba(230,57,70,.1)"><i class="bi bi-calendar-x-fill" style="color:var(--danger)"></i></div>
+              <div class="kpi-value">3</div>
+              <div class="kpi-label">Lotes por Vencer</div>
+              <div class="kpi-change" style="color:var(--danger)"><i class="bi bi-clock"></i> Próximos 30 días</div>
+            </div>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-xl-8">
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <h3 class="card-title-custom">Ventas Recientes</h3>
+                <button class="btn-accent" style="padding:6px 14px;font-size:12px">Ver todas</button>
+              </div>
+              <div style="overflow-x:auto">
+                <table class="table-custom">
+                  <thead><tr><th>N° Venta</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Método Pago</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    <tr><td>V-2026-0148</td><td>Cliente General</td><td>Paracetamol 500mg x2, Ibuprofeno x1</td><td>S/ 28.50</td><td>Efectivo</td><td><span class="badge-custom badge-success-c">Pagado</span></td></tr>
+                    <tr><td>V-2026-0147</td><td>María García</td><td>Amoxicilina 500mg x10</td><td>S/ 45.00</td><td>Tarjeta</td><td><span class="badge-custom badge-success-c">Pagado</span></td></tr>
+                    <tr><td>V-2026-0146</td><td>Carlos Pérez</td><td>Omeprazol 20mg x14, Vitamina C x20</td><td>S/ 67.30</td><td>Yape</td><td><span class="badge-custom badge-success-c">Pagado</span></td></tr>
+                    <tr><td>V-2026-0145</td><td>Ana Torres</td><td>Metformina 850mg x30</td><td>S/ 35.00</td><td>Efectivo</td><td><span class="badge-custom badge-warning-c">Pendiente</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-4">
+            <div class="card-custom">
+              <div class="card-header-custom"><h3 class="card-title-custom">Productos más Vendidos</h3></div>
+              <div style="padding:16px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#F8FFFE;border-radius:10px;margin-bottom:8px">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:36px;height:36px;background:var(--accent-light);border-radius:8px;display:flex;align-items:center;justify-content:center"><i class="bi bi-capsule-pill" style="color:var(--accent-primary)"></i></div>
+                    <div><div style="font-size:13px;font-weight:600">Paracetamol 500mg</div><div style="font-size:11px;color:var(--text-secondary)">Analgesico</div></div>
+                  </div>
+                  <span style="font-size:13px;font-weight:700;color:var(--accent-primary)">245 und</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#F8FFFE;border-radius:10px;margin-bottom:8px">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:36px;height:36px;background:var(--accent-light);border-radius:8px;display:flex;align-items:center;justify-content:center"><i class="bi bi-capsule-pill" style="color:var(--accent-primary)"></i></div>
+                    <div><div style="font-size:13px;font-weight:600">Ibuprofeno 400mg</div><div style="font-size:11px;color:var(--text-secondary)">Antiinflamatorio</div></div>
+                  </div>
+                  <span style="font-size:13px;font-weight:700;color:var(--accent-primary)">198 und</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#F8FFFE;border-radius:10px">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:36px;height:36px;background:var(--accent-light);border-radius:8px;display:flex;align-items:center;justify-content:center"><i class="bi bi-capsule-pill" style="color:var(--accent-primary)"></i></div>
+                    <div><div style="font-size:13px;font-weight:600">Amoxicilina 500mg</div><div style="font-size:11px;color:var(--text-secondary)">Antibiótico</div></div>
+                  </div>
+                  <span style="font-size:13px;font-weight:700;color:var(--accent-primary)">156 und</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- POS -->
+      <div id="page-pos" class="page-section">
+        <h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Punto de Venta (POS)</h2>
+        <div class="pos-container">
+          <div class="pos-products">
+            <div class="pos-search">
+              <input type="text" id="pos-search" placeholder="Buscar producto o código de barras...">
+            </div>
+            <div class="pos-grid" id="pos-grid">
+              <div class="pos-product" onclick="addToCart('Paracetamol 500mg',5.50)">
+                <div style="font-size:24px;margin-bottom:8px">💊</div>
+                <div class="p-name">Paracetamol 500mg</div>
+                <div class="p-price">S/ 5.50</div>
+                <div class="p-stock">Stock: 245</div>
+              </div>
+              <div class="pos-product" onclick="addToCart('Ibuprofeno 400mg',8.00)">
+                <div style="font-size:24px;margin-bottom:8px">💊</div>
+                <div class="p-name">Ibuprofeno 400mg</div>
+                <div class="p-price">S/ 8.00</div>
+                <div class="p-stock">Stock: 180</div>
+              </div>
+              <div class="pos-product" onclick="addToCart('Amoxicilina 500mg',25.00)">
+                <div style="font-size:24px;margin-bottom:8px">💊</div>
+                <div class="p-name">Amoxicilina 500mg</div>
+                <div class="p-price">S/ 25.00</div>
+                <div class="p-stock">Stock: 95</div>
+              </div>
+              <div class="pos-product" onclick="addToCart('Omeprazol 20mg',12.50)">
+                <div style="font-size:24px;margin-bottom:8px">💊</div>
+                <div class="p-name">Omeprazol 20mg</div>
+                <div class="p-price">S/ 12.50</div>
+                <div class="p-stock">Stock: 120</div>
+              </div>
+              <div class="pos-product" onclick="addToCart('Metformina 850mg',18.00)">
+                <div style="font-size:24px;margin-bottom:8px">💊</div>
+                <div class="p-name">Metformina 850mg</div>
+                <div class="p-price">S/ 18.00</div>
+                <div class="p-stock">Stock: 64</div>
+              </div>
+              <div class="pos-product" onclick="addToCart('Vitamina C 500mg',15.00)">
+                <div style="font-size:24px;margin-bottom:8px">🍊</div>
+                <div class="p-name">Vitamina C 500mg</div>
+                <div class="p-price">S/ 15.00</div>
+                <div class="p-stock">Stock: 200</div>
+              </div>
+            </div>
+          </div>
+          <div class="pos-cart">
+            <div class="pos-cart-header">
+              <h3 style="font-size:15px;font-weight:700;margin:0">Carrito de Venta</h3>
+              <button onclick="clearCart()" style="background:var(--danger-bg);color:var(--danger);border:none;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer">Limpiar</button>
+            </div>
+            <div class="pos-cart-items" id="cart-items">
+              <div id="cart-empty" style="text-align:center;padding:40px;color:var(--text-secondary)">
+                <i class="bi bi-cart3" style="font-size:48px;display:block;margin-bottom:12px;color:#CBD5E1"></i>
+                Carrito vacío. Selecciona productos.
+              </div>
+            </div>
+            <div class="pos-cart-footer">
+              <div class="total-row"><span class="total-label">Subtotal</span><span class="total-value" id="subtotal">S/ 0.00</span></div>
+              <div class="total-row"><span class="total-label">IGV (18%)</span><span class="total-value" id="igv">S/ 0.00</span></div>
+              <div class="total-row" style="margin-top:10px;padding-top:10px;border-top:2px solid var(--border-color)">
+                <span style="font-size:15px;font-weight:700">Total</span>
+                <span class="grand-total" id="total">S/ 0.00</span>
+              </div>
+              <button class="btn-accent" style="width:100%;justify-content:center;margin-top:12px;padding:12px" onclick="alert('¡Venta procesada con éxito!')">
+                <i class="bi bi-credit-card"></i> Procesar Venta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VENTAS -->
+      <div id="page-ventas" class="page-section">
+        <div class="d-flex align-items-center justify-content-between mb-3"><h2 style="font-size:18px;font-weight:800;margin:0">Historial de Ventas</h2></div>
+        <div class="card-custom"><div style="overflow-x:auto"><table class="table-custom"><thead><tr><th>N° Venta</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Método</th><th>Estado</th></tr></thead><tbody>
+          <tr><td>V-2026-0148</td><td>23/05/2026 09:15</td><td>Cliente General</td><td>S/ 28.50</td><td>Efectivo</td><td><span class="badge-custom badge-success-c">Pagado</span></td></tr>
+          <tr><td>V-2026-0147</td><td>23/05/2026 08:45</td><td>María García</td><td>S/ 45.00</td><td>Tarjeta</td><td><span class="badge-custom badge-success-c">Pagado</span></td></tr>
+          <tr><td>V-2026-0146</td><td>22/05/2026 17:30</td><td>Carlos Pérez</td><td>S/ 67.30</td><td>Yape</td><td><span class="badge-custom badge-success-c">Pagado</span></td></tr>
+        </tbody></table></div></div>
+      </div>
+
+      <div id="page-clientes" class="page-section"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Clientes</h2><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Registro de clientes de la botica</div></div>
+      <div id="page-productos" class="page-section"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Productos</h2><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Catálogo maestro de productos</div></div>
+      <div id="page-categorias" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Gestión de categorías</div></div>
+      <div id="page-laboratorios" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Laboratorios / Laboratorios farmacéuticos</div></div>
+      <div id="page-compras" class="page-section"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Compras</h2><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Registro de órdenes de compra</div></div>
+      <div id="page-proveedores" class="page-section"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Proveedores</h2><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Directorio de proveedores</div></div>
+      <div id="page-lotes" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Control de lotes y fechas de vencimiento</div></div>
+      <div id="page-kardex" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Kardex general de inventario</div></div>
+      <div id="page-alertas" class="page-section"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Alertas Sanitarias</h2><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Alertas de stock bajo y vencimientos</div></div>
+      <div id="page-reportes" class="page-section"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Reportes</h2><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Reportes PDF y Excel del sistema</div></div>
+      <div id="page-personal" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Gestión de personal y usuarios</div></div>
+      <div id="page-configuracion" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Configuración general del sistema</div></div>
+      <div id="page-auditoria" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:#00bcd4">Logs de auditoría del sistema</div></div>
+      <div id="page-caja-apertura" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Apertura de turno de caja</div></div>
+      <div id="page-caja-cierre" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Cierre y arqueo de caja</div></div>
+      <div id="page-caja-historial" class="page-section"><div class="card-custom" style="padding:20px;text-align:center;color:var(--text-secondary)">Historial de arqueos de caja</div></div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let cart = [];
+
+function showPage(name, el) {
+  document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('#sidebar .nav-link').forEach(l => l.classList.remove('active', 'active-pos'));
+  if (el) {
+    if (name === 'pos') el.classList.add('active-pos');
+    else el.classList.add('active');
+  }
+}
+
+function addToCart(name, price) {
+  const existing = cart.find(i => i.name === name);
+  if (existing) existing.qty++;
+  else cart.push({name, price, qty: 1});
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  const empty = document.getElementById('cart-empty');
+  if (cart.length === 0) {
+    empty.style.display = 'block';
+    container.querySelectorAll('.cart-item').forEach(el => el.remove());
+    updateTotals(0);
+    return;
+  }
+  empty.style.display = 'none';
+  container.querySelectorAll('.cart-item').forEach(el => el.remove());
+  let total = 0;
+  cart.forEach((item, idx) => {
+    total += item.price * item.qty;
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `<div><div style="font-size:13px;font-weight:600">${item.name}</div><div style="font-size:12px;color:var(--text-secondary)">S/ ${item.price.toFixed(2)} × ${item.qty}</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:700;color:var(--accent-primary)">S/ ${(item.price*item.qty).toFixed(2)}</span><button onclick="removeCart(${idx})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;line-height:1">×</button></div>`;
+    container.appendChild(div);
+  });
+  updateTotals(total);
+}
+
+function removeCart(idx) { cart.splice(idx,1); renderCart(); }
+function clearCart() { cart = []; renderCart(); }
+
+function updateTotals(total) {
+  const igv = total * 0.18;
+  const sub = total - igv;
+  document.getElementById('subtotal').textContent = 'S/ ' + sub.toFixed(2);
+  document.getElementById('igv').textContent = 'S/ ' + igv.toFixed(2);
+  document.getElementById('total').textContent = 'S/ ' + total.toFixed(2);
+}
+
+function logout() {
+  document.getElementById('app-page').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+}
+
+document.getElementById('login-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'block';
+});
+</script>
+</body>
+</html>

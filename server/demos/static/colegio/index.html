@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Colegio</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--sidebar-w:260px;--primary:#2563eb;--primary-d:#1e40af;--secondary:#64748b;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--bg:#f1f5f9;--bg-card:#fff;--border:#e2e8f0;--text:#1e293b;--text-muted:#64748b;}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);}
+#sidebar{width:var(--sidebar-w);background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 100%);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sidebar-logo{padding:1.4rem 1.2rem;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.12);}
+.logo-box{width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;}
+.logo-text h2{color:#fff;font-size:1rem;font-weight:700;margin:0;}
+.logo-text p{color:rgba(255,255,255,.6);font-size:.72rem;margin:0;}
+.nav-section-label{padding:.8rem 1.2rem .3rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.35);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:.6rem 1.2rem;color:rgba(255,255,255,.75);font-size:.875rem;cursor:pointer;transition:all .2s;}
+.nav-item:hover{background:rgba(255,255,255,.1);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.18);color:#fff;font-weight:600;}
+.nav-item i{width:20px;text-align:center;}
+#topbar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:60px;background:#fff;z-index:99;display:flex;align-items:center;padding:0 1.5rem;border-bottom:1px solid var(--border);}
+#main-content{margin-left:var(--sidebar-w);padding:76px 1.5rem 2rem;}
+.card{background:#fff;border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.card-header{padding:.9rem 1.2rem;font-weight:600;border-bottom:1px solid var(--border);font-size:.9rem;}
+.kpi-card{border-radius:12px;padding:1.3rem;color:#fff;position:relative;overflow:hidden;}
+.kpi-val{font-size:2rem;font-weight:700;}
+.kpi-lbl{font-size:.82rem;opacity:.85;margin-top:3px;}
+.kpi-ico{position:absolute;right:-8px;bottom:-8px;font-size:4.5rem;opacity:.12;}
+table{width:100%;border-collapse:collapse;}
+th{padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);text-align:left;}
+td{padding:.7rem .9rem;font-size:.875rem;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+.badge{display:inline-block;padding:.25em .65em;font-size:.72rem;border-radius:6px;font-weight:600;}
+.badge-success{background:#dcfce7;color:#166534;}
+.badge-warning{background:#fef3c7;color:#92400e;}
+.badge-danger{background:#fee2e2;color:#991b1b;}
+.badge-primary{background:#dbeafe;color:#1e40af;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+/* LOGIN */
+#login-page{background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 50%,#06b6d4 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+#login-page::before{content:'';position:absolute;width:600px;height:600px;background:rgba(255,255,255,.05);border-radius:50%;top:-200px;right:-200px;}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 25px 60px rgba(0,0,0,.25);position:relative;z-index:1;}
+.logo-circle{width:72px;height:72px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 20px rgba(59,130,246,.4);}
+.logo-circle i{color:#fff;font-size:32px;}
+.login-card h1{font-size:22px;font-weight:700;color:#1e3a8a;margin-bottom:4px;}
+.login-card p{font-size:13px;color:#94a3b8;margin-bottom:30px;}
+.form-g{margin-bottom:18px;}
+.form-g label{display:block;font-size:13px;font-weight:600;color:#475569;margin-bottom:8px;}
+.form-g input{width:100%;padding:.65rem 1rem;border:2px solid #e2e8f0;border-radius:10px;font-size:.875rem;outline:none;transition:border .2s;}
+.form-g input:focus{border-color:#3b82f6;}
+.btn-submit{width:100%;padding:.75rem;background:linear-gradient(135deg,#1e3a8a,#3b82f6);border:none;border-radius:10px;color:#fff;font-weight:600;font-size:.95rem;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+<div class="login-card" style="text-align:center;">
+  <div class="logo-circle"><i class="fas fa-graduation-cap"></i></div>
+  <h1>CRM Colegio</h1>
+  <p>Sistema de Gestión Académica</p>
+  <form id="login-form" style="text-align:left;">
+    <div class="form-g"><label>Correo electrónico</label><input type="email" value="admin@colegio.edu" placeholder="admin@colegio.edu"></div>
+    <div class="form-g"><label>Contraseña</label><input type="password" value="password" placeholder="••••••••"></div>
+    <button type="submit" class="btn-submit">Iniciar Sesión</button>
+  </form>
+</div>
+</div>
+
+<!-- APP -->
+<div id="app-page" style="display:none">
+<nav id="sidebar">
+  <div class="sidebar-logo"><div class="logo-box"><i class="fas fa-graduation-cap"></i></div><div class="logo-text"><h2>CRM Colegio</h2><p>Gestión Académica</p></div></div>
+  <div class="nav-section-label">Principal</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)"><i class="fas fa-tachometer-alt"></i>Dashboard</div>
+  <div class="nav-section-label">Académico</div>
+  <div class="nav-item" onclick="showPage('estudiantes',this)"><i class="fas fa-user-graduate"></i>Estudiantes</div>
+  <div class="nav-item" onclick="showPage('docentes',this)"><i class="fas fa-chalkboard-teacher"></i>Docentes</div>
+  <div class="nav-item" onclick="showPage('materias',this)"><i class="fas fa-book"></i>Materias</div>
+  <div class="nav-item" onclick="showPage('grupos',this)"><i class="fas fa-layer-group"></i>Grupos / Cursos</div>
+  <div class="nav-section-label">Administración</div>
+  <div class="nav-item" onclick="showPage('matriculas',this)"><i class="fas fa-id-card"></i>Matrículas</div>
+  <div class="nav-item" onclick="showPage('pagos',this)"><i class="fas fa-dollar-sign"></i>Pagos</div>
+  <div class="nav-item" onclick="showPage('asistencias',this)"><i class="fas fa-calendar-check"></i>Asistencias</div>
+  <div class="nav-item" onclick="showPage('reportes',this)"><i class="fas fa-chart-bar"></i>Reportes</div>
+  <div class="nav-section-label">Sistema</div>
+  <div class="nav-item" onclick="showPage('usuarios',this)"><i class="fas fa-users-cog"></i>Usuarios</div>
+</nav>
+<header id="topbar">
+  <div class="fw-semibold" id="topbar-title" style="color:#1e3a8a;font-size:.95rem">Dashboard</div>
+  <div class="ms-auto d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:12px;">
+    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;">A</div>
+    <span style="font-size:.875rem;font-weight:600;">Administrador</span>
+    <button style="background:none;border:none;cursor:pointer;color:#64748b;" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+</header>
+<main id="main-content">
+
+<div id="page-dashboard" class="page-section active">
+  <h5 style="font-weight:700;margin-bottom:1.2rem;">Dashboard Académico</h5>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
+    <div class="kpi-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6)"><i class="fas fa-user-graduate kpi-ico"></i><div class="kpi-val">320</div><div class="kpi-lbl">Estudiantes</div></div>
+    <div class="kpi-card" style="background:linear-gradient(135deg,#059669,#10b981)"><i class="fas fa-chalkboard-teacher kpi-ico"></i><div class="kpi-val">18</div><div class="kpi-lbl">Docentes</div></div>
+    <div class="kpi-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><i class="fas fa-layer-group kpi-ico"></i><div class="kpi-val">12</div><div class="kpi-lbl">Grupos Activos</div></div>
+    <div class="kpi-card" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"><i class="fas fa-dollar-sign kpi-ico"></i><div class="kpi-val">$24,500</div><div class="kpi-lbl">Pagos del Mes</div></div>
+  </div>
+  <div class="card"><div class="card-header">Matrículas Recientes</div><table><thead><tr><th>Estudiante</th><th>Grado</th><th>Grupo</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>
+    <tr><td>Sofía Martínez</td><td>10°</td><td>A</td><td>20/05/2026</td><td><span class="badge badge-success">Activa</span></td></tr>
+    <tr><td>Diego Ramírez</td><td>9°</td><td>B</td><td>19/05/2026</td><td><span class="badge badge-success">Activa</span></td></tr>
+    <tr><td>Valentina Cruz</td><td>11°</td><td>A</td><td>18/05/2026</td><td><span class="badge badge-warning">Pendiente pago</span></td></tr>
+    <tr><td>Andrés Morales</td><td>8°</td><td>C</td><td>17/05/2026</td><td><span class="badge badge-success">Activa</span></td></tr>
+  </tbody></table></div>
+</div>
+
+<div id="page-estudiantes" class="page-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;"><h5 style="font-weight:700;margin:0;">Estudiantes</h5><button style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:.875rem;"><i class="fas fa-plus" style="margin-right:6px;"></i>Nuevo Estudiante</button></div>
+  <div class="card"><table><thead><tr><th>Nombre</th><th>ID</th><th>Grado</th><th>Grupo</th><th>Acudiente</th><th>Estado</th></tr></thead><tbody>
+    <tr><td>Sofía Martínez</td><td>20260001</td><td>10°</td><td>A</td><td>Patricia Martínez</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Diego Ramírez</td><td>20260002</td><td>9°</td><td>B</td><td>Jorge Ramírez</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Valentina Cruz</td><td>20260003</td><td>11°</td><td>A</td><td>Rosa Cruz</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Andrés Morales</td><td>20260004</td><td>8°</td><td>C</td><td>Luis Morales</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Camila Herrera</td><td>20260005</td><td>7°</td><td>A</td><td>Sandra Herrera</td><td><span class="badge badge-warning">Inactivo</span></td></tr>
+  </tbody></table></div>
+</div>
+
+<div id="page-docentes" class="page-section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;"><h5 style="font-weight:700;margin:0;">Docentes</h5><button style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:.875rem;"><i class="fas fa-plus" style="margin-right:6px;"></i>Nuevo Docente</button></div>
+  <div class="card"><table><thead><tr><th>Nombre</th><th>Especialidad</th><th>Grupos</th><th>Email</th><th>Estado</th></tr></thead><tbody>
+    <tr><td>Prof. Carlos Vega</td><td>Matemáticas</td><td>4</td><td>c.vega@colegio.edu</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Prof. Ana Soto</td><td>Español</td><td>3</td><td>a.soto@colegio.edu</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Prof. Ricardo Ríos</td><td>Ciencias Naturales</td><td>5</td><td>r.rios@colegio.edu</td><td><span class="badge badge-success">Activo</span></td></tr>
+    <tr><td>Prof. Marcela Díaz</td><td>Historia</td><td>2</td><td>m.diaz@colegio.edu</td><td><span class="badge badge-success">Activo</span></td></tr>
+  </tbody></table></div>
+</div>
+
+<div id="page-pagos" class="page-section">
+  <h5 style="font-weight:700;margin-bottom:1.2rem;">Pagos de Matrícula</h5>
+  <div class="card"><table><thead><tr><th>Estudiante</th><th>Concepto</th><th>Monto</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>
+    <tr><td>Sofía Martínez</td><td>Mensualidad Mayo</td><td>$150</td><td>05/05/2026</td><td><span class="badge badge-success">Pagado</span></td></tr>
+    <tr><td>Diego Ramírez</td><td>Mensualidad Mayo</td><td>$150</td><td>03/05/2026</td><td><span class="badge badge-success">Pagado</span></td></tr>
+    <tr><td>Valentina Cruz</td><td>Mensualidad Mayo</td><td>$150</td><td>—</td><td><span class="badge badge-danger">Pendiente</span></td></tr>
+    <tr><td>Andrés Morales</td><td>Mensualidad Mayo</td><td>$150</td><td>08/05/2026</td><td><span class="badge badge-success">Pagado</span></td></tr>
+  </tbody></table></div>
+</div>
+
+<div id="page-materias" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;">Materias</h5><div class="card p-4" style="text-align:center;color:#64748b;"><i class="fas fa-book" style="font-size:3rem;"></i><p style="margin-top:.5rem;">Gestión de materias y planes de estudio</p></div></div>
+<div id="page-grupos" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;">Grupos / Cursos</h5><div class="card p-4" style="text-align:center;color:#64748b;"><i class="fas fa-layer-group" style="font-size:3rem;"></i><p style="margin-top:.5rem;">Gestión de grupos académicos</p></div></div>
+<div id="page-matriculas" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;">Matrículas</h5><div class="card p-4" style="text-align:center;color:#64748b;"><i class="fas fa-id-card" style="font-size:3rem;"></i><p style="margin-top:.5rem;">Proceso de matrículas</p></div></div>
+<div id="page-asistencias" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;">Asistencias</h5><div class="card p-4" style="text-align:center;color:#64748b;"><i class="fas fa-calendar-check" style="font-size:3rem;"></i><p style="margin-top:.5rem;">Control de asistencia estudiantil</p></div></div>
+<div id="page-reportes" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;">Reportes</h5><div class="card p-4" style="text-align:center;color:#64748b;"><i class="fas fa-chart-bar" style="font-size:3rem;"></i><p style="margin-top:.5rem;">Reportes académicos y financieros</p></div></div>
+<div id="page-usuarios" class="page-section"><h5 style="font-weight:700;margin-bottom:1.2rem;">Usuarios</h5><div class="card p-4" style="text-align:center;color:#64748b;"><i class="fas fa-users-cog" style="font-size:3rem;"></i><p style="margin-top:.5rem;">Gestión de usuarios del sistema</p></div></div>
+</main>
+</div>
+
+<script>
+function showPage(name,el){
+  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(l=>l.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('topbar-title').textContent=el?el.textContent.trim():name;
+}
+function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
+document.getElementById('login-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app-page').style.display='block';
+});
+</script>
+</body>
+</html>

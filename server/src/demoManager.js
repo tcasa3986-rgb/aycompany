@@ -22,20 +22,21 @@ const NODE_DEMOS = [
     { name:'prestamos',   port:5208, dist: SPA_DIST },
 ];
 
-// ── PHP/Laravel demos (originales — proxy total de todas las requests) ─────────
+// ── PHP/Laravel demos — ahora sirven HTML estático desde demos/static ──────────
+const STATIC_DIR = path.join(__dirname, '../demos/static');
 const PHP_DEMOS = [
-    { name:'delivery',    port:5210, cwd: path.join(__dirname,'../demos/php/delivery')    },
-    { name:'celulares',   port:5211, cwd: path.join(__dirname,'../demos/php/celulares')   },
-    { name:'colegio',     port:5212, cwd: path.join(__dirname,'../demos/php/colegio')     },
-    { name:'farmacia',    port:5213, cwd: path.join(__dirname,'../demos/php/farmacia')    },
-    { name:'panaderia',   port:5214, cwd: path.join(__dirname,'../demos/php/panaderia')   },
-    { name:'restaurante', port:5215, cwd: path.join(__dirname,'../demos/php/restaurante') },
-    { name:'citas',       port:5216, cwd: path.join(__dirname,'../demos/php/citas')       },
-    { name:'hospedaje',   port:5217, cwd: path.join(__dirname,'../demos/php/hospedaje')   },
-    { name:'inventario',  port:5218, cwd: path.join(__dirname,'../demos/php/inventario')  },
-    { name:'laboratorio', port:5219, cwd: path.join(__dirname,'../demos/php/laboratorio') },
-    { name:'cotizacion',  port:5220, cwd: path.join(__dirname,'../demos/php/cotizacion')  },
-    { name:'botica',      port:5221, cwd: path.join(__dirname,'../demos/php/botica')      },
+    { name:'delivery',    port:5210, cwd: path.join(__dirname,'../demos/php/delivery'),    dist: path.join(STATIC_DIR,'delivery')    },
+    { name:'celulares',   port:5211, cwd: path.join(__dirname,'../demos/php/celulares'),   dist: path.join(STATIC_DIR,'celulares')   },
+    { name:'colegio',     port:5212, cwd: path.join(__dirname,'../demos/php/colegio'),     dist: path.join(STATIC_DIR,'colegio')     },
+    { name:'farmacia',    port:5213, cwd: path.join(__dirname,'../demos/php/farmacia'),    dist: path.join(STATIC_DIR,'farmacia')    },
+    { name:'panaderia',   port:5214, cwd: path.join(__dirname,'../demos/php/panaderia'),   dist: path.join(STATIC_DIR,'panaderia')   },
+    { name:'restaurante', port:5215, cwd: path.join(__dirname,'../demos/php/restaurante'), dist: path.join(STATIC_DIR,'restaurante') },
+    { name:'citas',       port:5216, cwd: path.join(__dirname,'../demos/php/citas'),       dist: path.join(STATIC_DIR,'citas')       },
+    { name:'hospedaje',   port:5217, cwd: path.join(__dirname,'../demos/php/hospedaje'),   dist: path.join(STATIC_DIR,'hospedaje')   },
+    { name:'inventario',  port:5218, cwd: path.join(__dirname,'../demos/php/inventario'),  dist: path.join(STATIC_DIR,'inventario')  },
+    { name:'laboratorio', port:5219, cwd: path.join(__dirname,'../demos/php/laboratorio'), dist: path.join(STATIC_DIR,'laboratorio') },
+    { name:'cotizacion',  port:5220, cwd: path.join(__dirname,'../demos/php/cotizacion'),  dist: path.join(STATIC_DIR,'cotizacion')  },
+    { name:'botica',      port:5221, cwd: path.join(__dirname,'../demos/php/botica'),      dist: path.join(STATIC_DIR,'botica')      },
 ];
 
 const DEMOS = [...NODE_DEMOS, ...PHP_DEMOS];
@@ -215,7 +216,8 @@ function phpProxyMiddleware(demo) {
 async function initDemos() {
     console.log('=== Iniciando demos ===');
     for (const demo of NODE_DEMOS) spawnNodeDemo(demo);
-    for (const demo of PHP_DEMOS)  spawnPhpDemo(demo);
+    // Solo lanzar PHP para demos sin HTML estático
+    for (const demo of PHP_DEMOS) { if (!demo.dist) spawnPhpDemo(demo); }
     console.log('=== Demos en marcha ===');
 }
 

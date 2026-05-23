@@ -52,7 +52,8 @@ for (const demo of NODE_DEMOS) {
     }
 }
 for (const demo of PHP_DEMOS) {
-    app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));
+    // Demos con HTML estático no usan proxy PHP
+    if (!demo.dist) app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));
 }
 
 // ── Límite de tamaño de peticiones ───────────────────────────────────────────
