@@ -29,7 +29,7 @@ WORKDIR /app
 COPY . .
 
 # ── Servidor principal (crítico) ───────────────────────────────────────────────
-RUN cd server && npm ci --omit=dev
+RUN cd server && npm install --omit=dev --no-audit --prefer-offline || npm install --omit=dev --no-audit
 RUN cd server && npx playwright install chromium --with-deps || echo "⚠️ playwright chromium skip"
 
 # ── Backends Node.js de demos (cada uno independiente) ────────────────────────
