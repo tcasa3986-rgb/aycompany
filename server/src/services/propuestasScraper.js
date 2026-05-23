@@ -139,4 +139,120 @@ async function investigarNegocio({ nombre, ciudad, tipo, urlDirecta }) {
     }
 }
 
-module.exports = { investigarNegocio };
+// ── Búsqueda automática por categoría ────────────────────────────────────────
+
+async function buscarUrlsCategoria(browser, categoria, ciudad, max) {
+    const query = `${categoria} ${ciudad} Colombia`;
+    const page  = await browser.newPage();
+    const urls  = new Set();
+
+    try {
+        await page.goto(
+            `https://www.google.com/maps/search/${encodeURIComponent(query)}`,
+            { waitUntil: 'domcontentloaded', timeout: 25000 }
+        );
+        await page.waitForTimeout(3000);
+
+        for (let scroll = 0; scroll < 5 && urls.size < max; scroll++) {
+            const encontradas = await page.evaluate(() =>
+                [...document.querySelectorAll('a[href*="/maps/place/"]')]
+                    .map(a => a.href.split('?')[0])
+                    .filter(h => h.includes('/maps/place/'))
+            );
+            encontradas.forEach(u => urls.add(u));
+            if (urls.size >= max) break;
+
+            await page.evaluate(() => {
+                const feed = document.querySelector('[role="feed"]');
+                if (feed) feed.scrollTop += 900;
+            });
+            await page.waitForTimeout(2000);
+        }
+
+        return [...urls].slice(0, max);
+    } catch (err) {
+        console.error('[Maps Categoría]', err.message);
+        return [];
+    } finally {
+        await page.close();
+    }
+}
+
+async function obtenerDetallesPlace(browser, placeUrl) {
+    const page = await browser.newPage();
+    try {
+        await page.goto(placeUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await page.waitForTimeout(4000);
+
+        return await page.evaluate(() => {
+            const webBtn = [...document.querySelectorAll('a[href]')].find(a => {
+                const label = (a.getAttribute('aria-label') || '').toLowerCase();
+                const item  = (a.getAttribute('data-item-id') || '').toLowerCase();
+                const href  = a.href || '';
+                return (label.includes('sitio') || label.includes('web') || item === 'authority') &&
+                       href.startsWith('http') && !href.includes('google');
+            });
+            const tel    = document.querySelector('a[href^="tel:"]')?.href?.replace('tel:', '') || null;
+            const rating = document.querySelector('.F7nice span[aria-hidden="true"]')?.textContent?.trim() || null;
+            const addr   = document.querySelector('button[data-item-id="address"]')?.textContent?.trim() || null;
+            const nombre = document.querySelector('h1')?.textContent?.trim() || '';
+            return {
+                nombre,
+                sitioWeb:  webBtn?.href || null,
+                telefono:  tel,
+                rating:    rating ? parseFloat(rating) : null,
+                direccion: addr
+            };
+        });
+    } catch (err) {
+        console.error('[Place Details]', err.message);
+        return null;
+    } finally {
+        await page.close();
+    }
+}
+
+async function buscarNegociosCategoria({ categoria, ciudad, maxResultados = 5 }) {
+    console.log(`🔍 [Auto] "${categoria}" en ${ciudad} (máx ${maxResultados})...`);
+
+    let browser;
+    try {
+        browser = await chromium.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        });
+
+        const placeUrls = await buscarUrlsCategoria(browser, categoria, ciudad, maxResultados);
+        console.log(`   URLs encontradas: ${placeUrls.length}`);
+
+        const negocios = [];
+        for (const url of placeUrls) {
+            const det = await obtenerDetallesPlace(browser, url);
+            if (!det?.nombre) continue;
+
+            let datosWeb = null;
+            if (det.sitioWeb) {
+                datosWeb = await rasparSitio(browser, det.sitioWeb);
+            }
+
+            negocios.push({
+                nombre:    det.nombre,
+                ciudad,
+                tipo:      categoria,
+                sitioUrl:  det.sitioWeb,
+                telefono:  det.telefono,
+                rating:    det.rating,
+                direccion: det.direccion,
+                tieneMaps: true,
+                web:       datosWeb
+            });
+            console.log(`   ✓ ${det.nombre} | Tel: ${det.telefono || 'no'} | Web: ${det.sitioWeb || 'no'}`);
+        }
+
+        return negocios;
+    } finally {
+        if (browser) await browser.close();
+    }
+}
+
+module.exports = { investigarNegocio, buscarNegociosCategoria };

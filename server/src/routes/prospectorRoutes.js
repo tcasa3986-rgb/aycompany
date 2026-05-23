@@ -4,8 +4,9 @@ const auth   = require('../middlewares/auth');
 
 router.use(auth);
 
-router.post('/investigar',   ctrl.investigar);
-router.get('/historial',     ctrl.historial);
+router.post('/investigar',        ctrl.investigar);
+router.post('/buscar-categoria',  ctrl.buscarCategoria);
+router.get('/historial',          ctrl.historial);
 router.get('/:key/html',     ctrl.getHtml);
 router.post('/:key/pdf',     ctrl.generarPdf);
 router.post('/:key/email',   ctrl.enviarEmail);

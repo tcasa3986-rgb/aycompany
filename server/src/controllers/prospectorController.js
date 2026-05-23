@@ -1,10 +1,14 @@
 const path     = require('path');
 const fs       = require('fs');
-const { investigarNegocio } = require('../services/propuestasScraper');
-const { generarPropuesta }  = require('../services/propuestasEngine');
+const { investigarNegocio, buscarNegociosCategoria } = require('../services/propuestasScraper');
+const { generarPropuesta }     = require('../services/propuestasEngine');
+const { actualizarConfig, getConfig, ejecutarProspeccionDiaria, setCacheRef } = require('../services/prospectorScheduler');
 
-// Cache en memoria: key → { info, html, demos, analisis, pdfPath? }
+// Cache en memoria: key → { info, html, demos, analisis, pdfPath?, auto? }
 const cache = {};
+
+// Conectar el cache con el scheduler para que pueda escribir propuestas auto
+setCacheRef(cache);
 
 // POST /api/prospector/investigar
 exports.investigar = async (req, res) => {
@@ -33,6 +37,40 @@ exports.investigar = async (req, res) => {
         });
     } catch (e) {
         console.error('[Propuestas]', e.message);
+        res.status(500).json({ error: e.message });
+    }
+};
+
+// POST /api/prospector/buscar-categoria — búsqueda automática por categoría
+exports.buscarCategoria = async (req, res) => {
+    const { categoria, ciudad, maxResultados = 5 } = req.body;
+    if (!categoria || !ciudad) return res.status(400).json({ error: 'Categoría y ciudad son requeridas' });
+    if (maxResultados > 20) return res.status(400).json({ error: 'Máximo 20 resultados por búsqueda' });
+
+    try {
+        const negocios = await buscarNegociosCategoria({ categoria, ciudad, maxResultados });
+
+        const resultados = [];
+        for (const info of negocios) {
+            const { html, demos, analisis } = await generarPropuesta(info);
+            const key = `auto_${Date.now()}_${resultados.length}`;
+            cache[key] = { info, html, demos, analisis, auto: true };
+            resultados.push({
+                key,
+                nombre:   info.nombre,
+                ciudad:   info.ciudad,
+                sitioUrl: info.sitioUrl,
+                telefono: info.telefono,
+                rating:   info.rating,
+                tieneMaps: info.tieneMaps,
+                analisis,
+                demos: demos.map(d => ({ id: d.id, label: d.label, url: d.url }))
+            });
+        }
+
+        res.json({ ok: true, total: resultados.length, categoria, ciudad, data: resultados });
+    } catch (e) {
+        console.error('[BuscarCategoría]', e.message);
         res.status(500).json({ error: e.message });
     }
 };
@@ -110,14 +148,34 @@ exports.historial = (req, res) => {
         nombre:   entry.info.nombre,
         ciudad:   entry.info.ciudad,
         sitioUrl: entry.info.sitioUrl,
-        tienePDF: !!entry.pdfPath
+        telefono: entry.info.telefono,
+        rating:   entry.info.rating,
+        tienePDF: !!entry.pdfPath,
+        auto:     !!entry.auto
     })).reverse();
     res.json({ ok: true, data: lista });
 };
 
-// Stubs para compatibilidad con rutas antiguas
-exports.buscar        = (req, res) => res.status(410).json({ error: 'Sistema migrado. Usa POST /api/prospector/investigar' });
-exports.getConfig     = (req, res) => res.json({ activo: false, gemini: !!process.env.GEMINI_API_KEY });
-exports.updateConfig  = (req, res) => res.json({ ok: true });
-exports.ejecutarAhora = (req, res) => res.json({ ok: false, msg: 'Sistema migrado a propuestas individuales' });
-exports.estadoKeys    = (req, res) => res.json({ gemini: !!process.env.GEMINI_API_KEY, playwright: true });
+// GET /api/prospector/config
+exports.getConfig = (req, res) => res.json(getConfig());
+
+// PUT /api/prospector/config
+exports.updateConfig = (req, res) => {
+    actualizarConfig(req.body);
+    res.json({ ok: true, config: getConfig() });
+};
+
+// POST /api/prospector/ejecutar — dispara una ronda manual ahora
+exports.ejecutarAhora = (req, res) => {
+    res.json({ ok: true, mensaje: 'Búsqueda automática iniciada en segundo plano' });
+    ejecutarProspeccionDiaria().catch(e => console.error('[Auto manual]', e.message));
+};
+
+// GET /api/prospector/keys
+exports.estadoKeys = (req, res) => res.json({
+    gemini:     !!process.env.GEMINI_API_KEY,
+    playwright: true
+});
+
+// Stub legacy
+exports.buscar = (req, res) => res.status(410).json({ error: 'Usa POST /api/prospector/investigar o /buscar-categoria' });
