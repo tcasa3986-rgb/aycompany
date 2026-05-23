@@ -117,6 +117,18 @@ function nodeProxyMiddleware(demo) {
 
 // ── Proxy PHP: /demos/[name]/* → php artisan serve ────────────────────────────
 function phpProxyMiddleware(demo) {
+    const internalBase = `http://127.0.0.1:${demo.port}`;
+    const publicBase   = `/demos/${demo.name}`;
+
+    function rewriteUrl(str) {
+        // Reemplaza http://127.0.0.1:PORT/ruta → /demos/nombre/ruta
+        str = str.replace(
+            new RegExp(`https?://127\\.0\\.0\\.1:${demo.port}(/[^'"\\s>]*)?`, 'g'),
+            (_, p) => `${publicBase}${p || '/'}`
+        );
+        return str;
+    }
+
     return (req, res) => {
         const opts = {
             hostname: '127.0.0.1',
@@ -125,42 +137,55 @@ function phpProxyMiddleware(demo) {
             method:   req.method,
             headers:  {
                 ...req.headers,
-                host:                 `127.0.0.1:${demo.port}`,
-                'x-forwarded-proto':  'https',
-                'x-forwarded-host':   req.headers['host'] || 'mi-plataforma-production.up.railway.app',
+                host:                `127.0.0.1:${demo.port}`,
+                'x-forwarded-proto': 'https',
+                'x-forwarded-host':  req.headers['host'] || 'mi-plataforma-production.up.railway.app',
             },
         };
         const proxy = http.request(opts, r => {
             const headers = { ...r.headers };
 
-            // Reescribir Location para que el browser siga el redirect correcto
+            // Reescribir header Location
             if (headers['location']) {
-                let loc = headers['location'];
-
-                // 1) URL absoluta con 127.0.0.1:PUERTO → /demos/nombre/ruta
-                loc = loc.replace(
-                    /^https?:\/\/127\.0\.0\.1:\d+(\/.*)?$/,
-                    (_, p) => `/demos/${demo.name}${p || '/'}`
-                );
-
-                // 2) Ruta relativa que empieza en / y aún no tiene el prefijo del demo
-                //    (evita doble-prefijo en caso de que Laravel devuelva la URL completa)
-                if (loc.startsWith('/') && !loc.startsWith(`/demos/${demo.name}`)) {
-                    loc = `/demos/${demo.name}${loc}`;
+                let loc = rewriteUrl(headers['location']);
+                if (loc.startsWith('/') && !loc.startsWith(publicBase)) {
+                    loc = `${publicBase}${loc}`;
                 }
-
                 headers['location'] = loc;
             }
 
-            res.writeHead(r.statusCode, headers);
-            r.pipe(res, { end:true });
+            const contentType = (headers['content-type'] || '').toLowerCase();
+            const isHtml = contentType.includes('text/html') || contentType.includes('text/plain');
+
+            if (isHtml) {
+                // Bufferizar y reescribir todas las URLs internas en el body HTML
+                delete headers['content-length'];
+                const chunks = [];
+                r.on('data', chunk => chunks.push(chunk));
+                r.on('end', () => {
+                    let body = Buffer.concat(chunks).toString('utf8');
+                    body = rewriteUrl(body);
+                    // Rutas relativas en atributos action/href/src que empiecen en /
+                    // Excluye //cdn (protocol-relative) y rutas ya prefijadas
+                    body = body.replace(
+                        /((?:action|href|src)=["'])\/(?!\/|demos\/)(.*?)(["'])/g,
+                        (_, pre, path, post) => `${pre}${publicBase}/${path}${post}`
+                    );
+                    headers['content-length'] = Buffer.byteLength(body, 'utf8').toString();
+                    res.writeHead(r.statusCode, headers);
+                    res.end(body);
+                });
+            } else {
+                res.writeHead(r.statusCode, headers);
+                r.pipe(res, { end:true });
+            }
         });
         proxy.on('error', err => {
             console.error(`[${demo.name}] PHP proxy error: ${err.message}`);
             if (!res.headersSent) {
                 res.status(502).send(`
                     <html><body style="font-family:sans-serif;padding:2rem;background:#0f172a;color:#e2e8f0">
-                    <h2>⏳ Demo cargando...</h2>
+                    <h2>Demo cargando...</h2>
                     <p>El sistema está iniciando. Espera 10 segundos y recarga la página.</p>
                     <button onclick="location.reload()" style="padding:.5rem 1rem;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">
                         Recargar
