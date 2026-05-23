@@ -7,6 +7,8 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
 const fmtBytes = b => {
   if (!b) return '0 KB';
   return b > 1048576 ? `${(b/1048576).toFixed(2)} MB` : `${(b/1024).toFixed(0)} KB`;
@@ -68,7 +70,7 @@ export default function Backup() {
   const handleDownload = async (filename) => {
     try {
       const token = localStorage.getItem('crm_token');
-      const res = await fetch(`/api/backup/download/${filename}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/backup/download/${filename}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error('Error al descargar');
       const blob = await res.blob();
       const link = document.createElement('a');

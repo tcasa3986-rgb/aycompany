@@ -7,6 +7,8 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
 const COLORS_PRESET = ['#6B7280','#3B82F6','#F59E0B','#8B5CF6','#10B981','#EF4444','#EC4899','#0EA5E9'];
 const fmtBytes = b => b > 1048576 ? `${(b/1048576).toFixed(1)} MB` : `${(b/1024).toFixed(0)} KB`;
 
@@ -90,7 +92,7 @@ export default function Admin() {
 
   const downloadBackup = async filename => {
     const token = localStorage.getItem('crm_token');
-    const res = await fetch(`/api/admin/backups/${filename}/download`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`${API_BASE}/admin/backups/${filename}/download`, { headers: { Authorization: `Bearer ${token}` } });
     const blob = await res.blob();
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click();
     URL.revokeObjectURL(link.href);

@@ -4,6 +4,8 @@ import { CheckCircle, XCircle, FileText, Building2, User, Calendar, AlertCircle 
 
 import { fmtCurrency as fmt } from '../utils/format';
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
 export default function QuoteAccept() {
   const { token } = useParams();
   const [quote, setQuote]     = useState(null);
@@ -16,7 +18,7 @@ export default function QuoteAccept() {
   const [result, setResult]   = useState(null);
 
   useEffect(() => {
-    fetch(`/api/public/quotes/${token}`)
+    fetch(`${API_BASE}/public/quotes/${token}`)
       .then(r => r.json())
       .then(data => {
         if (data.message && !data.number) setError(data.message);
@@ -30,7 +32,7 @@ export default function QuoteAccept() {
     if (!signerName.trim()) return;
     setSubmitting(true);
     try {
-      const r = await fetch(`/api/public/quotes/${token}/accept`, {
+      const r = await fetch(`${API_BASE}/public/quotes/${token}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signer_name: signerName }),
@@ -46,7 +48,7 @@ export default function QuoteAccept() {
   const reject = async () => {
     setSubmitting(true);
     try {
-      const r = await fetch(`/api/public/quotes/${token}/reject`, {
+      const r = await fetch(`${API_BASE}/public/quotes/${token}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: rejectReason }),

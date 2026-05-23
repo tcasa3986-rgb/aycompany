@@ -4,10 +4,12 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
 const downloadPDF = async (id, number) => {
   try {
     const token = localStorage.getItem('crm_token');
-    const res = await fetch(`/api/exports/quotes/${id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`${API_BASE}/exports/quotes/${id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new Error();
     const blob = await res.blob();
     const link = document.createElement('a');
