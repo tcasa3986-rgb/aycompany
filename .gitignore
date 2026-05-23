@@ -3,6 +3,7 @@ server/node_modules/
 client/node_modules/
 server/demos/**/node_modules/
 server/demos/**/dist/
+!server/demos/universal-spa/dist/
 server/demos/php/**/vendor/
 server/demos/php/**/.env
 # client/dist/

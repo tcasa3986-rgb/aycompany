@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--border:#334155;--text:#f1f5f9;--text2:#94a3b8;--accent:#6366f1;--success:#10b981;--danger:#ef4444;--warning:#f59e0b}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+.hidden{display:none!important}
+/* Login */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem;width:100%;max-width:380px}
+.login-logo{font-size:3rem;text-align:center;margin-bottom:.5rem}
+.login-title{text-align:center;font-size:1.4rem;font-weight:700;margin-bottom:.25rem}
+.login-sub{text-align:center;color:var(--text2);font-size:.85rem;margin-bottom:1.5rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:.4rem}
+.form-group input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;color:var(--text);font-size:.95rem;outline:none;transition:border-color .2s}
+.form-group input:focus{border-color:var(--accent)}
+.hint{font-size:.75rem;color:var(--text2);margin-top:.4rem;text-align:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.65rem 1.2rem;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-primary:hover{opacity:.9}
+.btn-sm{padding:.4rem .85rem;font-size:.82rem}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--text2);color:var(--text)}
+/* Layout */
+#app-screen{display:flex;height:100vh;overflow:hidden}
+/* Sidebar */
+#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sidebar-header{padding:1.2rem 1rem;border-bottom:1px solid var(--border)}
+.sidebar-logo{font-size:1.4rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.sidebar-sub{font-size:.75rem;color:var(--text2);margin-top:.2rem}
+.sidebar-nav{flex:1;padding:.75rem 0}
+.nav-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;cursor:pointer;border-radius:0;color:var(--text2);transition:all .15s;border-left:3px solid transparent;font-size:.88rem}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(99,102,241,.15);color:var(--accent);border-left-color:var(--accent)}
+.nav-icon{font-size:1.1rem;width:22px;text-align:center}
+.sidebar-footer{padding:.75rem 1rem;border-top:1px solid var(--border)}
+.user-info{display:flex;align-items:center;gap:.6rem}
+.avatar{width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+.user-name{font-size:.82rem;font-weight:600}
+.logout-btn{font-size:.75rem;color:var(--text2);cursor:pointer;background:none;border:none;padding:.15rem 0}
+.logout-btn:hover{color:var(--danger)}
+/* Content */
+#content{flex:1;overflow-y:auto;padding:1.5rem}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.page-title{font-size:1.25rem;font-weight:700}
+/* Stats cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;display:flex;align-items:center;gap:1rem}
+.stat-icon{font-size:1.8rem;flex-shrink:0}
+.stat-value{font-size:1.5rem;font-weight:700;line-height:1}
+.stat-label{font-size:.78rem;color:var(--text2);margin-top:.25rem}
+/* Table */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-header{padding:.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:.95rem;font-weight:600}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:.7rem 1rem;text-align:left;font-size:.78rem;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:.65rem 1rem;font-size:.85rem;border-bottom:1px solid rgba(51,65,85,.5);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(51,65,85,.3)}
+.badge{display:inline-block;padding:.2rem .6rem;border-radius:999px;font-size:.72rem;font-weight:600}
+.badge-success{background:rgba(16,185,129,.15);color:#10b981}
+.badge-warning{background:rgba(245,158,11,.15);color:#f59e0b}
+.badge-danger{background:rgba(239,68,68,.15);color:#ef4444}
+.badge-info{background:rgba(99,102,241,.15);color:#818cf8}
+.badge-gray{background:rgba(148,163,184,.15);color:#94a3b8}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:1rem;font-weight:700;margin-bottom:1.25rem}
+.modal-actions{display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.5rem}
+/* Empty state */
+.empty{text-align:center;padding:3rem 1rem;color:var(--text2)}
+.empty-icon{font-size:2.5rem;margin-bottom:.75rem}
+/* Toast */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--success);color:#fff;padding:.75rem 1.25rem;border-radius:10px;font-size:.88rem;font-weight:600;z-index:200;transform:translateY(120px);transition:transform .3s;max-width:320px}
+#toast.show{transform:translateY(0)}
+#toast.error{background:var(--danger)}
+/* Loading */
+.loader{text-align:center;padding:2rem;color:var(--text2)}
+/* Ham */
+.ham-btn{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:.5rem;font-size:1.4rem}
+@media(max-width:700px){
+  #sidebar{position:fixed;left:-220px;top:0;height:100%;z-index:50;transition:left .25s}
+  #sidebar.open{left:0}
+  .ham-btn{display:block}
+  #content{padding:1rem}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;display:none}
+  .overlay.show{display:block}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo" id="login-logo">🏢</div>
+    <div class="login-title" id="login-title">Demo Sistema</div>
+    <div class="login-sub" id="login-sub">Ingresa con las credenciales de prueba</div>
+    <div class="form-group">
+      <label>Correo electrónico</label>
+      <input type="email" id="inp-email" placeholder="admin@demo.com">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="inp-pass" placeholder="••••••••">
+    </div>
+    <div class="hint" id="login-hint"></div>
+    <div style="height:.75rem"></div>
+    <button class="btn btn-primary" onclick="doLogin()">Ingresar</button>
+    <div id="login-err" style="color:var(--danger);text-align:center;font-size:.82rem;margin-top:.75rem"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="hidden">
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span id="sb-icon">🏢</span><span id="sb-title">Demo</span></div>
+      <div class="sidebar-sub" id="sb-sub">Sistema de gestión</div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar" id="av-initials">A</div>
+        <div>
+          <div class="user-name" id="av-name">Admin</div>
+          <button class="logout-btn" onclick="doLogout()">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <main id="content">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button class="ham-btn" onclick="openSidebar()">☰</button>
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+      </div>
+      <button class="btn btn-success btn-sm hidden" id="add-btn" onclick="openAddModal()">+ Agregar</button>
+    </div>
+    <div id="main-content"><div class="loader">Cargando...</div></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-title" id="modal-title">Agregar</div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="modal-save" onclick="saveModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Detectar demo ──────────────────────────────────────────────────────────────
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+const demoIdx   = pathParts.indexOf('demos');
+const DEMO_NAME = (demoIdx >= 0 && pathParts[demoIdx+1]) ? pathParts[demoIdx+1] : 'default';
+const API       = `/demos/${DEMO_NAME}/api`;
+let TOKEN       = null;
+let USER        = null;
+let currentSection = 'dashboard';
+let currentData    = [];
+let editingId      = null;
+
+// ── Configuraciones por demo ───────────────────────────────────────────────────
+const CONFIGS = {
+  prestamos: {
+    titulo:'Préstamos & Empeños', icono:'💰', color:'#10b981',
+    credenciales:'admin@prestamos.com / admin123',
+    secciones:[
+      { id:'clientes',  label:'Clientes',  icon:'👤', cols:['nombre','documento','telefono','ciudad','estado'] },
+      { id:'prestamos', label:'Préstamos', icon:'📋', cols:['cliente','monto','tasa','plazo','cuota','estado'] },
+      { id:'pagos',     label:'Pagos',     icon:'💳', cols:['cliente','valor','fecha','estado'] },
+    ],
+    stats:[
+      { label:'Préstamos activos', key:'prestamos_activos', icon:'📋', fmt:'num' },
+      { label:'Cartera total',     key:'cartera_total',     icon:'💰', fmt:'cop' },
+      { label:'Pagos hoy',        key:'pagos_hoy',         icon:'💳', fmt:'num' },
+      { label:'En mora',          key:'en_mora',           icon:'⚠️',  fmt:'num' },
+    ],
+  },
+  delivery: {
+    titulo:'Domicilios Express', icono:'🛵', color:'#f97316',
+    credenciales:'admin@delivery.com / admin123',
+    secciones:[
+      { id:'pedidos',      label:'Pedidos',      icon:'📦', cols:['cliente','direccion','total','estado','repartidor','hora'] },
+      { id:'repartidores', label:'Repartidores', icon:'🛵', cols:['nombre','telefono','zona','activo','pedidos_hoy'] },
+      { id:'clientes',     label:'Clientes',     icon:'👤', cols:['nombre','telefono','direccion','pedidos'] },
+      { id:'productos',    label:'Menú',         icon:'🍽️', cols:['nombre','precio','categoria','disponible'] },
+    ],
+    stats:[
+      { label:'Pedidos hoy',   key:'pedidos_hoy',   icon:'📦', fmt:'num' },
+      { label:'En camino',     key:'en_camino',     icon:'🛵', fmt:'num' },
+      { label:'Entregados',    key:'entregados',    icon:'✅', fmt:'num' },
+      { label:'Ingresos hoy',  key:'ingresos_hoy',  icon:'💰', fmt:'cop' },
+    ],
+  },
+  celulares: {
+    titulo:'Celulares & Accesorios', icono:'📱', color:'#3b82f6',
+    credenciales:'admin@celulares.com / admin123',
+    secciones:[
+      { id:'productos',    label:'Inventario',    icon:'📱', cols:['nombre','marca','precio','stock','imei'] },
+      { id:'ventas',       label:'Ventas',        icon:'💰', cols:['cliente','producto','precio','fecha','estado'] },
+      { id:'reparaciones', label:'Reparaciones',  icon:'🔧', cols:['cliente','equipo','falla','estado','costo'] },
+      { id:'clientes',     label:'Clientes',      icon:'👤', cols:['nombre','telefono','email'] },
+    ],
+    stats:[
+      { label:'Ventas hoy',        key:'ventas_hoy',        icon:'💰', fmt:'cop' },
+      { label:'Productos',         key:'productos',         icon:'📱', fmt:'num' },
+      { label:'Clientes',          key:'clientes',          icon:'👤', fmt:'num' },
+      { label:'Garantías activas', key:'garantias_activas', icon:'🔒', fmt:'num' },
+    ],
+  },
+  colegio: {
+    titulo:'Gestión Escolar', icono:'🏫', color:'#8b5cf6',
+    credenciales:'admin@colegio.com / admin123',
+    secciones:[
+      { id:'estudiantes', label:'Estudiantes', icon:'🎓', cols:['nombre','grado','documento','acudiente','telefono'] },
+      { id:'profesores',  label:'Profesores',  icon:'👨‍🏫',cols:['nombre','materia','email','telefono'] },
+      { id:'cursos',      label:'Cursos',      icon:'📚', cols:['nombre','grado','profesor','estudiantes'] },
+      { id:'pagos',       label:'Pagos',       icon:'💳', cols:['estudiante','concepto','valor','fecha','estado'] },
+    ],
+    stats:[
+      { label:'Estudiantes',      key:'estudiantes',      icon:'🎓', fmt:'num' },
+      { label:'Profesores',       key:'profesores',       icon:'👨‍🏫',fmt:'num' },
+      { label:'Cursos',           key:'cursos',           icon:'📚', fmt:'num' },
+      { label:'Pagos pendientes', key:'pagos_pendientes', icon:'⚠️',  fmt:'num' },
+    ],
+  },
+  farmacia: {
+    titulo:'Farmacia & Droguería', icono:'💊', color:'#ef4444',
+    credenciales:'admin@farmacia.com / admin123',
+    secciones:[
+      { id:'medicamentos', label:'Medicamentos', icon:'💊', cols:['nombre','laboratorio','precio','stock','vencimiento'] },
+      { id:'ventas',       label:'Ventas',       icon:'🛒', cols:['cliente','medicamento','cantidad','total','fecha'] },
+      { id:'proveedores',  label:'Proveedores',  icon:'🏢', cols:['nombre','telefono','ciudad','contacto'] },
+      { id:'alertas',      label:'Alertas Stock',icon:'⚠️', cols:['medicamento','stock_actual','stock_minimo','estado'] },
+    ],
+    stats:[
+      { label:'Ventas hoy',          key:'ventas_hoy',            icon:'💰', fmt:'cop' },
+      { label:'Medicamentos',        key:'medicamentos',           icon:'💊', fmt:'num' },
+      { label:'Clientes',            key:'clientes',               icon:'👤', fmt:'num' },
+      { label:'Próx. vencimientos',  key:'vencimientos_proximos',  icon:'⚠️',  fmt:'num' },
+    ],
+  },
+  panaderia: {
+    titulo:'Panadería & Pastelería', icono:'🥖', color:'#d97706',
+    credenciales:'admin@panaderia.com / admin123',
+    secciones:[
+      { id:'productos', label:'Productos', icon:'🥖', cols:['nombre','precio','categoria','disponible'] },
+      { id:'pedidos',   label:'Pedidos',   icon:'📋', cols:['cliente','total','fecha','estado'] },
+      { id:'insumos',   label:'Insumos',   icon:'🌾', cols:['nombre','unidad','stock','precio_kg','proveedor'] },
+      { id:'clientes',  label:'Clientes',  icon:'👤', cols:['nombre','telefono','pedidos_mes'] },
+    ],
+    stats:[
+      { label:'Ventas hoy',        key:'ventas_hoy',        icon:'💰', fmt:'cop' },
+      { label:'Productos',         key:'productos',         icon:'🥖', fmt:'num' },
+      { label:'Pedidos pendientes',key:'pedidos_pendientes',icon:'📋', fmt:'num' },
+      { label:'Clientes',          key:'clientes',          icon:'👤', fmt:'num' },
+    ],
+  },
+  restaurante: {
+    titulo:'Restaurante', icono:'🍽️', color:'#dc2626',
+    credenciales:'admin@restaurante.com / admin123',
+    secciones:[
+      { id:'mesas',    label:'Mesas',    icon:'🍽️', cols:['numero','capacidad','estado','mesero'] },
+      { id:'pedidos',  label:'Pedidos',  icon:'📋', cols:['mesa','detalle','total','estado','hora'] },
+      { id:'productos',label:'Menú',     icon:'🥗', cols:['nombre','precio','categoria','disponible'] },
+      { id:'meseros',  label:'Meseros',  icon:'👨‍🍳',cols:['nombre','turno','mesas_asignadas'] },
+    ],
+    stats:[
+      { label:'Mesas ocupadas',   key:'mesas_ocupadas',   icon:'🍽️', fmt:'num' },
+      { label:'Pedidos activos',  key:'pedidos_activos',  icon:'📋', fmt:'num' },
+      { label:'Ventas hoy',       key:'ventas_hoy',       icon:'💰', fmt:'cop' },
+      { label:'Clientes hoy',     key:'clientes_hoy',     icon:'👤', fmt:'num' },
+    ],
+  },
+  citas: {
+    titulo:'Sistema de Citas', icono:'📅', color:'#06b6d4',
+    credenciales:'admin@citas.com / admin123',
+    secciones:[
+      { id:'citas',     label:'Citas',        icon:'📅', cols:['paciente','doctor','servicio','fecha','hora','estado'] },
+      { id:'doctores',  label:'Profesionales',icon:'👨‍⚕️',cols:['nombre','especialidad','disponibilidad'] },
+      { id:'pacientes', label:'Pacientes',    icon:'👤', cols:['nombre','documento','telefono','email'] },
+      { id:'servicios', label:'Servicios',    icon:'🏥', cols:['nombre','duracion','precio'] },
+    ],
+    stats:[
+      { label:'Citas hoy',    key:'citas_hoy',    icon:'📅', fmt:'num' },
+      { label:'En espera',    key:'en_espera',    icon:'⏳', fmt:'num' },
+      { label:'Completadas',  key:'completadas',  icon:'✅', fmt:'num' },
+      { label:'Ingresos hoy', key:'ingresos_hoy', icon:'💰', fmt:'cop' },
+    ],
+  },
+  hospedaje: {
+    titulo:'Hotel & Hospedaje', icono:'🏨', color:'#7c3aed',
+    credenciales:'admin@hospedaje.com / admin123',
+    secciones:[
+      { id:'habitaciones', label:'Habitaciones', icon:'🛏️', cols:['numero','tipo','precio','estado'] },
+      { id:'reservas',     label:'Reservas',     icon:'📋', cols:['huesped','habitacion','ingreso','salida','total','estado'] },
+      { id:'huespedes',    label:'Huéspedes',    icon:'👤', cols:['nombre','documento','telefono','pais'] },
+      { id:'servicios',    label:'Servicios',    icon:'🏊', cols:['nombre','precio','descripcion'] },
+    ],
+    stats:[
+      { label:'Hab. ocupadas',  key:'habitaciones_ocupadas', icon:'🛏️', fmt:'num' },
+      { label:'Disponibles',    key:'disponibles',           icon:'✅', fmt:'num' },
+      { label:'Reservas hoy',   key:'reservas_hoy',          icon:'📋', fmt:'num' },
+      { label:'Ingresos mes',   key:'ingresos_mes',          icon:'💰', fmt:'cop' },
+    ],
+  },
+  inventario: {
+    titulo:'Control de Inventario', icono:'📦', color:'#059669',
+    credenciales:'admin@inventario.com / admin123',
+    secciones:[
+      { id:'productos',   label:'Productos',  icon:'📦', cols:['codigo','nombre','categoria','stock','precio','bodega'] },
+      { id:'entradas',    label:'Entradas',   icon:'⬇️', cols:['producto','cantidad','proveedor','fecha','costo'] },
+      { id:'salidas',     label:'Salidas',    icon:'⬆️', cols:['producto','cantidad','destino','fecha','motivo'] },
+      { id:'proveedores', label:'Proveedores',icon:'🏢', cols:['nombre','nit','telefono','ciudad'] },
+    ],
+    stats:[
+      { label:'Total productos',     key:'productos_totales',  icon:'📦', fmt:'num' },
+      { label:'Valor inventario',    key:'valor_inventario',   icon:'💰', fmt:'cop' },
+      { label:'Alertas stock',       key:'alertas_stock',      icon:'⚠️',  fmt:'num' },
+      { label:'Movimientos hoy',     key:'movimientos_hoy',    icon:'🔄', fmt:'num' },
+    ],
+  },
+  laboratorio: {
+    titulo:'Laboratorio Clínico', icono:'🔬', color:'#0891b2',
+    credenciales:'admin@laboratorio.com / admin123',
+    secciones:[
+      { id:'examenes',   label:'Exámenes',  icon:'🔬', cols:['paciente','tipo','estado','fecha','resultado'] },
+      { id:'pacientes',  label:'Pacientes', icon:'👤', cols:['nombre','documento','telefono','medico'] },
+      { id:'resultados', label:'Resultados',icon:'📊', cols:['examen','paciente','valor','referencia','estado'] },
+      { id:'equipos',    label:'Equipos',   icon:'⚙️', cols:['nombre','marca','ultimo_mantenimiento','estado'] },
+    ],
+    stats:[
+      { label:'Exámenes hoy', key:'examenes_hoy',    icon:'🔬', fmt:'num' },
+      { label:'Pendientes',   key:'pendientes',       icon:'⏳', fmt:'num' },
+      { label:'Listos',       key:'listos',           icon:'✅', fmt:'num' },
+      { label:'Ingresos hoy', key:'ingresos_hoy',     icon:'💰', fmt:'cop' },
+    ],
+  },
+  cotizacion: {
+    titulo:'Sistema de Cotizaciones', icono:'📄', color:'#0284c7',
+    credenciales:'admin@cotizacion.com / admin123',
+    secciones:[
+      { id:'cotizaciones', label:'Cotizaciones', icon:'📄', cols:['numero','cliente','fecha','total','estado','validez'] },
+      { id:'clientes',     label:'Clientes',     icon:'👤', cols:['nombre','nit','email','telefono','ciudad'] },
+      { id:'productos',    label:'Prod./Servicios',icon:'📦',cols:['nombre','codigo','precio','unidad','descripcion'] },
+      { id:'configuracion',label:'Configuración', icon:'⚙️', cols:['empresa','nit','email','telefono'] },
+    ],
+    stats:[
+      { label:'Cotizaciones mes', key:'cotizaciones_mes', icon:'📄', fmt:'num' },
+      { label:'Aprobadas',        key:'aprobadas',        icon:'✅', fmt:'num' },
+      { label:'Pendientes',       key:'pendientes',       icon:'⏳', fmt:'num' },
+      { label:'Valor total',      key:'valor_total',      icon:'💰', fmt:'cop' },
+    ],
+  },
+  default: {
+    titulo:'Sistema Demo', icono:'🏢', color:'#6366f1',
+    credenciales:'admin@demo.com / demo123',
+    secciones:[
+      { id:'registros', label:'Registros', icon:'📋', cols:['nombre','estado','fecha'] },
+    ],
+    stats:[
+      { label:'Total', key:'total', icon:'📊', fmt:'num' },
+    ],
+  },
+};
+
+const CFG = CONFIGS[DEMO_NAME] || CONFIGS.default;
+
+// ── Inicializar UI ─────────────────────────────────────────────────────────────
+document.getElementById('login-logo').textContent  = CFG.icono;
+document.getElementById('login-title').textContent = CFG.titulo;
+document.getElementById('login-hint').textContent  = '📧 ' + CFG.credenciales;
+document.getElementById('inp-email').value = CFG.credenciales.split(' / ')[0] || '';
+document.getElementById('inp-password') && (document.getElementById('inp-password').value = 'admin123');
+document.getElementById('sb-icon').textContent  = CFG.icono;
+document.getElementById('sb-title').textContent = CFG.titulo;
+document.title = CFG.titulo;
+
+// Si hay token guardado, entrar directo
+TOKEN = localStorage.getItem(`demo_token_${DEMO_NAME}`);
+USER  = JSON.parse(localStorage.getItem(`demo_user_${DEMO_NAME}`) || 'null');
+if (TOKEN) initApp();
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function fmt(val, type) {
+  if (val === null || val === undefined) return '-';
+  if (type === 'cop') return '$' + Number(val).toLocaleString('es-CO');
+  if (type === 'num') return Number(val).toLocaleString('es-CO');
+  return val;
+}
+function badgeClass(val) {
+  const v = String(val).toLowerCase();
+  if (['activo','activa','pagado','pagada','completado','completada','listo','entregado','al_dia','abierta','operativo'].some(k=>v.includes(k))) return 'badge-success';
+  if (['pendiente','en_espera','en_proceso','en_camino','en_cocina','confirmada','confirmado'].some(k=>v.includes(k))) return 'badge-warning';
+  if (['inactivo','cancelado','cancelada','rechazada','mora','critico'].some(k=>v.includes(k))) return 'badge-danger';
+  if (['disponible','libre'].some(k=>v.includes(k))) return 'badge-info';
+  return 'badge-gray';
+}
+function toastMsg(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = isErr ? 'error show' : 'show';
+  setTimeout(() => t.className = '', 3000);
+}
+async function apiFetch(path, opts={}) {
+  const r = await fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', Authorization:`Bearer ${TOKEN}`, ...(opts.headers||{}) }
+  });
+  return r.json();
+}
+
+// ── Login ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('inp-email').value || CFG.credenciales.split(' / ')[0];
+  const pass  = document.getElementById('inp-pass').value  || 'admin123';
+  try {
+    const d = await apiFetch('/auth/login', { method:'POST', body:JSON.stringify({ email, password:pass }) });
+    TOKEN = d.token || d.access_token || 'demo-token';
+    USER  = d.user  || d.usuario || { nombre:'Admin', email };
+    localStorage.setItem(`demo_token_${DEMO_NAME}`, TOKEN);
+    localStorage.setItem(`demo_user_${DEMO_NAME}`, JSON.stringify(USER));
+    initApp();
+  } catch(e) {
+    document.getElementById('login-err').textContent = 'Error al conectar. Intenta de nuevo.';
+  }
+}
+document.getElementById('inp-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  localStorage.removeItem(`demo_token_${DEMO_NAME}`);
+  localStorage.removeItem(`demo_user_${DEMO_NAME}`);
+  TOKEN = null; USER = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app-screen').classList.add('hidden');
+}
+
+// ── Init App ───────────────────────────────────────────────────────────────────
+function initApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+
+  const name = (USER && USER.nombre) || 'Admin';
+  document.getElementById('av-name').textContent     = name;
+  document.getElementById('av-initials').textContent = name.charAt(0).toUpperCase();
+
+  // Nav
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = `<div class="nav-item active" data-sec="dashboard" onclick="navigate('dashboard')"><span class="nav-icon">📊</span>Dashboard</div>`;
+  CFG.secciones.forEach(s => {
+    nav.innerHTML += `<div class="nav-item" data-sec="${s.id}" onclick="navigate('${s.id}')"><span class="nav-icon">${s.icon}</span>${s.label}</div>`;
+  });
+
+  navigate('dashboard');
+}
+
+// ── Navegación ─────────────────────────────────────────────────────────────────
+function navigate(sec) {
+  currentSection = sec;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.sec === sec));
+  const secCfg = CFG.secciones.find(s => s.id === sec);
+  const title  = sec === 'dashboard' ? 'Dashboard' : (secCfg ? secCfg.label : sec);
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('add-btn').classList.toggle('hidden', sec === 'dashboard');
+  closeSidebar();
+  if (sec === 'dashboard') renderDashboard();
+  else renderSection(sec);
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+async function renderDashboard() {
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '<div class="loader">Cargando...</div>';
+  try {
+    const d = await apiFetch('/dashboard');
+    const stats = d.data || d;
+    let html = '<div class="stats-grid">';
+    CFG.stats.forEach(s => {
+      const val = stats[s.key];
+      html += `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div><div class="stat-value">${fmt(val, s.fmt)}</div><div class="stat-label">${s.label}</div></div></div>`;
+    });
+    html += '</div>';
+
+    // Vista previa de primera sección
+    if (CFG.secciones.length > 0) {
+      const first = CFG.secciones[0];
+      html += `<div class="card"><div class="card-header"><div class="card-title">${first.icon} ${first.label} recientes</div><button class="btn btn-ghost btn-sm" onclick="navigate('${first.id}')">Ver todos</button></div><div id="preview-table"><div class="loader">...</div></div></div>`;
+      mc.innerHTML = html;
+      loadPreview(first);
+    } else {
+      mc.innerHTML = html;
+    }
+  } catch(e) {
+    mc.innerHTML = '<div class="loader">Error al cargar datos</div>';
+  }
+}
+
+async function loadPreview(sec) {
+  try {
+    const d = await apiFetch('/' + sec.id);
+    const rows = (d.data || d[sec.id] || []).slice(0, 5);
+    document.getElementById('preview-table').innerHTML = renderTable(rows, sec.cols);
+  } catch(e) {}
+}
+
+// ── Sección / tabla ────────────────────────────────────────────────────────────
+async function renderSection(secId) {
+  const sec = CFG.secciones.find(s => s.id === secId);
+  if (!sec) return;
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '<div class="loader">Cargando...</div>';
+  try {
+    const d = await apiFetch('/' + secId);
+    currentData = d.data || d[secId] || [];
+    mc.innerHTML = `<div class="card"><div class="card-header"><div class="card-title">${sec.icon} ${sec.label}</div><span style="color:var(--text2);font-size:.8rem">${currentData.length} registros</span></div>${renderTable(currentData, sec.cols, true)}</div>`;
+  } catch(e) {
+    mc.innerHTML = '<div class="loader">Error al cargar</div>';
+  }
+}
+
+function renderTable(rows, cols, actions=false) {
+  if (!rows || rows.length === 0) {
+    return '<div class="empty"><div class="empty-icon">📂</div><div>Sin registros</div></div>';
+  }
+  const labels = cols.map(c => c.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()));
+  let html = '<div class="table-wrap"><table><thead><tr>';
+  labels.forEach(l => { html += `<th>${l}</th>`; });
+  if (actions) html += '<th>Acciones</th>';
+  html += '</tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>';
+    cols.forEach(c => {
+      let v = row[c];
+      if (v === null || v === undefined) v = '-';
+      if (typeof v === 'boolean') v = v ? 'Sí' : 'No';
+      const lower = String(v).toLowerCase();
+      const isBadge = ['estado','activo','disponible','segmento'].includes(c) ||
+                      ['activo','inactivo','pendiente','pagado','confirmado','cancelado',
+                       'listo','entregado','en_camino','en_proceso','disponible','ocupada',
+                       'abierta','critico','bajo','al_dia'].includes(lower);
+      html += `<td>${isBadge ? `<span class="badge ${badgeClass(v)}">${v}</span>` : v}</td>`;
+    });
+    if (actions) {
+      html += `<td><button class="btn btn-ghost btn-sm" onclick="editRow(${row.id})" style="margin-right:.4rem">✏️</button><button class="btn btn-danger btn-sm" onclick="deleteRow(${row.id})">🗑️</button></td>`;
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// ── Agregar / editar ───────────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  const sec = CFG.secciones.find(s => s.id === currentSection);
+  if (!sec) return;
+  document.getElementById('modal-title').textContent = 'Agregar ' + sec.label;
+  document.getElementById('modal-body').innerHTML = buildForm(sec.cols, {});
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function editRow(id) {
+  editingId = id;
+  const sec  = CFG.secciones.find(s => s.id === currentSection);
+  const item = currentData.find(r => r.id === id);
+  if (!sec || !item) return;
+  document.getElementById('modal-title').textContent = 'Editar ' + sec.label;
+  document.getElementById('modal-body').innerHTML = buildForm(sec.cols, item);
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function buildForm(cols, data) {
+  return cols.map(c => {
+    const label = c.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+    const val   = data[c] !== undefined ? data[c] : '';
+    return `<div class="form-group"><label>${label}</label><input name="${c}" value="${val}" placeholder="${label}"></div>`;
+  }).join('');
+}
+
+async function saveModal() {
+  const sec  = CFG.secciones.find(s => s.id === currentSection);
+  if (!sec) return;
+  const inputs = document.querySelectorAll('#modal-body input');
+  const body   = {};
+  inputs.forEach(i => { body[i.name] = i.value; });
+
+  try {
+    if (editingId) {
+      await apiFetch(`/${currentSection}/${editingId}`, { method:'PUT', body:JSON.stringify(body) });
+      toastMsg('Actualizado correctamente');
+    } else {
+      await apiFetch(`/${currentSection}`, { method:'POST', body:JSON.stringify(body) });
+      toastMsg('Guardado correctamente');
+    }
+    closeModal();
+    renderSection(currentSection);
+  } catch(e) {
+    toastMsg('Error al guardar', true);
+  }
+}
+
+async function deleteRow(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  try {
+    await apiFetch(`/${currentSection}/${id}`, { method:'DELETE' });
+    toastMsg('Eliminado correctamente');
+    renderSection(currentSection);
+  } catch(e) {
+    toastMsg('Error al eliminar', true);
+  }
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.add('hidden');
+  editingId = null;
+}
+
+// ── Sidebar mobile ─────────────────────────────────────────────────────────────
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');  document.getElementById('overlay').classList.add('show'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show'); }
+</script>
+</body>
+</html>
