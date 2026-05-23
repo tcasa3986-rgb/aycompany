@@ -1,8 +1,9 @@
 'use strict';
-const { spawn } = require('child_process');
-const http      = require('http');
-const path      = require('path');
-const fs        = require('fs');
+const { spawn }  = require('child_process');
+const http       = require('http');
+const path       = require('path');
+const fs         = require('fs');
+const crypto     = require('crypto');
 
 const MOCK     = path.join(__dirname, '../demos/universal-mock.js');
 const SPA_DIST = path.join(__dirname, '../demos/universal-spa/dist');
@@ -70,11 +71,12 @@ function spawnPhpDemo(demo) {
     // Escribir .env con SQLite directamente — más confiable que depender de
     // que las env vars del proceso ganen sobre el .env generado por start.sh
     const envFile = path.join(demo.cwd, '.env');
+    const appKey  = `base64:${crypto.randomBytes(32).toString('base64')}`;
     fs.writeFileSync(envFile, [
         `APP_NAME="${demo.name}"`,
         `APP_ENV=production`,
-        `APP_KEY=`,
-        `APP_DEBUG=true`,
+        `APP_KEY=${appKey}`,
+        `APP_DEBUG=false`,
         `APP_URL=https://mi-plataforma-production.up.railway.app/demos/${demo.name}`,
         `LOG_CHANNEL=stderr`,
         `DB_CONNECTION=sqlite`,
