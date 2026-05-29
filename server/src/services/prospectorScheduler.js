@@ -1,17 +1,19 @@
 const cron = require('node-cron');
 const { buscarNegociosCategoria } = require('./propuestasScraper');
 const { generarPropuesta }        = require('./propuestasEngine');
+const { enviarMensaje: enviarWA } = require('./whatsappService');
 
 let CONFIG = {
-    activo:          false,
-    hora:            8,
+    activo:          true,
+    hora:            9,
     categorias: [
         'restaurantes', 'ferreterías', 'clínicas', 'tiendas de ropa',
         'hoteles', 'colegios', 'farmacias', 'peluquerías',
         'talleres mecánicos', 'panaderías', 'gimnasios', 'veterinarias',
+        'constructoras', 'distribuidoras', 'agencias de viajes', 'salones de belleza',
     ],
-    ciudades:        ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Bucaramanga'],
-    maxPorBusqueda:  5,
+    ciudades:        ['Medellín', 'Bogotá', 'Cali', 'Barranquilla', 'Bucaramanga'],
+    maxPorBusqueda:  8,
     categoriaActual: 0,
     ciudadActual:    0,
 };
@@ -45,6 +47,54 @@ async function ejecutarProspeccionDiaria() {
                 const key = `auto_${Date.now()}_${generadas}`;
                 if (cacheRef) cacheRef[key] = { info, html, demos, analisis, auto: true };
                 generadas++;
+
+                const emails   = info.web?.emails || [];
+                const telefono = info.telefono;
+                const gmailUser = process.env.GMAIL_USER;
+                const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+                // ── Auto-envío de EMAIL ──────────────────────────────────────
+                if (emails.length > 0 && gmailUser && gmailPass) {
+                    try {
+                        const nodemailer = require('nodemailer');
+                        const transporter = nodemailer.createTransport({
+                            service: 'gmail',
+                            auth: { user: gmailUser, pass: gmailPass }
+                        });
+                        await transporter.sendMail({
+                            from:    `"${process.env.NOMBRE_EMPRESA || 'AI Company CO'}" <${gmailUser}>`,
+                            to:      emails[0],
+                            subject: `Propuesta de transformación digital para ${info.nombre}`,
+                            html
+                        });
+                        console.log(`  📧 Email → ${emails[0]} (${info.nombre})`);
+                        if (cacheRef) cacheRef[key].emailEnviado = emails[0];
+                    } catch (emailErr) {
+                        console.error(`  ✗ Email fallido ${emails[0]}:`, emailErr.message);
+                    }
+                }
+
+                // ── Auto-envío por WhatsApp (texto libre) ───────────────────
+                if (telefono && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
+                    try {
+                        const empresa = process.env.NOMBRE_EMPRESA || 'AI Company CO';
+                        const telLimpio = telefono.replace(/\D/g, '');
+                        const mensaje =
+`Hola ${info.nombre} 👋
+
+Soy Cristian de *${empresa}*. Analizamos su negocio y preparamos una *propuesta de transformación digital gratuita* especialmente para ustedes.
+
+Incluye: sitio web, automatizaciones, WhatsApp con IA y más 🚀
+
+¿Le gustaría verla? No toma más de 15 minutos.`;
+
+                        await enviarWA(telLimpio, mensaje);
+                        console.log(`  💬 WhatsApp → ${telLimpio} (${info.nombre})`);
+                        if (cacheRef) cacheRef[key].waEnviado = telLimpio;
+                    } catch (waErr) {
+                        console.error(`  ✗ WA fallido ${telefono}:`, waErr.message);
+                    }
+                }
             } catch (e) {
                 console.error(`  ✗ Error en ${info.nombre}:`, e.message);
             }

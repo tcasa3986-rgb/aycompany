@@ -63,7 +63,8 @@ async function extraerContenidoMensaje(msg, red) {
         return '[Audio de voz]';
     }
 
-    return msg.type || '[adjunto]';
+    const tipos = { sticker: '🎭 Sticker', image: '🖼️ Imagen', video: '🎥 Video', document: '📎 Documento', location: '📍 Ubicación', contacts: '👤 Contacto' };
+    return tipos[msg.type] || `[${msg.type || 'adjunto'}]`;
 }
 
 async function extraerContenidoEvento(event) {
@@ -352,7 +353,7 @@ exports.responder = async (req, res) => {
             return res.status(400).json({ error: `Red ${msg.red} no soportada para respuesta directa` });
         }
 
-        await MensajeSocial.update({ respondido: true }, { where: { id: msg.id } });
+        await MensajeSocial.update({ respondido: true, respuesta: texto }, { where: { id: msg.id } });
         res.json({ ok: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

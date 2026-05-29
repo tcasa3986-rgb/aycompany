@@ -29,6 +29,7 @@ exports.investigar = async (req, res) => {
             ciudad:   info.ciudad,
             sitioUrl: info.sitioUrl,
             telefono: info.telefono,
+            emails:   info.web?.emails || [],
             rating:   info.rating,
             direccion: info.direccion,
             tieneMaps: info.tieneMaps,
@@ -61,6 +62,7 @@ exports.buscarCategoria = async (req, res) => {
                 ciudad:   info.ciudad,
                 sitioUrl: info.sitioUrl,
                 telefono: info.telefono,
+                emails:   info.web?.emails || [],
                 rating:   info.rating,
                 tieneMaps: info.tieneMaps,
                 analisis,
@@ -122,7 +124,7 @@ exports.enviarEmail = async (req, res) => {
         const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
             service: 'gmail',
-            auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
+            auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
         });
 
         await transporter.sendMail({
@@ -145,13 +147,16 @@ exports.enviarEmail = async (req, res) => {
 exports.historial = (req, res) => {
     const lista = Object.entries(cache).map(([key, entry]) => ({
         key,
-        nombre:   entry.info.nombre,
-        ciudad:   entry.info.ciudad,
-        sitioUrl: entry.info.sitioUrl,
-        telefono: entry.info.telefono,
-        rating:   entry.info.rating,
-        tienePDF: !!entry.pdfPath,
-        auto:     !!entry.auto
+        nombre:       entry.info.nombre,
+        ciudad:       entry.info.ciudad,
+        sitioUrl:     entry.info.sitioUrl,
+        telefono:     entry.info.telefono,
+        emails:       entry.info.web?.emails || [],
+        rating:       entry.info.rating,
+        tienePDF:     !!entry.pdfPath,
+        auto:         !!entry.auto,
+        emailEnviado: entry.emailEnviado || null,
+        waEnviado:    entry.waEnviado    || null,
     })).reverse();
     res.json({ ok: true, data: lista });
 };

@@ -30,8 +30,8 @@ const PASOS = [
 //  Tarjeta de resultado de propuesta
 // ─────────────────────────────────────────────────────────────
 function TarjetaPropuesta({ r, onEmail }) {
-    const [pdfOk, setPdfOk]     = useState(false);
-    const [genPdf, setGenPdf]   = useState(false);
+    const [pdfOk, setPdfOk]   = useState(false);
+    const [genPdf, setGenPdf] = useState(false);
 
     async function hacerPdf() {
         setGenPdf(true);
@@ -41,6 +41,13 @@ function TarjetaPropuesta({ r, onEmail }) {
         } catch (e) { alert('Error PDF: ' + (e.response?.data?.error || e.message)); }
         setGenPdf(false);
     }
+
+    // Limpiar teléfono para wa.me (solo dígitos, sin +)
+    const telWA = r.telefono ? r.telefono.replace(/\D/g, '') : null;
+    const msgWA = encodeURIComponent(
+        `Hola ${r.nombre}, soy Cristian de AI Company CO. Analizamos su negocio y preparamos una propuesta de transformación digital gratuita. ¿Le gustaría verla? Toma solo 10 minutos.`
+    );
+    const emailEncontrado = r.emails?.[0] || null;
 
     return (
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, marginBottom: 10 }}>
@@ -54,10 +61,18 @@ function TarjetaPropuesta({ r, onEmail }) {
                         {r.sitioUrl
                             ? <a href={r.sitioUrl} target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>🌐 sitio web</a>
                             : <span style={{ color: '#ef4444' }}>sin sitio web</span>}
+                        {emailEncontrado && (
+                            <span style={{ color: '#16a34a', fontWeight: 600 }}>📧 {emailEncontrado}</span>
+                        )}
                     </div>
                     {r.analisis?.falta?.length > 0 && (
                         <div style={{ marginTop: 5, fontSize: '.73rem', color: '#94a3b8' }}>
                             Le falta: {r.analisis.falta.slice(0, 4).join(', ')}
+                        </div>
+                    )}
+                    {r.emailEnviado && (
+                        <div style={{ marginTop: 4, fontSize: '.72rem', color: '#16a34a', fontWeight: 600 }}>
+                            ✅ Email enviado automáticamente a {r.emailEnviado}
                         </div>
                     )}
                 </div>
@@ -71,9 +86,15 @@ function TarjetaPropuesta({ r, onEmail }) {
                         {genPdf ? '⟳' : pdfOk ? '✓ PDF' : '📄 PDF'}
                     </button>
                     <button onClick={() => onEmail(r)}
-                        style={{ background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: '.78rem', fontWeight: 600, cursor: 'pointer' }}>
-                        📧 Email
+                        style={{ background: emailEncontrado ? '#dcfce7' : '#e2e8f0', color: emailEncontrado ? '#16a34a' : '#475569', border: emailEncontrado ? '1px solid #86efac' : 'none', borderRadius: 6, padding: '5px 12px', fontSize: '.78rem', fontWeight: 600, cursor: 'pointer' }}>
+                        📧 {emailEncontrado ? 'Enviar email' : 'Email'}
                     </button>
+                    {telWA && (
+                        <a href={`https://wa.me/${telWA}?text=${msgWA}`} target="_blank" rel="noreferrer"
+                           style={{ background: '#dcfce7', color: '#16a34a', border: '1px solid #86efac', borderRadius: 6, padding: '5px 12px', fontSize: '.78rem', fontWeight: 600, textDecoration: 'none' }}>
+                            💬 WhatsApp
+                        </a>
+                    )}
                 </div>
             </div>
         </div>
@@ -84,8 +105,8 @@ function TarjetaPropuesta({ r, onEmail }) {
 //  Modal de envío de email
 // ─────────────────────────────────────────────────────────────
 function ModalEmail({ propuesta, onClose }) {
-    const [dest, setDest]     = useState('');
-    const [asunto, setAsunto] = useState(`Propuesta digital para ${propuesta?.nombre || ''}`);
+    const [dest, setDest]     = useState(propuesta?.emails?.[0] || '');
+    const [asunto, setAsunto] = useState(`Propuesta de transformación digital para ${propuesta?.nombre || ''}`);
     const [enviando, setEnviando] = useState(false);
     const [msg, setMsg]       = useState('');
 
