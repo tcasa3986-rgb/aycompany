@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { buscarNegociosCategoria } = require('./propuestasScraper');
 const { generarPropuesta }        = require('./propuestasEngine');
 const { enviarMensaje: enviarWA } = require('./whatsappService');
+const { llamar }                  = require('./llamadasService');
 
 let CONFIG = {
     activo:          true,
@@ -71,6 +72,20 @@ async function ejecutarProspeccionDiaria() {
                         if (cacheRef) cacheRef[key].emailEnviado = emails[0];
                     } catch (emailErr) {
                         console.error(`  ✗ Email fallido ${emails[0]}:`, emailErr.message);
+                    }
+                }
+
+                // ── Llamada en frío automática (Vapi) ───────────────────────
+                if (telefono && process.env.VAPI_API_KEY && process.env.VAPI_PHONE_ID) {
+                    try {
+                        // Esperar 30 min después del email/WA para no saturar
+                        setTimeout(async () => {
+                            await llamar({ telefono, infoNegocio: info });
+                        }, 30 * 60 * 1000);
+                        console.log(`  📞 Llamada programada en 30 min → ${telefono} (${info.nombre})`);
+                        if (cacheRef) cacheRef[key].llamadaProgramada = true;
+                    } catch (callErr) {
+                        console.error(`  ✗ Llamada fallida ${telefono}:`, callErr.message);
                     }
                 }
 

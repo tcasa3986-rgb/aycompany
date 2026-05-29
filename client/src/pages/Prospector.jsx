@@ -29,6 +29,36 @@ const PASOS = [
 // ─────────────────────────────────────────────────────────────
 //  Tarjeta de resultado de propuesta
 // ─────────────────────────────────────────────────────────────
+function BtnLlamar({ telefono, nombre, ciudad, llamadaProgramada }) {
+    const [estado, setEstado] = useState(llamadaProgramada ? 'programada' : 'idle');
+
+    async function lanzarLlamada() {
+        if (estado !== 'idle') return;
+        setEstado('llamando');
+        try {
+            await api.post('/llamadas/llamar', { telefono, nombre, ciudad });
+            setEstado('ok');
+        } catch (e) {
+            alert('Error: ' + (e.response?.data?.error || e.message));
+            setEstado('idle');
+        }
+    }
+
+    const cfg = {
+        idle:       { bg: '#fef3c7', color: '#92400e', border: '#fcd34d', label: '📞 Llamar' },
+        llamando:   { bg: '#e0e7ff', color: '#3730a3', border: '#a5b4fc', label: '⟳ Llamando...' },
+        ok:         { bg: '#dcfce7', color: '#166534', border: '#86efac', label: '✓ Llamada iniciada' },
+        programada: { bg: '#fef3c7', color: '#92400e', border: '#fcd34d', label: '⏰ Llamada programada' },
+    }[estado];
+
+    return (
+        <button onClick={lanzarLlamada} disabled={estado !== 'idle'}
+            style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, borderRadius: 6, padding: '5px 12px', fontSize: '.78rem', fontWeight: 600, cursor: estado === 'idle' ? 'pointer' : 'default' }}>
+            {cfg.label}
+        </button>
+    );
+}
+
 function TarjetaPropuesta({ r, onEmail }) {
     const [pdfOk, setPdfOk]   = useState(false);
     const [genPdf, setGenPdf] = useState(false);
@@ -94,6 +124,9 @@ function TarjetaPropuesta({ r, onEmail }) {
                            style={{ background: '#dcfce7', color: '#16a34a', border: '1px solid #86efac', borderRadius: 6, padding: '5px 12px', fontSize: '.78rem', fontWeight: 600, textDecoration: 'none' }}>
                             💬 WhatsApp
                         </a>
+                    )}
+                    {r.telefono && (
+                        <BtnLlamar telefono={r.telefono} nombre={r.nombre} ciudad={r.ciudad} llamadaProgramada={r.llamadaProgramada} />
                     )}
                 </div>
             </div>
