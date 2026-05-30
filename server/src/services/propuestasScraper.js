@@ -1,258 +1,130 @@
-const { chromium } = require('playwright');
+/**
+ * Buscador de negocios via Google Places API (sin Playwright).
+ * Usa $0 del crédito gratuito de $200/mes de Google Cloud.
+ * ~240 búsquedas/mes ≈ $7.68 — cubierto completamente por el crédito gratuito.
+ */
 
-async function buscarEnMaps(browser, nombre, ciudad) {
-    const query = `${nombre} ${ciudad}`;
-    const page  = await browser.newPage();
-    try {
-        await page.goto(
-            `https://www.google.com/maps/search/${encodeURIComponent(query)}`,
-            { waitUntil: 'domcontentloaded', timeout: 20000 }
-        );
-        await page.waitForTimeout(3000);
+const https = require('https');
 
-        const placeUrl = await page.evaluate(() => {
-            const link = document.querySelector('a[href*="/maps/place/"]');
-            return link?.href || null;
-        });
-        if (!placeUrl) return null;
+const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-        await page.goto(placeUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
-        await page.waitForTimeout(4000);
-
-        return await page.evaluate(() => {
-            const webBtn = [...document.querySelectorAll('a[href]')].find(a => {
-                const label = (a.getAttribute('aria-label') || '').toLowerCase();
-                const item  = (a.getAttribute('data-item-id') || '').toLowerCase();
-                const href  = a.href || '';
-                return (label.includes('sitio') || label.includes('web') || item === 'authority') &&
-                       href.startsWith('http') && !href.includes('google');
+function fetchJson(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, res => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+                try { resolve(JSON.parse(d)); }
+                catch (e) { reject(new Error('JSON parse: ' + d.slice(0, 100))); }
             });
-            const tel    = document.querySelector('a[href^="tel:"]')?.href?.replace('tel:', '') || null;
-            const rating = document.querySelector('.F7nice span[aria-hidden="true"]')?.textContent?.trim() || null;
-            const addr   = document.querySelector('button[data-item-id="address"]')?.textContent?.trim() || null;
-            return {
-                nombreMaps: document.querySelector('h1')?.textContent?.trim() || '',
-                sitioWeb:   webBtn?.href || null,
-                telefono:   tel,
-                rating:     rating ? parseFloat(rating) : null,
-                direccion:  addr
-            };
-        });
-    } catch (err) {
-        console.error('[Propuestas Maps]', err.message);
-        return null;
-    } finally {
-        await page.close();
-    }
+        }).on('error', reject);
+    });
 }
 
-async function rasparSitio(browser, url) {
-    const page = await browser.newPage();
-    try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-        await page.waitForTimeout(2000);
-
-        const datos = await page.evaluate(() => {
-            const texto = document.body.innerText || '';
-            const html  = document.body.innerHTML || '';
-
-            const extraerTels = () => {
-                const links = [...document.querySelectorAll('a[href^="tel:"]')]
-                    .map(a => a.href.replace('tel:', '').trim());
-                const rx = /(\+?57\s?)?(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/g;
-                const del = [...texto.matchAll(rx)].map(m => m[0].trim());
-                return [...new Set([...links, ...del])].slice(0, 3);
-            };
-            const extraerEmails = () => {
-                const links = [...document.querySelectorAll('a[href^="mailto:"]')]
-                    .map(a => a.href.replace('mailto:', '').split('?')[0]);
-                const rx = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-                const del = [...texto.matchAll(rx)].map(m => m[0]);
-                return [...new Set([...links, ...del])].slice(0, 3);
-            };
-
-            return {
-                titulo:       document.title || '',
-                descripcion:  document.querySelector('meta[name="description"]')?.content || '',
-                telefonos:    extraerTels(),
-                emails:       extraerEmails(),
-                tieneWA:      /whatsapp/i.test(texto) || html.includes('wa.me'),
-                tieneFB:      html.includes('facebook.com/'),
-                tieneIG:      html.includes('instagram.com/'),
-                tieneYT:      html.includes('youtube.com/'),
-                tienePedido:  /pedir|pedido|reserv|reservar|orden/i.test(texto),
-                tieneEcomm:   /carrito|comprar|tienda|shop/i.test(texto) || !!document.querySelector('[class*="cart"],[class*="shop"]'),
-                tieneChatbot: /chatbot|asistente virtual|chat en vivo/i.test(texto),
-                textoResumen: texto.slice(0, 1500).replace(/\s+/g, ' ')
-            };
-        });
-
-        const screenshot = await page.screenshot({
-            type: 'jpeg', quality: 65,
-            clip: { x: 0, y: 0, width: 1280, height: 640 }
-        });
-        datos.screenshot = screenshot.toString('base64');
-        datos.url = url;
-        return datos;
-    } catch (err) {
-        console.error('[Propuestas Sitio]', err.message);
-        return null;
-    } finally {
-        await page.close();
+// Buscar negocios por texto usando Places Text Search
+async function textSearch(query) {
+    if (!PLACES_KEY) throw new Error('GOOGLE_PLACES_API_KEY no configurado');
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&language=es&region=co&key=${PLACES_KEY}`;
+    const data = await fetchJson(url);
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+        throw new Error(`Places API: ${data.status} — ${data.error_message || ''}`);
     }
+    return data.results || [];
 }
 
-async function investigarNegocio({ nombre, ciudad, tipo, urlDirecta }) {
-    console.log(`🔍 [Propuestas] Investigando: ${nombre} — ${ciudad}...`);
+// Obtener detalles de un place (teléfono, web, emails)
+async function placeDetails(placeId) {
+    if (!PLACES_KEY) return null;
+    const fields = 'name,formatted_phone_number,website,rating,formatted_address,url';
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&language=es&key=${PLACES_KEY}`;
+    const data = await fetchJson(url);
+    if (data.status !== 'OK') return null;
+    return data.result;
+}
 
-    let browser;
+// Extraer emails del sitio web con fetch simple (sin navegador)
+async function extraerEmailsWeb(siteUrl) {
+    if (!siteUrl) return [];
     try {
-        browser = await chromium.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(siteUrl, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadBot/1.0)' }
         });
-
-        const maps = await buscarEnMaps(browser, nombre, ciudad);
-        if (maps) console.log(`   Maps: ${maps.nombreMaps || 'encontrado'} | Tel: ${maps.telefono || 'no'} | Web: ${maps.sitioWeb || 'sin sitio'}`);
-
-        const urlFinal = urlDirecta || maps?.sitioWeb || null;
-
-        let datosWeb = null;
-        if (urlFinal) {
-            console.log(`🌐 Visitando: ${urlFinal}`);
-            datosWeb = await rasparSitio(browser, urlFinal);
-        }
-
-        return {
-            nombre:    maps?.nombreMaps || nombre,
-            ciudad,
-            tipo,
-            sitioUrl:  urlFinal,
-            telefono:  maps?.telefono || datosWeb?.telefonos?.[0] || null,
-            rating:    maps?.rating   || null,
-            direccion: maps?.direccion || null,
-            tieneMaps: !!maps,
-            web:       datosWeb
-        };
-    } finally {
-        if (browser) await browser.close();
+        clearTimeout(timeout);
+        if (!res.ok) return [];
+        const html = await res.text();
+        const emailRx = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+        const emails = [...new Set([...html.matchAll(emailRx)].map(m => m[0].toLowerCase()))]
+            .filter(e => !e.includes('example') && !e.includes('sentry') && !e.includes('pixel'))
+            .slice(0, 3);
+        return emails;
+    } catch {
+        return [];
     }
 }
 
 // ── Búsqueda automática por categoría ────────────────────────────────────────
 
-async function buscarUrlsCategoria(browser, categoria, ciudad, max) {
-    const query = `${categoria} ${ciudad} Colombia`;
-    const page  = await browser.newPage();
-    const urls  = new Set();
+async function buscarNegociosCategoria({ categoria, ciudad, maxResultados = 8 }) {
+    console.log(`🔍 [Places API] "${categoria}" en ${ciudad}...`);
 
-    try {
-        await page.goto(
-            `https://www.google.com/maps/search/${encodeURIComponent(query)}`,
-            { waitUntil: 'domcontentloaded', timeout: 25000 }
-        );
-        await page.waitForTimeout(3000);
-
-        for (let scroll = 0; scroll < 5 && urls.size < max; scroll++) {
-            const encontradas = await page.evaluate(() =>
-                [...document.querySelectorAll('a[href*="/maps/place/"]')]
-                    .map(a => a.href.split('?')[0])
-                    .filter(h => h.includes('/maps/place/'))
-            );
-            encontradas.forEach(u => urls.add(u));
-            if (urls.size >= max) break;
-
-            await page.evaluate(() => {
-                const feed = document.querySelector('[role="feed"]');
-                if (feed) feed.scrollTop += 900;
-            });
-            await page.waitForTimeout(2000);
-        }
-
-        return [...urls].slice(0, max);
-    } catch (err) {
-        console.error('[Maps Categoría]', err.message);
+    if (!PLACES_KEY) {
+        console.error('⚠️  GOOGLE_PLACES_API_KEY no configurado — omitiendo prospección');
         return [];
-    } finally {
-        await page.close();
     }
-}
 
-async function obtenerDetallesPlace(browser, placeUrl) {
-    const page = await browser.newPage();
     try {
-        await page.goto(placeUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
-        await page.waitForTimeout(4000);
-
-        return await page.evaluate(() => {
-            const webBtn = [...document.querySelectorAll('a[href]')].find(a => {
-                const label = (a.getAttribute('aria-label') || '').toLowerCase();
-                const item  = (a.getAttribute('data-item-id') || '').toLowerCase();
-                const href  = a.href || '';
-                return (label.includes('sitio') || label.includes('web') || item === 'authority') &&
-                       href.startsWith('http') && !href.includes('google');
-            });
-            const tel    = document.querySelector('a[href^="tel:"]')?.href?.replace('tel:', '') || null;
-            const rating = document.querySelector('.F7nice span[aria-hidden="true"]')?.textContent?.trim() || null;
-            const addr   = document.querySelector('button[data-item-id="address"]')?.textContent?.trim() || null;
-            const nombre = document.querySelector('h1')?.textContent?.trim() || '';
-            return {
-                nombre,
-                sitioWeb:  webBtn?.href || null,
-                telefono:  tel,
-                rating:    rating ? parseFloat(rating) : null,
-                direccion: addr
-            };
-        });
-    } catch (err) {
-        console.error('[Place Details]', err.message);
-        return null;
-    } finally {
-        await page.close();
-    }
-}
-
-async function buscarNegociosCategoria({ categoria, ciudad, maxResultados = 5 }) {
-    console.log(`🔍 [Auto] "${categoria}" en ${ciudad} (máx ${maxResultados})...`);
-
-    let browser;
-    try {
-        browser = await chromium.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-        });
-
-        const placeUrls = await buscarUrlsCategoria(browser, categoria, ciudad, maxResultados);
-        console.log(`   URLs encontradas: ${placeUrls.length}`);
+        const query   = `${categoria} en ${ciudad} Colombia`;
+        const results = await textSearch(query);
+        const slice   = results.slice(0, maxResultados);
 
         const negocios = [];
-        for (const url of placeUrls) {
-            const det = await obtenerDetallesPlace(browser, url);
-            if (!det?.nombre) continue;
+        for (const place of slice) {
+            try {
+                const det = await placeDetails(place.place_id);
 
-            let datosWeb = null;
-            if (det.sitioWeb) {
-                datosWeb = await rasparSitio(browser, det.sitioWeb);
+                const telefono  = det?.formatted_phone_number?.replace(/\s|-/g, '') || null;
+                const sitioUrl  = det?.website || null;
+                const emails    = await extraerEmailsWeb(sitioUrl);
+
+                negocios.push({
+                    nombre:    place.name,
+                    ciudad,
+                    tipo:      categoria,
+                    sitioUrl,
+                    telefono,
+                    rating:    place.rating || null,
+                    direccion: place.formatted_address || det?.formatted_address || null,
+                    tieneMaps: true,
+                    web: {
+                        emails,
+                        url: sitioUrl,
+                        tieneWA:   false,
+                        tieneFB:   false,
+                        tieneIG:   false,
+                    }
+                });
+
+                console.log(`   ✓ ${place.name} | Tel: ${telefono || 'no'} | Web: ${sitioUrl || 'no'} | Emails: ${emails.length}`);
+            } catch (e) {
+                console.error(`   ✗ ${place.name}: ${e.message}`);
             }
-
-            negocios.push({
-                nombre:    det.nombre,
-                ciudad,
-                tipo:      categoria,
-                sitioUrl:  det.sitioWeb,
-                telefono:  det.telefono,
-                rating:    det.rating,
-                direccion: det.direccion,
-                tieneMaps: true,
-                web:       datosWeb
-            });
-            console.log(`   ✓ ${det.nombre} | Tel: ${det.telefono || 'no'} | Web: ${det.sitioWeb || 'no'}`);
         }
 
+        console.log(`[Places API] ✓ ${negocios.length} negocios encontrados para "${categoria}" en ${ciudad}`);
         return negocios;
-    } finally {
-        if (browser) await browser.close();
+    } catch (e) {
+        console.error('[Places API] Error:', e.message);
+        return [];
     }
+}
+
+// Investigar negocio específico (compatible con el uso anterior)
+async function investigarNegocio({ nombre, ciudad, tipo }) {
+    const resultados = await buscarNegociosCategoria({ categoria: `${nombre} ${tipo || ''}`.trim(), ciudad, maxResultados: 1 });
+    return resultados[0] || { nombre, ciudad, tipo, telefono: null, web: { emails: [] } };
 }
 
 module.exports = { investigarNegocio, buscarNegociosCategoria };

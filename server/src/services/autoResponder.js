@@ -360,6 +360,11 @@ async function responder(msg) {
         });
         historial.reverse();
 
+        // Usar Haiku para primeros mensajes (barato), Sonnet cuando la conversación es activa (calidad)
+        const intercambios = historial.filter(m => m.respuesta).length;
+        const modelo = intercambios >= 2 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+        console.log(`🤖 Modelo seleccionado: ${modelo} (${intercambios} intercambios previos)`);
+
         const messages = [];
         for (const m of historial) {
             if (m.contenido && m.respuesta) {
@@ -375,7 +380,7 @@ async function responder(msg) {
             `\n\n## Contexto del mensaje actual\nHoy es ${hoy}.\nNúmero del remitente: ${tel}\nRed: ${msg.red}\n\nUSA identificar_cliente con telefono="${tel}" al inicio de la primera respuesta si aún no lo has hecho.`;
 
         let response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
+            model: modelo,
             max_tokens: 600,
             system: systemConContexto,
             tools: TOOLS,
@@ -391,8 +396,12 @@ async function responder(msg) {
             messages.push({ role: 'assistant', content: response.content });
             messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: toolBlock.id, content: resultado }] });
 
+            // Si se usa tool (ver_disponibilidad, agendar_reunion) → escalar a Sonnet
+            const modeloFinal = ['ver_disponibilidad', 'agendar_reunion'].includes(toolBlock.name)
+                ? 'claude-sonnet-4-6' : modelo;
+
             response = await anthropic.messages.create({
-                model: 'claude-sonnet-4-6',
+                model: modeloFinal,
                 max_tokens: 600,
                 system: systemConContexto,
                 tools: TOOLS,
