@@ -17,6 +17,7 @@ const { iniciarScheduler } = require('./services/agentScheduler');
 const { iniciarProspectorScheduler } = require('./services/prospectorScheduler');
 const { iniciarLicenciaExpirationScheduler } = require('./services/licenciaExpirationScheduler');
 const { iniciarSeoReportScheduler } = require('./services/seoReportScheduler');
+const { iniciarBalanceMonitor } = require('./services/balanceMonitor');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -225,6 +226,7 @@ async function iniciar(intentos = 5) {
             try { iniciarProspectorScheduler(); } catch(e) { console.warn('⚠️ prospectorScheduler:', e.message); }
             try { iniciarLicenciaExpirationScheduler(); } catch(e) { console.warn('⚠️ licenciaScheduler:', e.message); }
             try { iniciarSeoReportScheduler(); } catch(e) { console.warn('⚠️ seoReportScheduler:', e.message); }
+            try { iniciarBalanceMonitor(); } catch(e) { console.warn('⚠️ balanceMonitor:', e.message); }
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);

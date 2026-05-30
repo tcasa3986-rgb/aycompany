@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth   = require('../middlewares/auth');
 const { generarReporte } = require('../services/seoReportScheduler');
 const telegramService = require('../services/telegramService');
+const { registrarUsoAnthropic } = require('../services/balanceMonitor');
 
 router.post('/reporte-telegram', auth, async (req, res) => {
     try {
@@ -49,6 +50,24 @@ router.post('/notificar-articulo', async (req, res) => {
     try {
         await telegramService.enviarConBotones(msg, botones);
         res.json({ ok: true, msg: 'Notificación enviada a Telegram' });
+    } catch (e) {
+        res.status(500).json({ ok: false, msg: e.message });
+    }
+});
+
+// Registrar uso de tokens Anthropic para tracking de saldo
+router.post('/registrar-uso', async (req, res) => {
+    const secret = req.headers['x-seo-secret'];
+    if (!secret || secret !== process.env.SEO_NOTIFY_SECRET) {
+        return res.status(401).json({ ok: false, msg: 'No autorizado' });
+    }
+    const { input_tokens, output_tokens } = req.body;
+    if (!input_tokens || !output_tokens) {
+        return res.status(400).json({ ok: false, msg: 'input_tokens y output_tokens requeridos' });
+    }
+    try {
+        const result = await registrarUsoAnthropic(Number(input_tokens), Number(output_tokens));
+        res.json({ ok: true, ...result });
     } catch (e) {
         res.status(500).json({ ok: false, msg: e.message });
     }
