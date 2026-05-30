@@ -2,8 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import axios from '../api/axios';
 import { Lightbulb, Plus, X, Edit2, Bot, Send, Sparkles, Rss, CheckCircle2, Clock, ExternalLink, BarChart2, Send as SendIcon } from 'lucide-react';
 
-const GITHUB_RAW = 'https://raw.githubusercontent.com/cesargranados0100-alt/AI-COMPANY/main';
-const GITHUB_API = 'https://api.github.com/repos/cesargranados0100-alt/AI-COMPANY/contents/blog';
+const GITHUB_RAW = 'https://raw.githubusercontent.com/tcasa3986-rgb/AI-COMPANY/main';
+const GITHUB_API = 'https://api.github.com/repos/tcasa3986-rgb/AI-COMPANY/contents/blog';
 
 const CANALES = ['Instagram', 'Facebook', 'TikTok', 'YouTube', 'LinkedIn', 'Twitter/X', 'Blog', 'Email', 'WhatsApp', 'Otro'];
 const FORMATOS = ['Video', 'Reel', 'Imagen', 'Carrusel', 'Historia', 'Texto', 'Podcast', 'Newsletter'];
