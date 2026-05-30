@@ -8,38 +8,45 @@ const https = require('https');
 
 const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-function fetchJson(url) {
+// Places API (New) — más datos, misma key, crédito gratuito de $200/mes
+async function textSearch(query, maxResults = 10) {
+    if (!PLACES_KEY) throw new Error('GOOGLE_PLACES_API_KEY no configurado');
+
+    const body = JSON.stringify({
+        textQuery:      query,
+        languageCode:   'es',
+        regionCode:     'CO',
+        maxResultCount: maxResults,
+    });
+
+    const fields = 'places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.id';
+
     return new Promise((resolve, reject) => {
-        https.get(url, res => {
+        const req = https.request({
+            hostname: 'places.googleapis.com',
+            path:     '/v1/places:searchText',
+            method:   'POST',
+            headers: {
+                'Content-Type':     'application/json',
+                'X-Goog-Api-Key':   PLACES_KEY,
+                'X-Goog-FieldMask': fields,
+                'Content-Length':   Buffer.byteLength(body),
+            },
+        }, res => {
             let d = '';
             res.on('data', c => d += c);
             res.on('end', () => {
-                try { resolve(JSON.parse(d)); }
-                catch (e) { reject(new Error('JSON parse: ' + d.slice(0, 100))); }
+                try {
+                    const json = JSON.parse(d);
+                    if (json.error) reject(new Error(`Places API: ${json.error.message}`));
+                    else resolve(json.places || []);
+                } catch (e) { reject(e); }
             });
-        }).on('error', reject);
+        });
+        req.on('error', reject);
+        req.write(body);
+        req.end();
     });
-}
-
-// Buscar negocios por texto usando Places Text Search
-async function textSearch(query) {
-    if (!PLACES_KEY) throw new Error('GOOGLE_PLACES_API_KEY no configurado');
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&language=es&region=co&key=${PLACES_KEY}`;
-    const data = await fetchJson(url);
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        throw new Error(`Places API: ${data.status} — ${data.error_message || ''}`);
-    }
-    return data.results || [];
-}
-
-// Obtener detalles de un place (teléfono, web, emails)
-async function placeDetails(placeId) {
-    if (!PLACES_KEY) return null;
-    const fields = 'name,formatted_phone_number,website,rating,formatted_address,url';
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&language=es&key=${PLACES_KEY}`;
-    const data = await fetchJson(url);
-    if (data.status !== 'OK') return null;
-    return data.result;
 }
 
 // Extraer emails del sitio web con fetch simple (sin navegador)
@@ -68,7 +75,7 @@ async function extraerEmailsWeb(siteUrl) {
 // ── Búsqueda automática por categoría ────────────────────────────────────────
 
 async function buscarNegociosCategoria({ categoria, ciudad, maxResultados = 8 }) {
-    console.log(`🔍 [Places API] "${categoria}" en ${ciudad}...`);
+    console.log(`🔍 [Places API New] "${categoria}" en ${ciudad}...`);
 
     if (!PLACES_KEY) {
         console.error('⚠️  GOOGLE_PLACES_API_KEY no configurado — omitiendo prospección');
@@ -77,43 +84,40 @@ async function buscarNegociosCategoria({ categoria, ciudad, maxResultados = 8 })
 
     try {
         const query   = `${categoria} en ${ciudad} Colombia`;
-        const results = await textSearch(query);
-        const slice   = results.slice(0, maxResultados);
+        const places  = await textSearch(query, maxResultados);
 
         const negocios = [];
-        for (const place of slice) {
+        for (const place of places) {
             try {
-                const det = await placeDetails(place.place_id);
-
-                const telefono  = det?.formatted_phone_number?.replace(/\s|-/g, '') || null;
-                const sitioUrl  = det?.website || null;
-                const emails    = await extraerEmailsWeb(sitioUrl);
+                const telefono = place.nationalPhoneNumber?.replace(/[\s()-]/g, '') || null;
+                const sitioUrl = place.websiteUri || null;
+                const emails   = await extraerEmailsWeb(sitioUrl);
 
                 negocios.push({
-                    nombre:    place.name,
+                    nombre:    place.displayName?.text || 'Sin nombre',
                     ciudad,
                     tipo:      categoria,
                     sitioUrl,
                     telefono,
                     rating:    place.rating || null,
-                    direccion: place.formatted_address || det?.formatted_address || null,
+                    direccion: place.formattedAddress || null,
                     tieneMaps: true,
                     web: {
                         emails,
-                        url: sitioUrl,
-                        tieneWA:   false,
-                        tieneFB:   false,
-                        tieneIG:   false,
+                        url:      sitioUrl,
+                        tieneWA:  false,
+                        tieneFB:  false,
+                        tieneIG:  false,
                     }
                 });
 
-                console.log(`   ✓ ${place.name} | Tel: ${telefono || 'no'} | Web: ${sitioUrl || 'no'} | Emails: ${emails.length}`);
+                console.log(`   ✓ ${place.displayName?.text} | Tel: ${telefono || 'no'} | Web: ${sitioUrl || 'no'} | Emails: ${emails.length}`);
             } catch (e) {
-                console.error(`   ✗ ${place.name}: ${e.message}`);
+                console.error(`   ✗ ${place.displayName?.text}: ${e.message}`);
             }
         }
 
-        console.log(`[Places API] ✓ ${negocios.length} negocios encontrados para "${categoria}" en ${ciudad}`);
+        console.log(`[Places API] ✓ ${negocios.length} negocios para "${categoria}" en ${ciudad}`);
         return negocios;
     } catch (e) {
         console.error('[Places API] Error:', e.message);
