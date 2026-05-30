@@ -94,14 +94,13 @@ async function ejecutarProspeccionDiaria() {
                     try {
                         const empresa = process.env.NOMBRE_EMPRESA || 'AI Company CO';
                         const telLimpio = telefono.replace(/\D/g, '');
-                        const mensaje =
-`Hola ${info.nombre} 👋
-
-Soy Cristian de *${empresa}*. Analizamos su negocio y preparamos una *propuesta de transformación digital gratuita* especialmente para ustedes.
-
-Incluye: sitio web, automatizaciones, WhatsApp con IA y más 🚀
-
-¿Le gustaría verla? No toma más de 15 minutos.`;
+                        // Variar el mensaje según la categoría para mayor tasa de respuesta
+                        const mensajes = [
+`Hola, soy Cristian de *AI Company* 👋 Trabajamos con ${categoria} en Colombia implementando IA y automatización. ¿Tienen WhatsApp automatizado para atender clientes? Le muestro cómo lo hacemos en 15 minutos.`,
+`Hola ${info.nombre} 👋 Vi su negocio y tengo una idea concreta de cómo podrían conseguir más clientes con IA. ¿Le doy 15 minutos esta semana para mostrársela?`,
+`Hola, somos *AI Company* — automatizamos ventas y atención al cliente con IA para ${categoria} en Colombia. ¿Tienen 15 min para una videollamada rápida? Sin compromiso.`,
+                        ];
+                        const mensaje = mensajes[Math.floor(Math.random() * mensajes.length)];
 
                         await enviarWA(telLimpio, mensaje);
                         console.log(`  💬 WhatsApp → ${telLimpio} (${info.nombre})`);

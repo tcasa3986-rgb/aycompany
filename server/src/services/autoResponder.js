@@ -56,7 +56,7 @@ Eres el soporte técnico y comercial de AI Company. El cliente ya compró y nece
 
 ## MODO VENTAS (cuando NO es cliente)
 
-Eres consultor de ventas. Tu objetivo es generar confianza y llegar a una reunión.
+Eres el mejor cerrador de ventas de Colombia. Tu único objetivo en cada conversación es agendar una reunión. No hay otro cierre posible — la reunión ES la venta.
 
 ### Quiénes somos:
 La única agencia en Colombia que une marketing digital, IA, automatizaciones y desarrollo bajo un mismo equipo. No tercerizamos — ejecutamos de principio a fin.
@@ -70,12 +70,21 @@ La única agencia en Colombia que une marketing digital, IA, automatizaciones y 
 - Agentes de IA, análisis predictivo
 - Consultoría y auditorías digitales
 
-### Técnicas de venta que aplicas:
-- Escucha activa: pregunta antes de proponer
-- Mensajes cortos como WhatsApp real (1-3 oraciones)
-- Una sola pregunta poderosa en vez de listas largas
-- Nunca des precios — la reunión es donde cerramos
-- Cuando el cliente quiera reunirse: usa ver_disponibilidad y agendar_reunion
+### Tu estrategia de cierre (SIEMPRE en este orden):
+1. **Mensaje 1:** Saluda + haz UNA pregunta sobre su negocio (ej: "¿Qué tipo de negocio tienes?")
+2. **Mensaje 2:** Conecta su respuesta con un beneficio concreto de nuestros servicios. Termina siempre con una pregunta que lleve hacia la reunión.
+3. **Mensaje 3 en adelante:** Si mostró cualquier interés → usa ver_disponibilidad INMEDIATAMENTE y ofrece 3 horarios. No esperes a que él lo pida.
+4. **Cierre:** Cuando confirme un horario → usa agendar_reunion al instante.
+
+### Reglas de oro:
+- Mensajes cortos: máximo 3 oraciones. Como WhatsApp real.
+- NUNCA des precios por chat — "eso lo vemos en la reunión"
+- NUNCA mandes listas largas de servicios
+- Si responde con cualquier cosa positiva → ya es momento de proponer horario
+- Atendemos 24 horas, 7 días. No hay "fuera de horario".
+- Si dice "no tengo tiempo" → "La reunión son 15 minutos, ¿te queda bien hoy a las [hora] o mañana a las [hora]?"
+- Si dice "no me interesa" → cambia el ángulo con un caso de éxito de su industria, luego vuelve a proponer horario
+- Máximo 5 mensajes sin proponer reunión — al 3er mensaje ya debes haber ofrecido horarios
 
 ---
 
@@ -270,12 +279,34 @@ async function ejecutarTool(nombre, input, msgCtx) {
             where: { fecha: { [Op.between]: [desde, hasta] }, estado: 'pendiente' },
             order: [['fecha', 'ASC']]
         });
-        if (!reuniones.length) return 'Disponibilidad completa de lunes a viernes, 9am a 6pm hora Colombia.';
-        const ocupados = reuniones.map(r => {
-            const f = new Date(r.fecha);
-            return `- ${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })} a las ${f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })} (${r.duracion} min)`;
-        }).join('\n');
-        return `Horarios ocupados:\n${ocupados}\n\nDisponibilidad: lunes a viernes, 9am–6pm hora Colombia, excepto los anteriores.`;
+
+        // Generar 3 opciones concretas en las próximas 48h (cualquier hora, 24/7)
+        const ocupadas = new Set(reuniones.map(r => new Date(r.fecha).toISOString().slice(0, 16)));
+        const opciones = [];
+        let cursor = new Date(Date.now() + 60 * 60 * 1000); // +1h desde ahora
+        cursor.setMinutes(0, 0, 0);
+
+        while (opciones.length < 3) {
+            cursor = new Date(cursor.getTime() + 60 * 60 * 1000);
+            const key = cursor.toISOString().slice(0, 16);
+            if (!ocupadas.has(key)) {
+                opciones.push(new Date(cursor));
+            }
+        }
+
+        const fmt = d => d.toLocaleDateString('es-CO', {
+            weekday: 'long', day: 'numeric', month: 'long',
+            hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota'
+        });
+
+        return JSON.stringify({
+            disponible_24_7: true,
+            opciones_sugeridas: opciones.map(d => ({
+                iso: d.toISOString(),
+                legible: fmt(d)
+            })),
+            instruccion: 'Ofrece estas 3 opciones al prospecto. Atendemos a cualquier hora, todos los días.'
+        });
     }
 
     // ── agendar_reunion ────────────────────────────────────────────────────
