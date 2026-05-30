@@ -54,4 +54,52 @@ router.post('/notificar-articulo', async (req, res) => {
     }
 });
 
+// Alerta de error desde GitHub Actions (tokens agotados, fallo API, etc.)
+router.post('/alerta', async (req, res) => {
+    const secret = req.headers['x-seo-secret'];
+    if (!secret || secret !== process.env.SEO_NOTIFY_SECRET) {
+        return res.status(401).json({ ok: false, msg: 'No autorizado' });
+    }
+
+    const { tipo = 'error', detalle = '' } = req.body;
+
+    const mensajes = {
+        tokens_agotados:
+`🚨 *Tokens de Claude agotados*
+
+El generador de blog de AI Company falló por créditos insuficientes en la API de Anthropic.
+
+*Acción requerida:*
+Recarga créditos en la consola de Anthropic para que los artículos sigan publicándose.`,
+
+        api_error:
+`⚠️ *Error en generador de blog*
+
+GitHub Actions no pudo generar el artículo programado.
+${detalle ? `\n_Detalle: ${detalle}_` : ''}
+
+Revisa el estado en GitHub Actions.`,
+
+        error:
+`⚠️ *Error en generador de blog*
+
+GitHub Actions no pudo generar el artículo programado.
+${detalle ? `\n_Detalle: ${detalle}_` : ''}`,
+    };
+
+    const msg = mensajes[tipo] || mensajes['error'];
+
+    const botones = [[
+        { text: '💳 Recargar Anthropic', url: 'https://console.anthropic.com/settings/billing' },
+        { text: '🔍 Ver GitHub Actions', url: 'https://github.com/tcasa3986-rgb/AI-COMPANY/actions' },
+    ]];
+
+    try {
+        await telegramService.enviarConBotones(msg, botones);
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ ok: false, msg: e.message });
+    }
+});
+
 module.exports = router;
