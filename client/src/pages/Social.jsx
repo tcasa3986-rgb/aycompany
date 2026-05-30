@@ -108,6 +108,13 @@ export default function Social() {
         cargar();
     }
 
+    // Detectar si la ventana de 24h está cerrada (WhatsApp)
+    const ventanaWACerrada = contacto?.red === 'whatsapp' && (() => {
+        const ultimoInbound = [...conversacion].reverse().find(m => !m.respuesta && m.red === 'whatsapp');
+        if (!ultimoInbound) return true;
+        return new Date(ultimoInbound.createdAt) < new Date(Date.now() - 24 * 60 * 60 * 1000);
+    })();
+
     async function enviarRespuesta() {
         if (!respuesta.trim() || !contacto) return;
         const ultimoMsg = [...conversacion].reverse().find(m => m.remitente_id === contacto.remitente_id);
@@ -115,8 +122,11 @@ export default function Social() {
         setEnviando(true);
         setErrorResp('');
         try {
-            await axios.post(`/social/${ultimoMsg.id}/responder`, { texto: respuesta });
+            const r = await axios.post(`/social/${ultimoMsg.id}/responder`, { texto: respuesta });
             setRespuesta('');
+            if (r.data?.plantilla) {
+                setErrorResp('⚠️ Ventana cerrada — se envió plantilla de seguimiento automáticamente');
+            }
             const { data } = await axios.get('/social/conversacion', {
                 params: { remitente_id: contacto.remitente_id, red: contacto.red }
             });
@@ -124,7 +134,8 @@ export default function Social() {
             scrollAbajo(true);
             cargar();
         } catch (err) {
-            setErrorResp(err.response?.data?.error || 'Error al enviar');
+            const msg = err.response?.data?.mensaje || err.response?.data?.error || 'Error al enviar';
+            setErrorResp(msg);
         } finally {
             setEnviando(false);
         }
@@ -295,6 +306,11 @@ export default function Social() {
                     {/* Caja responder */}
                     {(contacto.red === 'facebook' || contacto.red === 'instagram' || contacto.red === 'whatsapp') && (
                         <div style={{ padding: '10px 16px', borderTop: '1px solid #e5e7eb', background: '#fff' }}>
+                            {ventanaWACerrada && (
+                                <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    ⏰ <strong>Ventana de 24h cerrada.</strong> Al enviar se usará una plantilla aprobada de WhatsApp automáticamente.
+                                </div>
+                            )}
                             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                                 <textarea
                                     value={respuesta}

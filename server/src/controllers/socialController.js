@@ -334,21 +334,63 @@ exports.responder = async (req, res) => {
             if (!process.env.WHATSAPP_TOKEN || !process.env.WHATSAPP_PHONE_ID)
                 return res.status(500).json({ error: 'WHATSAPP_TOKEN o WHATSAPP_PHONE_ID no configurados.' });
 
+            // Verificar si la ventana de 24h está abierta
+            const ultimoMensaje = await MensajeSocial.findOne({
+                where: { remitente_id: msg.remitente_id, red: 'whatsapp', respuesta: null },
+                order: [['createdAt', 'DESC']]
+            });
+            const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const ventanaAbierta = ultimoMensaje && new Date(ultimoMensaje.createdAt) > hace24h;
+
+            let bodyWA;
+            if (ventanaAbierta) {
+                // Dentro de 24h — mensaje libre
+                bodyWA = {
+                    messaging_product: 'whatsapp',
+                    to: msg.remitente_id,
+                    type: 'text',
+                    text: { body: texto }
+                };
+            } else {
+                // Fuera de 24h — usar plantilla aprobada de seguimiento
+                // Usa la plantilla de seguimiento (debe estar aprobada)
+                bodyWA = {
+                    messaging_product: 'whatsapp',
+                    to: msg.remitente_id,
+                    type: 'template',
+                    template: {
+                        name: 'prospecto_whatsapp_automatico',
+                        language: { code: 'es' },
+                        components: [{
+                            type: 'body',
+                            parameters: [{ type: 'text', text: msg.remitente || 'equipo' }]
+                        }]
+                    }
+                };
+            }
+
             const r = await fetch(`https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
                 },
-                body: JSON.stringify({
-                    messaging_product: 'whatsapp',
-                    to: msg.remitente_id,
-                    type: 'text',
-                    text: { body: texto }
-                })
+                body: JSON.stringify(bodyWA)
             });
             const data = await r.json();
-            if (data.error) return res.status(400).json({ error: data.error.message });
+            if (data.error) {
+                // Si la plantilla no está aprobada aún, informar claramente
+                if (data.error.code === 132001 || data.error.message?.includes('template')) {
+                    return res.status(400).json({
+                        error: 'ventana_cerrada',
+                        mensaje: `Han pasado más de 24h desde el último mensaje de ${msg.remitente}. Las plantillas de WhatsApp están en revisión por Meta (24-48h). Por ahora escríbele directamente desde tu celular.`
+                    });
+                }
+                return res.status(400).json({ error: data.error.message });
+            }
+            if (!ventanaAbierta) {
+                return res.json({ ok: true, plantilla: true, aviso: 'Ventana de 24h cerrada — se envió plantilla de seguimiento' });
+            }
         } else {
             return res.status(400).json({ error: `Red ${msg.red} no soportada para respuesta directa` });
         }
