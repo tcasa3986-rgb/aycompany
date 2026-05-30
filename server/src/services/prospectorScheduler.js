@@ -89,25 +89,63 @@ async function ejecutarProspeccionDiaria() {
                     }
                 }
 
-                // ── Auto-envío por WhatsApp (texto libre) ───────────────────
-                if (telefono && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
+                // ── Auto-envío por WhatsApp con plantilla aprobada ──────────
+                const telLimpio = telefono?.replace(/\D/g, '');
+                // Solo enviar a números móviles colombianos (empiezan con 3)
+                const esCelular = telLimpio && telLimpio.replace(/^57/, '').startsWith('3');
+                if (esCelular && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID) {
                     try {
-                        const empresa = process.env.NOMBRE_EMPRESA || 'AI Company CO';
-                        const telLimpio = telefono.replace(/\D/g, '');
-                        // Variar el mensaje según la categoría para mayor tasa de respuesta
-                        const mensajes = [
-`Hola, soy Cristian de *AI Company* 👋 Trabajamos con ${categoria} en Colombia implementando IA y automatización. ¿Tienen WhatsApp automatizado para atender clientes? Le muestro cómo lo hacemos en 15 minutos.`,
-`Hola ${info.nombre} 👋 Vi su negocio y tengo una idea concreta de cómo podrían conseguir más clientes con IA. ¿Le doy 15 minutos esta semana para mostrársela?`,
-`Hola, somos *AI Company* — automatizamos ventas y atención al cliente con IA para ${categoria} en Colombia. ¿Tienen 15 min para una videollamada rápida? Sin compromiso.`,
+                        // Rotar entre las 3 plantillas aprobadas
+                        const plantillas = [
+                            {
+                                name: 'prospecto_ia_colombia_v1',
+                                params: [info.nombre || 'equipo', categoria]
+                            },
+                            {
+                                name: 'prospecto_whatsapp_automatico',
+                                params: [info.nombre || 'equipo']
+                            },
+                            {
+                                name: 'prospecto_reunion_gratis',
+                                params: [info.nombre || 'equipo', categoria]
+                            }
                         ];
-                        const mensaje = mensajes[Math.floor(Math.random() * mensajes.length)];
+                        const plantilla = plantillas[Math.floor(Math.random() * plantillas.length)];
 
-                        await enviarWA(telLimpio, mensaje);
-                        console.log(`  💬 WhatsApp → ${telLimpio} (${info.nombre})`);
+                        const body = {
+                            messaging_product: 'whatsapp',
+                            to: telLimpio,
+                            type: 'template',
+                            template: {
+                                name: plantilla.name,
+                                language: { code: 'es' },
+                                components: [{
+                                    type: 'body',
+                                    parameters: plantilla.params.map(p => ({ type: 'text', text: p }))
+                                }]
+                            }
+                        };
+
+                        const r = await fetch(
+                            `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+                                },
+                                body: JSON.stringify(body)
+                            }
+                        );
+                        const data = await r.json();
+                        if (data.error) throw new Error(data.error.message);
+                        console.log(`  💬 WhatsApp → ${telLimpio} (${info.nombre}) [${plantilla.name}]`);
                         if (cacheRef) cacheRef[key].waEnviado = telLimpio;
                     } catch (waErr) {
                         console.error(`  ✗ WA fallido ${telefono}:`, waErr.message);
                     }
+                } else if (telefono && !esCelular) {
+                    console.log(`  ⏭ WA omitido (número fijo): ${telefono}`);
                 }
             } catch (e) {
                 console.error(`  ✗ Error en ${info.nombre}:`, e.message);
