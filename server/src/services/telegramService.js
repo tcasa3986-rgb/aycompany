@@ -14,3 +14,14 @@ exports.enviar = async (mensaje) => {
     if (!b || !process.env.PLATAFORMA_TELEGRAM_CHAT_ID) return;
     return b.sendMessage(process.env.PLATAFORMA_TELEGRAM_CHAT_ID, mensaje, { parse_mode: 'Markdown' });
 };
+
+// Envía mensaje con botones inline (URL buttons)
+// botones: [[{ text: 'Label', url: 'https://...' }], ...]
+exports.enviarConBotones = async (mensaje, botones) => {
+    const b = getBot();
+    if (!b || !process.env.PLATAFORMA_TELEGRAM_CHAT_ID) return;
+    return b.sendMessage(process.env.PLATAFORMA_TELEGRAM_CHAT_ID, mensaje, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: botones }
+    });
+};

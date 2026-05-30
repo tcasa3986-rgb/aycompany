@@ -2,8 +2,8 @@ const cron          = require('node-cron');
 const https         = require('https');
 const telegramService = require('./telegramService');
 
-const GITHUB_RAW = 'https://raw.githubusercontent.com/cesargranados0100-alt/AI-COMPANY/main';
-const GITHUB_API = 'https://api.github.com/repos/cesargranados0100-alt/AI-COMPANY/contents/blog';
+const GITHUB_RAW = 'https://raw.githubusercontent.com/tcasa3986-rgb/AI-COMPANY/main';
+const GITHUB_API = 'https://api.github.com/repos/tcasa3986-rgb/AI-COMPANY/contents/blog';
 
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
