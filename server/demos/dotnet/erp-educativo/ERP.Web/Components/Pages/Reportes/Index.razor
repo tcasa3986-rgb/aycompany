@@ -1,0 +1,130 @@
+@page "/reportes"
+@using MudBlazor
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+<PageTitle>Reportes y BI — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📊 Inteligencia de Negocios</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Análisis detallado de indicadores institucionales</MudText>
+    </div>
+    <MudStack Row Spacing="2">
+        <MudDateRangePicker Label="Rango de Análisis" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:300px; background:white;" />
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Refresh" Color="MudBlazor.Color.Primary">Actualizar</MudButton>
+    </MudStack>
+</MudStack>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Retención Estudiantil</MudText>
+            <ApexChart TItem="ReportData" Options="_chartRadial">
+                <ApexPointSeries TItem="ReportData"
+                                 Items="_retencionData"
+                                 SeriesType="SeriesType.RadialBar"
+                                 Name="Retención"
+                                 XValue="@(e => e.Label)"
+                                 YValue="@(e => e.Value)"
+                                 Color="#10B981" />
+            </ApexChart>
+            <MudText Align="MudBlazor.Align.Center" Typo="Typo.body2" Style="color:#6B7280;">+2.4% respecto al año anterior</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Eficiencia de Cobranza</MudText>
+            <ApexChart TItem="ReportData" Options="_chartRadial">
+                <ApexPointSeries TItem="ReportData"
+                                 Items="_cobranzaData"
+                                 SeriesType="SeriesType.RadialBar"
+                                 Name="Cobranza"
+                                 XValue="@(e => e.Label)"
+                                 YValue="@(e => e.Value)"
+                                 Color="#3B82F6" />
+            </ApexChart>
+            <MudText Align="MudBlazor.Align.Center" Typo="Typo.body2" Style="color:#6B7280;">Meta mensual: 95%</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Satisfacción Académica</MudText>
+            <ApexChart TItem="ReportData" Options="_chartRadial">
+                <ApexPointSeries TItem="ReportData"
+                                 Items="_satisfaccionData"
+                                 SeriesType="SeriesType.RadialBar"
+                                 Name="Satisfacción"
+                                 XValue="@(e => e.Label)"
+                                 YValue="@(e => e.Value)"
+                                 Color="#F59E0B" />
+            </ApexChart>
+            <MudText Align="MudBlazor.Align.Center" Typo="Typo.body2" Style="color:#6B7280;">Basado en encuestas 2026-I</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="2" Style="border-radius:16px; padding:20px;" Class="mb-6">
+    <MudText Typo="Typo.h6" Class="mb-6">Proyección de Ingresos Anuales</MudText>
+    <ApexChart TItem="ReportData" Options="_chartLine">
+        <ApexPointSeries TItem="ReportData"
+                         Items="_proyeccionData"
+                         SeriesType="SeriesType.Area"
+                         Name="Ingresos Reales"
+                         XValue="@(e => e.Label)"
+                         YValue="@(e => e.Value)"
+                         Color="#1E1B4B" />
+        <ApexPointSeries TItem="ReportData"
+                         Items="_metaData"
+                         SeriesType="SeriesType.Line"
+                         Name="Meta Institucional"
+                         XValue="@(e => e.Label)"
+                         YValue="@(e => e.Value)"
+                         Color="#10B981" />
+    </ApexChart>
+</MudPaper>
+
+@code {
+    record ReportData(string Label, decimal Value);
+
+    private List<ReportData> _retencionData = [new("Retención", 92)];
+    private List<ReportData> _cobranzaData = [new("Cobranza", 78)];
+    private List<ReportData> _satisfaccionData = [new("Satisfacción", 85)];
+
+    private List<ReportData> _proyeccionData = [
+        new("Ene", 45000), new("Feb", 48000), new("Mar", 52000), new("Abr", 50000),
+        new("May", 55000), new("Jun", 60000), new("Jul", 58000), new("Ago", 62000),
+        new("Sep", 65000), new("Oct", 63000), new("Nov", 68000), new("Dic", 72000)
+    ];
+
+    private List<ReportData> _metaData = [
+        new("Ene", 40000), new("Feb", 40000), new("Mar", 40000), new("Abr", 45000),
+        new("May", 45000), new("Jun", 45000), new("Jul", 50000), new("Ago", 50000),
+        new("Sep", 50000), new("Oct", 55000), new("Nov", 55000), new("Dic", 60000)
+    ];
+
+    private ApexChartOptions<ReportData> _chartRadial = new()
+    {
+        Chart = new Chart { Height = 250 },
+        PlotOptions = new PlotOptions {
+            RadialBar = new PlotOptionsRadialBar {
+                Hollow = new Hollow { Size = "70%" },
+                DataLabels = new RadialBarDataLabels {
+                    Name = new RadialBarDataLabelsName { Show = false },
+                    Value = new RadialBarDataLabelsValue { FontSize = "24px", FontWeight = "700" }
+                }
+            }
+        }
+    };
+
+    private ApexChartOptions<ReportData> _chartLine = new()
+    {
+        Chart = new Chart { Height = 350, Toolbar = new Toolbar { Show = true } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = [4, 2], DashArray = [0, 5] },
+        Xaxis = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } },
+        Yaxis = [new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } }],
+        Legend = new Legend { Position = LegendPosition.Top }
+    };
+}

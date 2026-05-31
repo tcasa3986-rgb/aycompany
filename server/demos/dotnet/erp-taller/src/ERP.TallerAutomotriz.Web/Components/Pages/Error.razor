@@ -1,0 +1,29 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Error</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-12">
+    <MudPaper Class="pa-8 text-center" Elevation="0">
+        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Error" Style="font-size:5rem;" />
+        <MudText Typo="Typo.h4" Class="mt-4 fw-bold">Ocurrió un error</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
+            Lo sentimos, hubo un problema procesando su solicitud.
+        </MudText>
+        @if (ShowRequestId)
+        {
+            <MudText Typo="Typo.caption" Class="mt-3 d-block">Request ID: <code>@RequestId</code></MudText>
+        }
+        <MudButton Class="mt-6" Variant="Variant.Filled" Color="Color.Primary" Href="/" StartIcon="@Icons.Material.Filled.Home">
+            Volver al dashboard
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized() => RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

@@ -1,0 +1,194 @@
+@page "/tesoreria/conceptos"
+@using ERP.Application.Features.Tesoreria.ConceptosPago
+@using MediatR
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Conceptos de Pago — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">💳 Conceptos de Pago</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Gestión de tarifas: matrícula, pensiones, exámenes, etc.</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add"
+               Color="MudBlazor.Color.Primary" OnClick="@(() => AbrirDialog(null))"
+               Style="border-radius:8px;">
+        Nuevo Concepto
+    </MudButton>
+</MudStack>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px; border-left:4px solid #6B21A8;">
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">TOTAL CONCEPTOS</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#6B21A8;">@_conceptos.Count</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px; border-left:4px solid #F97316;">
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">CON MORA</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#F97316;">@_conceptos.Count(c => c.AplicaMora)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px; border-left:4px solid #10B981;">
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">RECURRENTES</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#10B981;">@_conceptos.Count(c => c.EsRecurrente)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_conceptos" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<ConceptoPagoDto, bool>(f => string.IsNullOrWhiteSpace(_search)
+                      || f.Nombre.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                      || f.Codigo.Contains(_search, StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Listado de Conceptos</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar concepto..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh><MudTh>Nombre</MudTh><MudTh>Monto Base</MudTh>
+            <MudTh>Mora</MudTh><MudTh>Recurrente</MudTh><MudTh>Deudas</MudTh><MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Primary" Variant="Variant.Outlined">@context.Codigo</MudChip></MudTd>
+            <MudTd>
+                <MudText Style="font-weight:600;">@context.Nombre</MudText>
+                @if (!string.IsNullOrEmpty(context.Descripcion))
+                { <MudText Typo="Typo.caption" Style="color:#6B7280;">@context.Descripcion</MudText> }
+            </MudTd>
+            <MudTd><MudText Style="font-weight:700; color:#10B981;">S/ @context.MontoBase.ToString("N2")</MudText></MudTd>
+            <MudTd>
+                @if (context.AplicaMora)
+                { <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Warning">@context.PorcentajeMora?.ToString("N1")% · @context.DiasGraciaMora d</MudChip> }
+                else { <MudText Typo="Typo.caption" Style="color:#9CA3AF;">Sin mora</MudText> }
+            </MudTd>
+            <MudTd>
+                <MudIcon Icon="@(context.EsRecurrente ? Icons.Material.Filled.Repeat : Icons.Material.Filled.LooksOne)"
+                         Color="@(context.EsRecurrente ? MudBlazor.Color.Info : MudBlazor.Color.Default)"
+                         Size="MudBlazor.Size.Small" />
+            </MudTd>
+            <MudTd><MudChip T="string" Size="MudBlazor.Size.Small">@context.TotalDeudas</MudChip></MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Info"
+                               Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
+                               Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context))"
+                               Disabled="@(context.TotalDeudas > 0)" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Concepto de Pago</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_form.Codigo" Label="Código" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_form.Nombre" Label="Nombre" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_form.Descripcion" Label="Descripción" Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_form.MontoBase" Label="Monto Base (S/)"
+                                     Format="N2" Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start" AdornmentText="S/" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudCheckBox @bind-Value="_form.EsRecurrente" Label="Es Recurrente" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_form.AplicaMora" Label="Aplica Mora por retraso" />
+                </MudItem>
+                @if (_form.AplicaMora)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_form.PorcentajeMora" Label="% Mora diario" Format="N2" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_form.DiasGraciaMora" Label="Días de gracia" Variant="Variant.Outlined" />
+                    </MudItem>
+                }
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar"
+                       Disabled="@_guardando">
+                @if (_guardando) { <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" /> }
+                else { <span>Guardar</span> }
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false, _guardando = false;
+    private string _search = "";
+    private List<ConceptoPagoDto> _conceptos = new();
+    private UpsertConceptoPagoCommand _form = new();
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _conceptos = await Mediator.Send(new GetConceptosPagoQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(ConceptoPagoDto? dto)
+    {
+        _form = dto == null ? new() : new UpsertConceptoPagoCommand
+        {
+            Id = dto.Id, Codigo = dto.Codigo, Nombre = dto.Nombre,
+            Descripcion = dto.Descripcion, MontoBase = dto.MontoBase,
+            AplicaMora = dto.AplicaMora, PorcentajeMora = dto.PorcentajeMora,
+            DiasGraciaMora = dto.DiasGraciaMora, EsRecurrente = dto.EsRecurrente
+        };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        _guardando = true;
+        try
+        {
+            await Mediator.Send(_form);
+            Snackbar.Add(_form.Id > 0 ? "Concepto actualizado" : "Concepto creado", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _guardando = false; }
+    }
+
+    async Task Eliminar(ConceptoPagoDto dto)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", $"¿Eliminar '{dto.Nombre}'?", "Sí", "No");
+        if (ok == true)
+        {
+            await Mediator.Send(new DeleteConceptoPagoCommand { Id = dto.Id });
+            Snackbar.Add("Concepto eliminado", Severity.Success);
+            await Cargar();
+        }
+    }
+}

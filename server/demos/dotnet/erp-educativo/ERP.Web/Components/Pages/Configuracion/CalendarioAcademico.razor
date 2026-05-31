@@ -1,0 +1,80 @@
+@page "/configuracion/calendario"
+@using ERP.Application.Features.Configuracion
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Calendario Académico — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📅 Calendario Académico</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Programación de eventos y hitos institucionales</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary">Nuevo Evento</MudButton>
+</MudStack>
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-6">Eventos Próximos</MudText>
+            
+            <MudTimeline TimelinePosition="TimelinePosition.Left">
+                @foreach (var ev in _eventos.OrderBy(e => e.FechaInicio))
+                {
+                    <MudTimelineItem Color="@GetColor(ev.Color)" Size="MudBlazor.Size.Medium">
+                        <ItemOpposite>
+                            <MudText Typo="Typo.body2" Style="font-weight:700;">@ev.FechaInicio.ToString("dd MMM")</MudText>
+                            @if (ev.FechaFin != ev.FechaInicio)
+                            {
+                                <MudText Typo="Typo.caption">al @ev.FechaFin.ToString("dd MMM")</MudText>
+                            }
+                        </ItemOpposite>
+                        <ItemContent>
+                            <MudPaper Elevation="1" Class="pa-4" Style="@($"border-left: 6px solid {ev.Color}; border-radius:8px;")">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@ev.Titulo</MudText>
+                                <MudText Typo="Typo.body2" Style="color:#6B7280;">@ev.Categoria</MudText>
+                                @if (!string.IsNullOrEmpty(ev.Descripcion))
+                                {
+                                    <MudText Typo="Typo.body2" Class="mt-2">@ev.Descripcion</MudText>
+                                }
+                            </MudPaper>
+                        </ItemContent>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Leyenda</MudText>
+            <MudList T="string">
+                <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="MudBlazor.Color.Success" Text="Hito Académico" />
+                <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="MudBlazor.Color.Warning" Text="Evaluaciones" />
+                <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="MudBlazor.Color.Error" Text="Feriados" />
+                <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="MudBlazor.Color.Secondary" Text="Administrativo" />
+            </MudList>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<EventoCalendarioDto> _eventos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _eventos = await Mediator.Send(new GetEventosCalendarioQuery());
+    }
+
+    private MudBlazor.Color GetColor(string hex) => hex switch
+    {
+        "#10B981" => MudBlazor.Color.Success,
+        "#F59E0B" => MudBlazor.Color.Warning,
+        "#EF4444" => MudBlazor.Color.Error,
+        "#6B21A8" => MudBlazor.Color.Secondary,
+        _ => MudBlazor.Color.Primary
+    };
+}

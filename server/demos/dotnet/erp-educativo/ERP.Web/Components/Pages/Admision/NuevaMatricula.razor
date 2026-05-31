@@ -1,0 +1,233 @@
+@page "/admision/matriculas/nueva"
+@using ERP.Application.Features.Admision.Matriculas
+@using ERP.Application.Features.Academico.Carreras
+@using ERP.Application.Features.Configuracion.Periodos
+@using ERP.Application.Features.Personas.Estudiantes
+@using ERP.Domain.Enums
+@using MediatR
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Nueva Matrícula — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📝 Registrar Matrícula</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Proceso de inscripción de alumno regular o nuevo</MudText>
+    </div>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+               Color="MudBlazor.Color.Default" Href="/admision/matriculas">Volver</MudButton>
+</MudStack>
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Datos de la Matrícula</MudText>
+
+            @if (_cargando)
+            {
+                <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="mb-4" />
+            }
+
+            <MudGrid>
+                <!-- Estudiante con Autocomplete -->
+                <MudItem xs="12">
+                    <MudAutocomplete T="EstudianteDto"
+                                     Label="Estudiante"
+                                     @bind-Value="_estudianteSeleccionado"
+                                     SearchFunc="BuscarEstudiante"
+                                     ToStringFunc="@(e => e == null ? "" : $"{e.NombreCompleto} — {e.Codigo}")"
+                                     Variant="Variant.Outlined"
+                                     AdornmentIcon="@Icons.Material.Filled.PersonSearch"
+                                     Adornment="Adornment.Start"
+                                     HelperText="Escribe el nombre o código del estudiante"
+                                     ResetValueOnEmptyText="true"
+                                     Required="true" />
+                </MudItem>
+
+                <!-- Carrera con Select -->
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="CarreraDto" @bind-Value="_carreraSeleccionada"
+                               Label="Carrera" Variant="Variant.Outlined"
+                               ToStringFunc="@(c => c == null ? "" : c.Nombre)"
+                               Required="true">
+                        @foreach (var c in _carreras)
+                        {
+                            <MudSelectItem Value="@c">
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.School" Size="MudBlazor.Size.Small" />
+                                    <span>@c.Nombre</span>
+                                    <MudSpacer />
+                                    <MudText Typo="Typo.caption" Style="color:#9CA3AF;">@c.Codigo</MudText>
+                                </MudStack>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Período con Select -->
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="PeriodoAcademicoDto" @bind-Value="_periodoSeleccionado"
+                               Label="Período Académico" Variant="Variant.Outlined"
+                               ToStringFunc="@(p => p == null ? "" : p.Nombre)"
+                               Required="true">
+                        @foreach (var p in _periodos)
+                        {
+                            <MudSelectItem Value="@p">
+                                @p.Nombre
+                                @if (p.EsActual) { <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Class="ms-2">Actual</MudChip> }
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_dto.Ciclo" Label="Ciclo" Min="1" Max="12"
+                                     Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TipoMatricula" @bind-Value="_dto.TipoMatricula"
+                               Label="Tipo de Matrícula" Variant="Variant.Outlined">
+                        @foreach (TipoMatricula item in Enum.GetValues(typeof(TipoMatricula)))
+                        {
+                            <MudSelectItem Value="@item">@item.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_dto.Observaciones" Label="Observaciones"
+                                  Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Panel de resumen -->
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Resumen y Guardado</MudText>
+
+            @if (_estudianteSeleccionado != null)
+            {
+                <MudStack Spacing="2" Class="mb-4">
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.caption" Style="color:#6B7280;">ESTUDIANTE</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Style="font-weight:600;">@_estudianteSeleccionado.NombreCompleto</MudText>
+                    <MudText Typo="Typo.caption">Cód: @_estudianteSeleccionado.Codigo | DNI: @_estudianteSeleccionado.DNI</MudText>
+                    <MudDivider />
+                    @if (_carreraSeleccionada != null)
+                    {
+                        <MudStack Row Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.caption" Style="color:#6B7280;">CARRERA</MudText>
+                        </MudStack>
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">@_carreraSeleccionada.Nombre</MudText>
+                        <MudText Typo="Typo.caption">Ciclo @_dto.Ciclo · @_dto.TipoMatricula</MudText>
+                    }
+                </MudStack>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                    Selecciona estudiante, carrera y período para continuar.
+                </MudAlert>
+            }
+
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+                Verifique que el estudiante no tenga deudas pendientes.
+            </MudAlert>
+
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" FullWidth="true"
+                       Size="MudBlazor.Size.Large" OnClick="ProcesarMatricula"
+                       Style="border-radius:8px;"
+                       Disabled="@(_procesando || _estudianteSeleccionado == null || _carreraSeleccionada == null || _periodoSeleccionado == null)">
+                @if (_procesando)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Procesando...</MudText>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.HowToReg" Class="me-2" />
+                    <MudText>Confirmar Matrícula</MudText>
+                }
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private bool _procesando = false;
+    private bool _cargando = true;
+    private List<EstudianteDto> _estudiantes = new();
+    private List<CarreraDto> _carreras = new();
+    private List<PeriodoAcademicoDto> _periodos = new();
+
+    private EstudianteDto? _estudianteSeleccionado;
+    private CarreraDto? _carreraSeleccionada;
+    private PeriodoAcademicoDto? _periodoSeleccionado;
+
+    private MatriculaCreateDto _dto = new()
+    {
+        Ciclo = 1,
+        TipoMatricula = TipoMatricula.Regular
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cargando = true;
+        var t1 = Mediator.Send(new GetEstudiantesQuery());
+        var t2 = Mediator.Send(new GetCarrerasQuery());
+        var t3 = Mediator.Send(new GetPeriodosQuery());
+        await Task.WhenAll(t1, t2, t3);
+        _estudiantes = await t1;
+        _carreras    = await t2;
+        _periodos    = await t3;
+
+        // Pre-seleccionar período actual
+        _periodoSeleccionado = _periodos.FirstOrDefault(p => p.EsActual) ?? _periodos.FirstOrDefault();
+        _cargando = false;
+    }
+
+    private Task<IEnumerable<EstudianteDto>> BuscarEstudiante(string texto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return Task.FromResult(_estudiantes.Take(10).AsEnumerable());
+
+        var resultado = _estudiantes.Where(e =>
+            e.NombreCompleto.Contains(texto, StringComparison.OrdinalIgnoreCase) ||
+            e.Codigo.Contains(texto, StringComparison.OrdinalIgnoreCase) ||
+            e.DNI.Contains(texto)).Take(15);
+
+        return Task.FromResult(resultado);
+    }
+
+    private async Task ProcesarMatricula()
+    {
+        if (_estudianteSeleccionado == null || _carreraSeleccionada == null || _periodoSeleccionado == null) return;
+
+        _procesando = true;
+        try
+        {
+            _dto.EstudianteId       = _estudianteSeleccionado.Id;
+            _dto.CarreraId          = _carreraSeleccionada.Id;
+            _dto.PeriodoAcademicoId = _periodoSeleccionado.Id;
+
+            await Mediator.Send(new CreateMatriculaCommand { Matricula = _dto });
+            Snackbar.Add("✅ Matrícula registrada exitosamente", Severity.Success);
+            Navigation.NavigateTo("/admision/matriculas");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"❌ Error: {ex.Message}", Severity.Error);
+        }
+        finally { _procesando = false; }
+    }
+}

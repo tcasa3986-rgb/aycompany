@@ -1,0 +1,157 @@
+@page "/evaluacion/notas"
+@using ERP.Application.Features.Evaluacion.Asistencia
+@using ERP.Application.Features.Evaluacion.Evaluaciones
+@using ERP.Application.Features.Evaluacion.Notas
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4" Style="font-weight: 700;">Registro de Calificaciones</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4" Style="border-radius:12px;">
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudSelect T="int" Label="Seleccionar Sección" @bind-Value="_seccionSeleccionada" Variant="Variant.Outlined" SelectedValuesChanged="OnSeccionChanged">
+                <MudSelectItem Value="0" Disabled="true">Seleccione una clase...</MudSelectItem>
+                @foreach (var sec in _secciones)
+                {
+                    <MudSelectItem Value="@sec.Id">@($"{sec.CursoNombre} - {sec.Nombre} ({sec.PeriodoNombre})")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="5">
+            <MudSelect T="int" Label="Seleccionar Evaluación" @bind-Value="_evaluacionSeleccionada" Variant="Variant.Outlined" Disabled="@(_seccionSeleccionada == 0)">
+                <MudSelectItem Value="0" Disabled="true">Seleccione una evaluación...</MudSelectItem>
+                @foreach (var ev in _evaluaciones)
+                {
+                    <MudSelectItem Value="@ev.Id">@($"{ev.Nombre} (Máx: {ev.NotaMaxima})")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CargarAlumnos" Disabled="@(_evaluacionSeleccionada == 0 || _cargando)" FullWidth>
+                @if (_cargando) { <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" /> }
+                else { <MudText>Cargar</MudText> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_alumnos != null)
+{
+    var evaluacionActual = _evaluaciones.FirstOrDefault(e => e.Id == _evaluacionSeleccionada);
+
+    <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px;">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <div>
+                <MudText Typo="Typo.h6">Nómina de Estudiantes (@_alumnos.Count)</MudText>
+                @if (evaluacionActual != null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Evaluación: <strong>@evaluacionActual.Nombre</strong> | Peso: @evaluacionActual.PesoPromedio% | Nota Máxima: @evaluacionActual.NotaMaxima</MudText>
+                }
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Save" OnClick="GuardarNotas" Disabled="_guardando">
+                @if (_guardando) { <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" /> }
+                else { <MudText>Guardar Calificaciones</MudText> }
+            </MudButton>
+        </div>
+
+        @if (_alumnos.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning">No hay estudiantes matriculados en esta sección.</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="@_alumnos" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Código</MudTh>
+                    <MudTh>Apellidos y Nombres</MudTh>
+                    <MudTh Style="width:120px;">Nota</MudTh>
+                    <MudTh Style="width:100px;">Ausente</MudTh>
+                    <MudTh>Observación</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.EstudianteCodigo</MudTd>
+                    <MudTd Style="font-weight:600;">@context.EstudianteNombre</MudTd>
+                    <MudTd>
+                        <MudNumericField @bind-Value="context.Calificacion" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="@(evaluacionActual?.NotaMaxima ?? 20)" Disabled="@context.Ausente" HideSpinButtons="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudCheckBox @bind-Value="context.Ausente" Color="Color.Error" Size="MudBlazor.Size.Small" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Observacion" Placeholder="Opcional..." Variant="Variant.Text" Margin="Margin.Dense" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private List<SeccionDto> _secciones = new();
+    private List<EvaluacionDto> _evaluaciones = new();
+    
+    private int _seccionSeleccionada = 0;
+    private int _evaluacionSeleccionada = 0;
+    
+    private bool _cargando = false;
+    private bool _guardando = false;
+    private List<NotaDto>? _alumnos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _secciones = await Mediator.Send(new GetSeccionesActivasQuery());
+    }
+
+    private async Task OnSeccionChanged()
+    {
+        _evaluacionSeleccionada = 0;
+        _alumnos = null;
+        if (_seccionSeleccionada > 0)
+        {
+            _evaluaciones = await Mediator.Send(new GetEvaluacionesPorSeccionQuery { SeccionId = _seccionSeleccionada });
+        }
+        else
+        {
+            _evaluaciones.Clear();
+        }
+    }
+
+    private async Task CargarAlumnos()
+    {
+        if (_evaluacionSeleccionada == 0) return;
+        
+        _cargando = true;
+        _alumnos = await Mediator.Send(new GetNotasPorEvaluacionQuery
+        {
+            EvaluacionId = _evaluacionSeleccionada
+        });
+        _cargando = false;
+    }
+
+    private async Task GuardarNotas()
+    {
+        if (_alumnos == null || _evaluacionSeleccionada == 0) return;
+
+        _guardando = true;
+        try
+        {
+            var result = await Mediator.Send(new SaveNotasBatchCommand
+            {
+                EvaluacionId = _evaluacionSeleccionada,
+                Notas = _alumnos
+            });
+            
+            Snackbar.Add("Calificaciones guardadas exitosamente.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

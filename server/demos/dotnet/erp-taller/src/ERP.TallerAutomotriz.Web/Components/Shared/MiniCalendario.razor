@@ -1,0 +1,41 @@
+@*
+  Mini calendario del mes actual marcando el día de hoy.
+*@
+<table class="mini-cal">
+    <thead>
+        <tr>
+            <th>D</th><th>L</th><th>M</th><th>M</th><th>J</th><th>V</th><th>S</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            var hoy = DateTime.Today;
+            var primero = new DateTime(hoy.Year, hoy.Month, 1);
+            var diasMes = DateTime.DaysInMonth(hoy.Year, hoy.Month);
+            int offset = ((int)primero.DayOfWeek);
+            int day = 1;
+            for (int row = 0; row < 6 && day <= diasMes; row++)
+            {
+                <tr>
+                    @for (int col = 0; col < 7; col++)
+                    {
+                        if (row == 0 && col < offset)
+                        {
+                            <td></td>
+                        }
+                        else if (day <= diasMes)
+                        {
+                            var esHoy = day == hoy.Day;
+                            <td class="@(esHoy ? "is-today" : "")">@day</td>
+                            day++;
+                        }
+                        else
+                        {
+                            <td></td>
+                        }
+                    }
+                </tr>
+            }
+        }
+    </tbody>
+</table>

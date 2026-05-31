@@ -1,0 +1,70 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="ErpTheme.Theme" IsDarkMode="false" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Surface" Dense="false" Class="erp-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+
+        <div class="erp-appbar-tabs d-flex align-center ml-4">
+            <MudButton StartIcon="@Icons.Material.Filled.Dashboard" Color="Color.Primary" Variant="Variant.Text"
+                       OnClick="@(() => Nav.NavigateTo("/"))" Class="erp-tab erp-tab--active">DASHBOARD</MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Receipt" Color="Color.Inherit" Variant="Variant.Text"
+                       OnClick="@(() => Nav.NavigateTo("/facturacion"))" Class="erp-tab">FACTURACIÓN</MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Build" Color="Color.Inherit" Variant="Variant.Text"
+                       OnClick="@(() => Nav.NavigateTo("/ordenes"))" Class="erp-tab">ÓRDENES</MudButton>
+        </div>
+
+        <MudSpacer />
+
+        <MudTextField T="string" Placeholder="Buscar..." Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="erp-search mr-3" Style="max-width:280px;" />
+
+        <MudTooltip Text="Notificaciones">
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Default">
+                <MudBadge Content="3" Color="Color.Error" Overlap="true">
+                    <MudIcon Icon="@Icons.Material.Filled.Notifications" />
+                </MudBadge>
+            </MudIconButton>
+        </MudTooltip>
+
+        <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Default" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <AuthorizeView>
+                <Authorized>
+                    <MudMenuItem>
+                        <div class="d-flex flex-column">
+                            <MudText Typo="Typo.body2" Class="fw-bold">@context.User.Identity?.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sesión activa</MudText>
+                        </div>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Person" OnClick="@(() => Nav.NavigateTo("/perfil"))">Mi perfil</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Settings" OnClick="@(() => Nav.NavigateTo("/configuracion"))">Configuración</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error" OnClick="@(() => Nav.NavigateTo("/Account/Logout", forceLoad: true))">Cerrar sesión</MudMenuItem>
+                </Authorized>
+            </AuthorizeView>
+        </MudMenu>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" Variant="@DrawerVariant.Mini" OpenMiniOnHover="true"
+               ClipMode="DrawerClipMode.Always" Class="erp-drawer">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent Class="erp-main">
+        <div class="erp-content">
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    private bool _drawerOpen = true;
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

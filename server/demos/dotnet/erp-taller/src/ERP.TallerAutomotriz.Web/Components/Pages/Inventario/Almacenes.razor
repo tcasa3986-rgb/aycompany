@@ -1,0 +1,129 @@
+@page "/inventario/almacenes"
+@attribute [Authorize]
+@inject IInventoryService InventorySvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Almacenes - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Almacenes</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Bodegas y depósitos donde se almacena el inventario</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoAlmacen">Nuevo almacén</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <MudTable Items="@almacenes" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Dirección</MudTh>
+            <MudTh>Responsable</MudTh>
+            <MudTh Style="text-align:center;">Tipo</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.body2" Class="fw-medium">@context.Codigo</MudText></MudTd>
+            <MudTd>@context.Nombre</MudTd>
+            <MudTd>@(context.Direccion ?? "—")</MudTd>
+            <MudTd>@(context.Responsable ?? "—")</MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.EsPrincipal)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Star">Principal</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Secundario</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.Activo)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Activo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled">Inactivo</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarAlmacen(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarAlmacen(context)" Disabled="@(!context.Activo || context.EsPrincipal)" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No hay almacenes. <MudLink OnClick="NuevoAlmacen">Crear el primero</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<AlmacenDto> almacenes = new();
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        almacenes = await InventorySvc.ListarAlmacenesAsync();
+        cargando = false;
+    }
+
+    private async Task NuevoAlmacen()
+    {
+        var parametros = new DialogParameters { ["Almacen"] = new AlmacenFormDto() };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<AlmacenFormDialog>("Nuevo almacén", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Almacén creado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarAlmacen(int id)
+    {
+        var dto = await InventorySvc.ObtenerAlmacenAsync(id);
+        if (dto == null) return;
+        var parametros = new DialogParameters { ["Almacen"] = dto };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<AlmacenFormDialog>("Editar almacén", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Almacén actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EliminarAlmacen(AlmacenDto a)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Confirmar",
+            $"¿Desactivar el almacén '{a.Nombre}'?",
+            yesText: "Sí, desactivar", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                await InventorySvc.EliminarAlmacenAsync(a.Id);
+                Snackbar.Add("Almacén desactivado", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+}

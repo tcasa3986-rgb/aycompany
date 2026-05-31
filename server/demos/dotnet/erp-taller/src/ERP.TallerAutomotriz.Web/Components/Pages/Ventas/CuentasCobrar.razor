@@ -1,0 +1,126 @@
+@page "/facturacion/cuentas-cobrar"
+@attribute [Authorize]
+@inject ISalesService SalesSvc
+@inject IDialogService DialogSvc
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Cuentas por Cobrar - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Cuentas por Cobrar</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Facturas pendientes y vencidas</MudText>
+    </div>
+</div>
+
+<MudGrid Spacing="3" Class="mb-3">
+    <MudItem xs="12" sm="4">
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border-radius:12px;">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">TOTAL POR COBRAR</MudText>
+            <MudText Typo="Typo.h4" Class="fw-bold" Color="Color.Primary">S/. @TotalCobrar.ToString("N2")</MudText>
+            <MudText Typo="Typo.caption">@cuentas.Count factura(s)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border-radius:12px;">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">VENCIDAS</MudText>
+            <MudText Typo="Typo.h4" Class="fw-bold" Color="Color.Error">S/. @TotalVencidas.ToString("N2")</MudText>
+            <MudText Typo="Typo.caption">@cuentas.Count(c => c.Vencida) factura(s)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border-radius:12px;">
+            <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Large" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">POR VENCER</MudText>
+            <MudText Typo="Typo.h4" Class="fw-bold" Color="Color.Warning">S/. @TotalPorVencer.ToString("N2")</MudText>
+            <MudText Typo="Typo.caption">@cuentas.Count(c => !c.Vencida) factura(s)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3">
+        <MudSwitch T="bool" @bind-Value="soloVencidas" @bind-Value:after="CargarAsync" Color="Color.Error"
+                   Label="Solo vencidas" />
+        <MudSpacer />
+    </div>
+
+    <MudTable Items="@cuentas" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Comprobante</MudTh>
+            <MudTh>Cliente</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Vencimiento</MudTh>
+            <MudTh Style="text-align:center;">Días vencido</MudTh>
+            <MudTh Style="text-align:right;">Total</MudTh>
+            <MudTh Style="text-align:right;">Saldo</MudTh>
+            <MudTh Style="text-align:right;">Acción</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Class="fw-bold">@context.Comprobante</MudText></MudTd>
+            <MudTd>@context.Cliente</MudTd>
+            <MudTd>@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Color="@(context.Vencida ? Color.Error : Color.Default)">@context.FechaVencimiento.ToString("dd/MM/yyyy")</MudText>
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.DiasVencido > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">@context.DiasVencido días</MudChip>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@(-context.DiasVencido) días restantes</MudText>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">S/. @context.Total.ToString("N2")</MudTd>
+            <MudTd Style="text-align:right;"><MudText Class="fw-bold" Color="Color.Warning">S/. @context.SaldoPendiente.ToString("N2")</MudText></MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
+                               OnClick='() => Nav.NavigateTo($"/facturacion/{context.FacturaId}")' />
+                <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.PointOfSale"
+                           OnClick="() => RegistrarPago(context)">Cobrar</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">¡No hay cuentas por cobrar pendientes!</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private bool soloVencidas;
+    private List<CuentaCobrarDto> cuentas = new();
+    private bool cargando = true;
+
+    private decimal TotalCobrar => cuentas.Sum(c => c.SaldoPendiente);
+    private decimal TotalVencidas => cuentas.Where(c => c.Vencida).Sum(c => c.SaldoPendiente);
+    private decimal TotalPorVencer => cuentas.Where(c => !c.Vencida).Sum(c => c.SaldoPendiente);
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        cuentas = await SalesSvc.ListarCuentasCobrarAsync(soloVencidas);
+        cargando = false;
+    }
+
+    private async Task RegistrarPago(CuentaCobrarDto c)
+    {
+        var pago = new PagoFormDto { FacturaId = c.FacturaId, Monto = c.SaldoPendiente };
+        var parametros = new DialogParameters { ["Pago"] = pago, ["SaldoMaximo"] = c.SaldoPendiente, ["Comprobante"] = c.Comprobante };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<PagoFormDialog>("Registrar pago", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+}

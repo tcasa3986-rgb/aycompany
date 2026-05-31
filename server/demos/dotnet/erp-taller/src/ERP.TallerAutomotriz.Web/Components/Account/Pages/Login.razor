@@ -1,0 +1,69 @@
+@page "/Account/Login"
+@layout AuthLayout
+
+<PageTitle>Iniciar sesión - AutoTaller ERP</PageTitle>
+
+<div class="login-page">
+    <div class="login-card-wrapper">
+        <div class="login-brand">
+            <div class="brand-circle">
+                <span class="material-icons" style="color:#fff;font-size:3rem;">build</span>
+            </div>
+            <h1>AutoTaller <span>ERP</span></h1>
+            <p>Sistema integral de gestión para talleres automotrices</p>
+        </div>
+
+        <div class="login-card">
+            <h2 class="login-title">Bienvenido de vuelta</h2>
+            <p class="login-subtitle">Ingresa tus credenciales para continuar</p>
+
+            @if (!string.IsNullOrEmpty(ErrorMsg))
+            {
+                <div class="alert-error">@ErrorMsg</div>
+            }
+
+            <form action="/Account/LoginPost" method="post" class="login-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="@(ReturnUrl ?? "/")" />
+
+                <div class="form-group">
+                    <label for="email-input">Correo electrónico</label>
+                    <input id="email-input" name="Email" type="email" required autocomplete="username"
+                           placeholder="usuario@taller.com" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password-input">Contraseña</label>
+                    <input id="password-input" name="Password" type="password" required autocomplete="current-password"
+                           placeholder="••••••••" class="form-control" />
+                </div>
+
+                <div class="form-check">
+                    <input id="remember-me" name="RememberMe" type="checkbox" value="true" class="form-check-input" />
+                    <label for="remember-me" class="form-check-label">Recordar sesión</label>
+                </div>
+
+                <button type="submit" class="login-btn-submit">INGRESAR AL SISTEMA</button>
+            </form>
+
+            <hr class="login-divider" />
+            <p class="login-hint">
+                Cuenta de prueba: <strong>admin@taller.com</strong> / <strong>Admin123$</strong>
+            </p>
+        </div>
+
+        <div class="login-footer">© @DateTime.Now.Year AutoTaller ERP — Todos los derechos reservados</div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? ErrorCode { get; set; }
+
+    private string? ErrorMsg => ErrorCode switch
+    {
+        "invalid" => "Credenciales inválidas. Verifique su correo y contraseña.",
+        "locked" => "Cuenta bloqueada temporalmente por múltiples intentos fallidos.",
+        _ => null
+    };
+}

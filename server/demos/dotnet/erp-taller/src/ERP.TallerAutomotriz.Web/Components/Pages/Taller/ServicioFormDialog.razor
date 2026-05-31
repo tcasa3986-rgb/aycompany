@@ -1,0 +1,109 @@
+@inject IWorkshopService WorkshopSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Servicio.Codigo" Label="Código (auto)"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Servicio.Nombre" Label="Nombre *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TipoServicio" @bind-Value="Servicio.Tipo" Label="Tipo"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="TipoServicio.MantenimientoPreventivo">Preventivo</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.Correctivo">Correctivo</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.Hojalateria">Hojalatería</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.Electrico">Eléctrico</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.AireAcondicionado">Aire acondicionado</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.AlineacionBalanceo">Alineación / balanceo</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.Diagnostico">Diagnóstico</MudSelectItem>
+                        <MudSelectItem Value="TipoServicio.Otro">Otro</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="Servicio.CategoriaId" Label="Categoría"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                        <MudSelectItem T="int?" Value="null">Sin categoría</MudSelectItem>
+                        @foreach (var c in Categorias)
+                        {
+                            <MudSelectItem T="int?" Value="c.Id">@c.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="Servicio.PrecioEstandar" Label="Precio (S/.) *" Min="0"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" />
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="Servicio.CostoManoObra" Label="Costo M.O. (S/.)" Min="0"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" />
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="Servicio.TiempoEstimadoMinutos" Label="Tiempo (min)" Min="0"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="Servicio.EsPaquete" Color="Color.Tertiary"
+                               Label="Es paquete (incluye varios servicios/repuestos)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Servicio.Descripcion" Label="Descripción" Lines="2"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@Icons.Material.Filled.Save">@(guardando ? "Guardando..." : "Guardar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ServicioFormDto Servicio { get; set; } = new();
+    [Parameter] public List<CategoriaServicioDto> Categorias { get; set; } = new();
+
+    private MudForm? form;
+    private bool guardando;
+    private string? error;
+
+    private async Task Guardar()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        guardando = true; error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+            if (Servicio.Id == 0)
+                await WorkshopSvc.CrearServicioAsync(Servicio, usuario);
+            else
+                await WorkshopSvc.ActualizarServicioAsync(Servicio, usuario);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { guardando = false; }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

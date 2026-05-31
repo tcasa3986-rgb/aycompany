@@ -1,0 +1,132 @@
+@model SistemaGestionAcademias.Models.Alumno
+
+@{
+    ViewData["Title"] = "Perfil del Alumno";
+    var totalCursos = Model.Inscripciones?.Count ?? 0;
+    var deuda = Model.Inscripciones?.Count(i => i.Estado == "Pendiente") ?? 0;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary"><i class="bi bi-person-circle"></i> Expediente del Alumno</h2>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar Datos</a>
+            <a asp-action="Index" class="btn btn-secondary">Volver al Directorio</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow border-0 mb-4">
+                <div class="card-body text-center pt-4">
+                    <div class="mb-3">
+                        @if (!string.IsNullOrEmpty(Model.FotoUrl))
+                        {
+                            <img src="~/imagenes/@Model.FotoUrl" class="rounded-circle border border-3 border-light shadow-sm" style="width: 180px; height: 180px; object-fit: cover;" alt="Foto de Perfil" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-person-circle display-1 text-secondary"></i>
+                        }
+                    </div>
+                    <h4 class="fw-bold">@Model.NombreCompleto</h4>
+                    <span class="badge bg-dark mb-3">DNI: @Model.DocumentoIdentidad</span>
+                    
+                    <hr />
+                    
+                    <div class="text-start px-3">
+                        <p class="mb-2"><i class="bi bi-envelope-fill text-primary me-2"></i> @Model.Correo</p>
+                        <p class="mb-2"><i class="bi bi-telephone-fill text-success me-2"></i> @Model.Telefono</p>
+                        <p class="mb-2"><i class="bi bi-cake2-fill text-warning me-2"></i> @Model.FechaNacimiento.ToShortDateString()</p>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-center">
+                    <small class="text-muted">Registrado en el sistema</small>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="fw-bold text-muted text-uppercase">Estado de Cuenta</h6>
+                    @if (deuda > 0)
+                    {
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Tiene <strong>@deuda</strong> pago(s) pendiente(s).
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success mb-0">
+                            <i class="bi bi-check-circle-fill"></i> Al día en sus pagos.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-journal-text"></i> Historial de Cursos</h5>
+                    <span class="badge bg-white text-primary fw-bold">Total: @totalCursos</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Inscripciones != null && Model.Inscripciones.Any())
+                    {
+                        <table class="table table-hover table-striped mb-0 align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Actividad / Taller</th>
+                                    <th>Estado Pago</th>
+                                    <th class="text-end">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Inscripciones.OrderByDescending(i => i.FechaInscripcion))
+                                {
+                                    <tr>
+                                        <td>@item.FechaInscripcion.ToShortDateString()</td>
+                                        <td class="fw-bold text-dark">
+                                            @item.Actividad.Nombre
+                                            @if(!item.Actividad.Activo) { <span class="badge bg-secondary ms-1">Finalizado</span> }
+                                        </td>
+                                        <td>
+                                            @if (item.Estado == "Pagado")
+                                            {
+                                                <span class="badge bg-success rounded-pill">Pagado</span>
+                                            }
+                                            else if (item.Estado == "Pendiente")
+                                            {
+                                                <span class="badge bg-warning text-dark rounded-pill">Pendiente</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger rounded-pill">@item.Estado</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-controller="Inscripciones" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil-square"></i> Gestionar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center p-5 text-muted">
+                            <i class="bi bi-journal-x display-1"></i>
+                            <p class="mt-3 fs-5">Este alumno no tiene historial académico.</p>
+                            <a asp-controller="Inscripciones" asp-action="Create" class="btn btn-primary mt-2">
+                                <i class="bi bi-plus-lg"></i> Inscribir en un curso
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

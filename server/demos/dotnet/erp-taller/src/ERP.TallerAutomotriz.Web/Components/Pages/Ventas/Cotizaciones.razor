@@ -1,0 +1,135 @@
+@page "/facturacion/cotizaciones"
+@attribute [Authorize]
+@inject ISalesService SalesSvc
+@inject ICustomerService CustomerSvc
+@inject IDialogService DialogSvc
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Cotizaciones - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Cotizaciones</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Presupuestos enviados a clientes</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevaCotizacion">Nueva cotización</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar cotización..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:380px;" />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@cotizaciones.Count cotización(es)</MudText>
+    </div>
+
+    <MudTable Items="@cotizaciones" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Número</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Válida hasta</MudTh>
+            <MudTh>Cliente</MudTh>
+            <MudTh Style="text-align:right;">Total</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Class="fw-bold">@context.Numero</MudText></MudTd>
+            <MudTd>@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Color="@(context.Vencida ? Color.Error : Color.Default)">@context.ValidaHasta.ToString("dd/MM/yyyy")</MudText>
+                @if (context.Vencida) { <MudText Typo="Typo.caption" Color="Color.Error">Vencida</MudText> }
+            </MudTd>
+            <MudTd>@context.Cliente</MudTd>
+            <MudTd Style="text-align:right;"><MudText Class="fw-bold">S/. @context.Total.ToString("N2")</MudText></MudTd>
+            <MudTd Style="text-align:center;">
+                <MudChip T="string" Size="Size.Small" Color="@EstadoColor(context.Estado)" Variant="Variant.Filled">@context.Estado</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.Estado != "Convertida")
+                {
+                    <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Receipt"
+                               OnClick="() => ConvertirAFactura(context)">Convertir a factura</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No hay cotizaciones. <MudLink OnClick="NuevaCotizacion">Crear la primera</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private List<CotizacionListDto> cotizaciones = new();
+    private bool cargando = true;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        cotizaciones = await SalesSvc.ListarCotizacionesAsync(buscar);
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try { await Task.Delay(350, token); await CargarAsync(); }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task NuevaCotizacion()
+    {
+        var clientes = await CustomerSvc.ListarTodosClientesAsync();
+        var parametros = new DialogParameters { ["Cotizacion"] = new CotizacionFormDto(), ["Clientes"] = clientes };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<CotizacionFormDialog>("Nueva cotización", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Cotización creada", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task ConvertirAFactura(CotizacionListDto c)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Convertir a factura",
+            $"¿Generar una factura a partir de la cotización {c.Numero}?",
+            yesText: "Sí, generar factura", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                var auth = await AuthState.GetAuthenticationStateAsync();
+                var facturaId = await SalesSvc.ConvertirCotizacionEnFacturaAsync(c.Id, auth.User.Identity?.Name);
+                Snackbar.Add("Factura generada", Severity.Success);
+                Nav.NavigateTo($"/facturacion/{facturaId}");
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private static Color EstadoColor(string e) => e switch
+    {
+        "Pendiente" => Color.Info,
+        "Aprobada" => Color.Success,
+        "Convertida" => Color.Tertiary,
+        "Rechazada" => Color.Error,
+        _ => Color.Default
+    };
+}

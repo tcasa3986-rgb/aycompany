@@ -1,0 +1,149 @@
+@page "/academico/planes-estudio"
+@using ERP.Application.Features.Academico.Carreras
+@using ERP.Application.Features.Academico.PlanesEstudio
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Planes de Estudio — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📚 Planes de Estudio</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Administración de mallas curriculares por carrera</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Plan</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_planes" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<PlanEstudioDto,bool>(p => string.IsNullOrWhiteSpace(_search) || p.Nombre.Contains(_search,StringComparison.OrdinalIgnoreCase) || p.Carrera.Contains(_search,StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Listado de Planes</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por nombre o carrera..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Carrera</MudTh>
+            <MudTh>Nombre del Plan</MudTh>
+            <MudTh>Versión</MudTh>
+            <MudTh>Año Vigencia</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Carrera</MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Nombre</MudText></MudTd>
+            <MudTd>@context.Version</MudTd>
+            <MudTd>@context.AnioVigencia</MudTd>
+            <MudTd>
+                @if (context.EsVigente)
+                {
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success">Vigente</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default">No Vigente</MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Plan de Estudio</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="int" @bind-Value="_form.CarreraId" Label="Carrera" Variant="Variant.Outlined" Required="true">
+                        @foreach (var c in _carreras)
+                        {
+                            <MudSelectItem Value="@c.Id">@c.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Nombre" Label="Nombre del Plan" Variant="Variant.Outlined" Required="true" HelperText="Ej: Plan 2025-I" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Version" Label="Versión" Variant="Variant.Outlined" Required="true" HelperText="Ej: v1.0" /></MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.AnioVigencia" Label="Año de Vigencia" Variant="Variant.Outlined" Required="true" Min="2000" Max="2100" /></MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="_form.EsVigente" Color="MudBlazor.Color.Primary" Label="Es Vigente" />
+                </MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<PlanEstudioDto> _planes = new();
+    private List<CarreraDto> _carreras = new();
+    private UpsertPlanEstudioCommand _form = new();
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _planes = await Mediator.Send(new GetPlanesEstudioQuery());
+        _carreras = await Mediator.Send(new GetCarrerasQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(PlanEstudioDto? p)
+    {
+        _form = p == null ? new() { AnioVigencia = DateTime.Now.Year, EsVigente = true } : new UpsertPlanEstudioCommand 
+        { 
+            Id = p.Id, 
+            CarreraId = p.CarreraId, 
+            Nombre = p.Nombre, 
+            Version = p.Version, 
+            AnioVigencia = p.AnioVigencia, 
+            EsVigente = p.EsVigente 
+        };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (_form.CarreraId == 0)
+        {
+            Snackbar.Add("Debe seleccionar una carrera", Severity.Warning);
+            return;
+        }
+
+        try { 
+            await Mediator.Send(_form); 
+            Snackbar.Add("Guardado correctamente", Severity.Success); 
+            _dialogAbierto = false; 
+            await Cargar(); 
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este plan de estudio?", "Sí", "No");
+        if (ok == true) { 
+            await Mediator.Send(new DeletePlanEstudioCommand { Id = id }); 
+            Snackbar.Add("Eliminado", Severity.Success); 
+            await Cargar(); 
+        }
+    }
+}

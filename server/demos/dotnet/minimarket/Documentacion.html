@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Documentación MiniMarket</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #2c3e50;
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 40px;
+}
+h1, h2, h3 {
+    color: #e67e22; /* matching possible brand color */
+}
+h1 {
+    border-bottom: 3px solid #f39c12;
+    padding-bottom: 10px;
+    text-align: center;
+}
+h2 {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+    margin-top: 40px;
+}
+ul, ol {
+    margin-bottom: 20px;
+}
+li {
+    margin-bottom: 8px;
+}
+code {
+    background-color: #f8f9fa;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: Consolas, monospace;
+    font-size: 0.9em;
+    color: #e74c3c;
+}
+a {
+    color: #3498db;
+    text-decoration: none;
+}
+hr {
+    border: 0;
+    border-top: 1px solid #ddd;
+    margin: 40px 0;
+}
+img {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+}
+</style>
+</head>
+<body>
+<h1 align="center">🏪 Manual y Documentación Técnica - MiniMarket Pro</h1>
+
+<p align="center">
+  <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" width="100" />
+</p>
+
+<h2>🛠️ Tecnologías de Desarrollo</h2>
+<p>El sistema ha sido desarrollado con un stack moderno y escalable utilizando el ecosistema de Microsoft .NET:</p>
+<ul>
+<li><strong>Backend:</strong> C# y <strong>ASP.NET Core 10.0</strong> (Arquitectura MVC).</li>
+<li><strong>Base de Datos:</strong> SQL Server.</li>
+<li><strong>ORM (Mapeador Objeto-Relacional):</strong> Entity Framework Core 10.0.</li>
+<li><strong>Seguridad y Autenticación:</strong> ASP.NET Core Identity (Roles, Usuarios, Encriptación de Contraseñas).</li>
+<li><strong>Frontend / Diseño UI:</strong> Razor Pages/Views, HTML5, Vanilla CSS interactivo, <strong>Bootstrap 5.3</strong>, DataTables (para reportes web), Select2 y FontAwesome para iconografía.</li>
+<li><strong>Tipografía:</strong> <em>Outfit</em> (Google Fonts) para una apariencia corporativa premium.</li>
+</ul>
+<hr />
+<h2>⚡ Funcionalidades del Sistema</h2>
+<p>El sistema implementa un completo ERP / POS para la administración exhaustiva del MiniMarket:</p>
+<ol>
+<li><strong>Dashboard y Analíticas:</strong> Vista general de ventas del día, productos más vendidos e indicadores financieros de negocio.</li>
+<li><strong>Punto de Venta (POS):</strong> Pantalla de creación de ventas rápida tipo supermercado, búsqueda responsiva, cálculo automático de impuestos (IGV) y subtotales.</li>
+<li><strong>Módulo de Caja y Turnos:</strong> Apertura de caja, cierre, registro de saldo inicial y control de efectivo validado por cada cajero en su respectivo turno.</li>
+<li><strong>Historial de Ventas y Compras:</strong> Listados para auditoría con opción a anulación o visualización de tickets/facturas con reversión del stock de los productos.</li>
+<li><strong>Inventario y Productos:</strong> Control de stock, alertas visuales de stock mínimo o críticos, gestión de categorías/familias.</li>
+<li><strong>Impresión de Etiquetas (Código de Barras):</strong> Generador dinámico de códigos de barras basado en JsBarcode para productos, optimizado de copia múltiple para tiqueteras térmicas y A4.</li>
+<li><strong>Control de Gastos:</strong> Registro de movimientos y gastos operativos afectando directamente los balances del cierre de caja del turno.</li>
+<li><strong>Kardex:</strong> Monitorización detallada de movimientos, entradas y salidas de mercancía en tiempo real para análisis.</li>
+<li><strong>Gestión de Clientes y Proveedores:</strong> Base de datos relacional para guardar compradores y sus números de identificación o impuestos asociados para facturación rápida.</li>
+<li><strong>Seguridad y Usuarios:</strong> Control de roles restrictivos (<code>Administrador</code> con acceso total vs <code>Cajero</code> con pantallas restringidas), y módulo central para configurar negocio.</li>
+</ol>
+<hr />
+<h2>💻 Instalación y Configuración (Computadora Nueva)</h2>
+<h3>Paso 1: Descargar los Requisitos</h3>
+<p>Descargue e instale los siguientes programas obligatorios para el servidor/local:
+1. <strong>.NET 10.0 SDK:</strong> Requerido para compilar y ejecutar la aplicación.
+2. <strong>SQL Server Developer Edition / SQL Express:</strong> Motor de la base de datos empresarial.
+3. <strong>SQL Server Management Studio (SSMS):</strong> Opcional, para visualizar las tablas de su BD.</p>
+<h3>Paso 2: Configuración de la Base de Datos</h3>
+<ol>
+<li>Abra el archivo <code>appsettings.json</code> o <code>appsettings.Development.json</code> en la carpeta raíz <code>MiniMarket.Web</code> usando el bloc de notas o Visual Studio Code.</li>
+<li>Busque la propiedad de conexión <code>DefaultConnection</code>.</li>
+<li>Ingrese en el parámetro <code>Server=</code> el nombre local de su SQL Server.
+   <em>Ejemplo:</em> <code>"Server=localhost\SQLEXPRESS;Database=BK_BD_MINIMARKET;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"</code></li>
+</ol>
+<h3>Paso 3: Construcción de la Estructura de Datos (Migraciones)</h3>
+<ol>
+<li>Abra una terminal en su sistema Windows (PowerShell, CMD) situándose dentro de la ruta física de la carpeta <code>MiniMarket.Web</code>.</li>
+<li>Ejecute el comando: <code>dotnet ef database update</code></li>
+<li>Este subprocedimiento construirá estructuralmente las tablas y vistas, cargando a la vez datos semilla, incluyendo los usuarios de prueba en su servidor SQL local.</li>
+</ol>
+<h3>Paso 4: Ejecutar el Sistema en el Navegador</h3>
+<ol>
+<li>Manteniéndose en esa misma carpeta vía terminal, digite: <code>dotnet run</code> </li>
+<li>Cuando le diga que el servidor inicio correctamente, abra su navegador web (Chrome/Edge).</li>
+<li>Ingrese a la dirección brindada (generalmente <code>http://localhost:5xxx</code>) para iniciar sesión en la aplicación.</li>
+</ol>
+<hr />
+<h2>🔐 Credenciales de Administrador</h2>
+<p>Una vez cargada la base de datos con las migraciones, utilice la siguiente clave generada:</p>
+<ul>
+<li><strong>Usuario Administrador:</strong> <code>admin@minimarket.com</code></li>
+<li><strong>Contraseña:</strong> <code>Admin123!</code></li>
+</ul>
+<hr />
+<h2>🌐 Recomendación de Hosting Web</h2>
+<p><strong>SmarterASP.NET</strong> es nuestra recomendación preferencial para subir su aplicación de C#.
+* <strong>Por qué elegirlo:</strong> Funciona íntegramente con ecosistemas y arquitecturas de Microsoft, tiene un gran soporte a <code>.NET 10.0</code>, y otorga una prueba sin tarjeta de crédito válida de 60 días para testear su App en un ambiente real.
+* <strong>Alternativas:</strong> <code>InterServer.net</code> o virtualizadores como <code>Azure App Services</code> si dispone de personal preparado en infraestructuras Cloud.</p>
+<hr />
+<h2>🚀 Paso a Paso: Subir la Aplicación a SmarterASP.NET</h2>
+<h3>Fase 1: Compilar la Aplicación a Versión Productiva</h3>
+<ol>
+<li>Dentro de la carpeta <code>MiniMarket.Web</code>, ejecute el siguiente comando para generar la versión ligera o optimizada lista para producción: <code>dotnet publish -c Release -o ./publish</code></li>
+<li>El proceso originará una nueva carpeta denominada <strong><code>publish</code></strong>.</li>
+<li>Ingrese ahí y comprima todo su contenido interior generándose un fichero como <strong><code>MiniMarket.zip</code></strong>.</li>
+</ol>
+<h3>Fase 2: Configurar Instancias en SmarterASP.NET</h3>
+<ol>
+<li>Entrar o registrar su prueba gratuita en <strong>SmarterASP.NET</strong> &gt; Control Panel.</li>
+<li>Váyase a la sección "Websites", añada su nueva web y dígale que será con <strong>ASP.NET Core</strong>.</li>
+<li>Dirigirse después a la pestaña o submenú lateral de navegacion  <strong>"Databases"</strong> &gt; <strong>"MS SQL"</strong> para provisionar y crear una nueva base de datos.</li>
+<li>Le otorgarán un string de credenciales (Servidor, BD Nombre, Usuario y Clave); reserve dicha información para el siguiente paso.</li>
+</ol>
+<h3>Fase 3: Conexión y Migración</h3>
+<ol>
+<li>Descomprima temporalmente el archivo <code>appsettings.json</code> o sitúese en la configuración de la nube para modificar el atributo <strong><code>DefaultConnection</code></strong> empleando las claves que su host SQL le acababa de proveer.</li>
+<li><em>(Migración de Data)</em>: Conéctese con SSMS (SQL Management Studio) a la base de datos de SmarterASP.NET (vía nube) directamente usando sus claves, para ejecutar sobre ella el Script SQL de Migración originado por Entity Framework que replicará idénticamente sus tablas.</li>
+</ol>
+<h3>Fase 4: Subir los Ficheros</h3>
+<ol>
+<li>En SmarterASP.NET presione <strong>File Manager (Administrador de Archivos)</strong> de tu sitio web asigando.</li>
+<li>Elimine todo el contenido de inicio que provee el host por obvias razones y luego presione Upload para subir su fichero <strong><code>MiniMarket.zip</code></strong>.</li>
+<li>Efectúe una descompresión o extracción ('Extract') de todo el Zip alojándolo directamente en el directorio <em>Root</em> publico de la web.</li>
+<li><strong>¡Felicidades!</strong> Abra el dominio en su navegador web, ¡la aplicación está ahora funcional por el internet global!</li>
+</ol>
+<p><br/><hr/><p align="center" style="color:Gray"><i>Documentación automática e instruccional del Sistema MiniMarket.</i></p></p>
+</body>
+</html>

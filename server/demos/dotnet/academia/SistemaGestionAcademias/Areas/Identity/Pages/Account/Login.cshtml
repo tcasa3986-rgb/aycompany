@@ -1,0 +1,77 @@
+﻿@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Acceso al Sistema";
+}
+
+<div class="container" style="margin-top: 80px;">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0 rounded-4">
+                
+                <div class="card-header bg-primary text-white text-center py-5 rounded-top-4">
+                    <i class="bi bi-mortarboard-fill display-1"></i>
+                    <h2 class="fw-bold mt-3">Portal Académico</h2>
+                    <p class="mb-0 opacity-75">Sistema de Gestión Escolar</p>
+                </div>
+
+                <div class="card-body p-5">
+                    <h4 class="text-center text-muted mb-4">Iniciar Sesión</h4>
+                    
+                    <form id="account" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.Email" class="form-control rounded-pill" autocomplete="username" aria-required="true" placeholder="nombre@ejemplo.com" />
+                            <label asp-for="Input.Email" class="ps-4 text-muted">Correo Electrónico</label>
+                            <span asp-validation-for="Input.Email" class="text-danger small ps-3"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.Password" class="form-control rounded-pill" autocomplete="current-password" aria-required="true" placeholder="Contraseña" />
+                            <label asp-for="Input.Password" class="ps-4 text-muted">Contraseña</label>
+                            <span asp-validation-for="Input.Password" class="text-danger small ps-3"></span>
+                        </div>
+
+                        <div class="checkbox mb-4 ms-2">
+                            <label asp-for="Input.RememberMe" class="form-label text-muted">
+                                <input class="form-check-input me-1" asp-for="Input.RememberMe" />
+                                @Html.DisplayNameFor(m => m.Input.RememberMe)
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button id="login-submit" type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> INGRESAR
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-4 small">
+                            <p>
+                                <a id="forgot-password" asp-page="./ForgotPassword" class="text-decoration-none text-muted">
+                                    ¿Olvidaste tu contraseña?
+                                </a>
+                            </p>
+                            <p>
+                                ¿Eres nuevo? 
+                                <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="fw-bold text-primary text-decoration-none">
+                                    Crear una cuenta
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4 text-muted small">
+                &copy; 2026 - Sistema Académico Seguro
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,121 @@
+@inject IPersonnelService PersonnelSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Tecnico.Codigo" Label="Código (auto)"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Tecnico.Nombres" Label="Nombres *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Tecnico.Apellidos" Label="Apellidos *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Tecnico.DocumentoIdentidad" Label="DNI *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="fechaIngreso" Label="Fecha de ingreso"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Tecnico.Telefono" Label="Teléfono"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Tecnico.Email" Label="Email" InputType="InputType.Email"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Tecnico.Direccion" Label="Dirección"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="NivelExperiencia" @bind-Value="Tecnico.Nivel" Label="Nivel"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="NivelExperiencia.Aprendiz">Aprendiz</MudSelectItem>
+                        <MudSelectItem Value="NivelExperiencia.Junior">Junior</MudSelectItem>
+                        <MudSelectItem Value="NivelExperiencia.SemiSenior">Semi-Senior</MudSelectItem>
+                        <MudSelectItem Value="NivelExperiencia.Senior">Senior</MudSelectItem>
+                        <MudSelectItem Value="NivelExperiencia.Maestro">Maestro</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="Tecnico.TarifaHora" Label="Tarifa por hora (S/.)"
+                                     Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="Tecnico.PorcentajeComision" Label="% Comisión"
+                                     Min="0" Max="100" Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Tecnico.Especialidades"
+                                  Label="Especialidades (motor, eléctrico, frenos, etc.)"
+                                  Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@Icons.Material.Filled.Save">@(guardando ? "Guardando..." : "Guardar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public TecnicoFormDto Tecnico { get; set; } = new();
+
+    private MudForm? form;
+    private bool guardando;
+    private string? error;
+    private DateTime? fechaIngreso;
+
+    protected override void OnInitialized()
+    {
+        fechaIngreso = Tecnico.FechaIngreso;
+    }
+
+    private async Task Guardar()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        if (fechaIngreso.HasValue) Tecnico.FechaIngreso = fechaIngreso.Value;
+
+        guardando = true; error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+            if (Tecnico.Id == 0)
+                await PersonnelSvc.CrearTecnicoAsync(Tecnico, usuario);
+            else
+                await PersonnelSvc.ActualizarTecnicoAsync(Tecnico, usuario);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { guardando = false; }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

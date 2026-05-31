@@ -1,0 +1,188 @@
+@page "/inventario/activos"
+@using ERP.Application.Features.Inventario
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Inventario de Activos Fijos — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">🏢 Inventario de Activos Fijos</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Control de mobiliario, equipos y recursos institucionales</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Activo</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_activos" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<ActivoFijoDto,bool>(a => string.IsNullOrWhiteSpace(_search) || a.Nombre.Contains(_search,StringComparison.OrdinalIgnoreCase) || a.Codigo.Contains(_search,StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lista de Activos</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por nombre o código..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Ubicación</MudTh>
+            <MudTh>Asignado A</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Codigo</MudTd>
+            <MudTd>
+                <MudText Style="font-weight:600;">@context.Nombre</MudText>
+                <MudText Typo="Typo.caption" Style="color:#6B7280;">@(context.Marca) @(context.Modelo)</MudText>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Variant="Variant.Text">@context.TipoActivo.ToString()</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetEstadoColor(context.Estado)">
+                    @context.Estado
+                </MudChip>
+            </MudTd>
+            <MudTd>@context.UbicacionActual</MudTd>
+            <MudTd>@context.AsignadoA</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Activo Fijo</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Codigo" Label="Código Patrimonial" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField @bind-Value="_form.Nombre" Label="Nombre del Activo" Variant="Variant.Outlined" Required="true" /></MudItem>
+                
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="TipoActivo" @bind-Value="_form.TipoActivo" Label="Tipo" Variant="Variant.Outlined">
+                        @foreach (TipoActivo v in Enum.GetValues(typeof(TipoActivo))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Marca" Label="Marca" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Modelo" Label="Modelo" Variant="Variant.Outlined" /></MudItem>
+                
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.NumeroSerie" Label="N° Serie" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.ValorAdquisicion" Label="Valor Adquisición" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="S/" /></MudItem>
+                
+                <MudItem xs="12" sm="6"><MudDatePicker @bind-Date="_fechaAdquisicion" Label="Fecha Adquisición" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_form.Estado" Label="Estado Físico" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Bueno")">Bueno</MudSelectItem>
+                        <MudSelectItem Value="@("Regular")">Regular</MudSelectItem>
+                        <MudSelectItem Value="@("Malo")">Malo</MudSelectItem>
+                        <MudSelectItem Value="@("Baja")">Dado de Baja</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.UbicacionActual" Label="Ubicación" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.AsignadoA" Label="Responsable" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<ActivoFijoDto> _activos = new();
+    private UpsertActivoFijoCommand _form = new();
+    private DateTime? _fechaAdquisicion = DateTime.Now;
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _activos = await Mediator.Send(new GetActivosFijosQuery());
+        _cargando = false;
+    }
+
+    private void AbrirDialog(ActivoFijoDto? a)
+    {
+        if (a == null)
+        {
+            _form = new();
+            _fechaAdquisicion = DateTime.Now;
+        }
+        else
+        {
+            _form = new UpsertActivoFijoCommand
+            {
+                Id = a.Id,
+                Codigo = a.Codigo,
+                Nombre = a.Nombre,
+                TipoActivo = a.TipoActivo,
+                Marca = a.Marca,
+                Modelo = a.Modelo,
+                NumeroSerie = a.NumeroSerie,
+                ValorAdquisicion = a.ValorAdquisicion,
+                FechaAdquisicion = a.FechaAdquisicion,
+                Estado = a.Estado,
+                UbicacionActual = a.UbicacionActual,
+                AsignadoA = a.AsignadoA
+            };
+            _fechaAdquisicion = a.FechaAdquisicion;
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        try
+        {
+            _form.FechaAdquisicion = _fechaAdquisicion ?? DateTime.Now;
+            await Mediator.Send(_form);
+            Snackbar.Add("Activo guardado correctamente", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este activo?", "Sí", "No");
+        if (ok == true)
+        {
+            await Mediator.Send(new DeleteActivoFijoCommand { Id = id });
+            Snackbar.Add("Eliminado", Severity.Success);
+            await Cargar();
+        }
+    }
+
+    private MudBlazor.Color GetEstadoColor(string? estado) => estado switch
+    {
+        "Bueno" => MudBlazor.Color.Success,
+        "Regular" => MudBlazor.Color.Warning,
+        "Malo" => MudBlazor.Color.Error,
+        "Baja" => MudBlazor.Color.Dark,
+        _ => MudBlazor.Color.Default
+    };
+}

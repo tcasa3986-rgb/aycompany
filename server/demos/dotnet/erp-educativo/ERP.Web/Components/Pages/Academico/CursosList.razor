@@ -1,0 +1,107 @@
+@page "/academico/cursos"
+@using ERP.Application.Features.Academico.Cursos
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Cursos — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📚 Cursos / Asignaturas</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Catálogo de cursos y asignaturas disponibles</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Curso</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_cursos" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<CursoDto,bool>(c => string.IsNullOrWhiteSpace(_search) || c.Nombre.Contains(_search,StringComparison.OrdinalIgnoreCase) || c.Codigo.Contains(_search,StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Catálogo de Cursos</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por código o nombre..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh><MudTh>Nombre</MudTh><MudTh>Créditos</MudTh><MudTh>H. Teóricas</MudTh><MudTh>H. Prácticas</MudTh><MudTh>Tipo</MudTh><MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Codigo</MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Nombre</MudText></MudTd>
+            <MudTd>@context.Creditos</MudTd>
+            <MudTd>@context.HorasTeoricas</MudTd>
+            <MudTd>@context.HorasPracticas</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.EsElectivo ? MudBlazor.Color.Warning : MudBlazor.Color.Success)">
+                    @(context.EsElectivo ? "Electivo" : "Obligatorio")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Curso</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Codigo" Label="Código" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField @bind-Value="_form.Nombre" Label="Nombre del Curso" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_form.Creditos" Label="Créditos" Variant="Variant.Outlined" Min="0" /></MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_form.HorasTeoricas" Label="H. Teóricas" Variant="Variant.Outlined" Min="0" /></MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_form.HorasPracticas" Label="H. Prácticas" Variant="Variant.Outlined" Min="0" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Descripcion" Label="Descripción" Variant="Variant.Outlined" Lines="2" /></MudItem>
+                <MudItem xs="12"><MudCheckBox @bind-Value="_form.EsElectivo" Label="Es Electivo (opcional)" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<CursoDto> _cursos = new();
+    private UpsertCursoCommand _form = new();
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _cursos = await Mediator.Send(new GetCursosQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(CursoDto? c)
+    {
+        _form = c == null ? new() : new UpsertCursoCommand { Id = c.Id, Codigo = c.Codigo, Nombre = c.Nombre, Creditos = c.Creditos, HorasTeoricas = c.HorasTeoricas, HorasPracticas = c.HorasPracticas, EsElectivo = c.EsElectivo, Descripcion = c.Descripcion };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        try { await Mediator.Send(_form); Snackbar.Add("Guardado correctamente", Severity.Success); _dialogAbierto = false; await Cargar(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este curso?", "Sí", "No");
+        if (ok == true) { await Mediator.Send(new DeleteCursoCommand { Id = id }); Snackbar.Add("Eliminado", Severity.Success); await Cargar(); }
+    }
+}

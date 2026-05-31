@@ -1,0 +1,232 @@
+@page "/inventario/repuestos"
+@attribute [Authorize]
+@inject IInventoryService InventorySvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Repuestos - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Repuestos</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Catálogo de repuestos con control de stock</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoRepuesto">Nuevo repuesto</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3 flex-wrap">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar por código, descripción, OEM o código de barras..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:480px;flex:1;" />
+
+        <MudSelect T="int?" @bind-Value="categoriaFiltro" @bind-Value:after="CargarAsync" Label="Categoría"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="min-width:180px;">
+            <MudSelectItem T="int?" Value="null">Todas las categorías</MudSelectItem>
+            @foreach (var cat in categorias)
+            {
+                <MudSelectItem T="int?" Value="cat.Id">@cat.Nombre</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSwitch T="bool" @bind-Value="soloBajoStock" @bind-Value:after="CargarAsync"
+                   Color="Color.Warning" Label="Solo bajo stock" />
+
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@total repuesto(s)</MudText>
+    </div>
+
+    <MudTable Items="@repuestos" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Descripción</MudTh>
+            <MudTh>Categoría</MudTh>
+            <MudTh>Ubic.</MudTh>
+            <MudTh Style="text-align:right;">Stock</MudTh>
+            <MudTh Style="text-align:right;">Mín.</MudTh>
+            <MudTh Style="text-align:right;">Costo</MudTh>
+            <MudTh Style="text-align:right;">P. Venta</MudTh>
+            <MudTh Style="text-align:center;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudText Typo="Typo.caption" Class="fw-medium">@context.CodigoInterno</MudText>
+                @if (!string.IsNullOrEmpty(context.CodigoOEM))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">OEM: @context.CodigoOEM</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.Descripcion</MudText>
+            </MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Categoria))
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Categoria</MudChip>
+                }
+            </MudTd>
+            <MudTd>@(context.Ubicacion ?? "—")</MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.BajoStock)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Warning">
+                        @context.StockActual.ToString("N2") @context.UnidadMedida
+                    </MudChip>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="fw-medium">@context.StockActual.ToString("N2") @context.UnidadMedida</MudText>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.StockMinimo.ToString("N0")</MudText>
+            </MudTd>
+            <MudTd Style="text-align:right;">S/. @context.CostoPromedio.ToString("N2")</MudTd>
+            <MudTd Style="text-align:right;">
+                <MudText Typo="Typo.body2" Class="fw-medium">S/. @context.PrecioVenta.ToString("N2")</MudText>
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Color="Color.Info"
+                               OnClick="() => RegistrarMovimiento(context.Id)" Title="Registrar movimiento" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarRepuesto(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarRepuesto(context)" Disabled="!context.Activo" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No se encontraron repuestos. <MudLink OnClick="NuevoRepuesto">Crear el primero</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-center mt-4">
+            <MudPagination Color="Color.Primary" Count="totalPages" Selected="page" SelectedChanged="OnPageChanged" />
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private int? categoriaFiltro;
+    private bool soloBajoStock;
+    private List<RepuestoListDto> repuestos = new();
+    private List<CategoriaRepuestoDto> categorias = new();
+    private bool cargando = true;
+    private int page = 1;
+    private const int pageSize = 10;
+    private int total = 0;
+    private int totalPages = 0;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await InventorySvc.ListarCategoriasAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await InventorySvc.ListarRepuestosAsync(buscar, categoriaFiltro, soloBajoStock, page, pageSize);
+        repuestos = resultado.Items;
+        total = resultado.Total;
+        totalPages = resultado.TotalPages;
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try
+        {
+            await Task.Delay(350, token);
+            page = 1;
+            await CargarAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task OnPageChanged(int p)
+    {
+        page = p;
+        await CargarAsync();
+    }
+
+    private async Task NuevoRepuesto()
+    {
+        var dto = new RepuestoFormDto();
+        var parametros = new DialogParameters { ["Repuesto"] = dto, ["Categorias"] = categorias };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<RepuestoFormDialog>("Nuevo repuesto", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Repuesto creado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarRepuesto(int id)
+    {
+        var dto = await InventorySvc.ObtenerRepuestoAsync(id);
+        if (dto == null) return;
+        var parametros = new DialogParameters { ["Repuesto"] = dto, ["Categorias"] = categorias };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<RepuestoFormDialog>("Editar repuesto", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Repuesto actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EliminarRepuesto(RepuestoListDto rep)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Confirmar",
+            $"¿Desactivar el repuesto '{rep.Descripcion}'?",
+            yesText: "Sí, desactivar", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                await InventorySvc.EliminarRepuestoAsync(rep.Id);
+                Snackbar.Add("Repuesto desactivado", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task RegistrarMovimiento(int repuestoId)
+    {
+        var almacenes = await InventorySvc.ListarAlmacenesAsync();
+        var dto = new MovimientoFormDto { RepuestoId = repuestoId, AlmacenId = almacenes.FirstOrDefault()?.Id ?? 0 };
+        var parametros = new DialogParameters
+        {
+            ["Movimiento"] = dto,
+            ["Repuestos"] = repuestos.Select(r => (r.Id, r.CodigoInterno, r.Descripcion)).ToList(),
+            ["Almacenes"] = almacenes
+        };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<MovimientoFormDialog>("Registrar movimiento", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Movimiento registrado y stock actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+}

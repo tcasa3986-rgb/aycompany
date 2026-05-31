@@ -1,0 +1,68 @@
+@page "/tesoreria/pagos"
+@using ERP.Application.Features.Tesoreria.Pagos
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Pagos — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">💰 Registro de Pagos</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Historial de pagos y comprobantes</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add"
+               Color="MudBlazor.Color.Primary" Href="/tesoreria/pagos/nuevo"
+               Style="border-radius:8px;">
+        Registrar Pago
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_pagos" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<PagoListDto,bool>(p => string.IsNullOrWhiteSpace(_search) || p.Estudiante.Contains(_search, StringComparison.OrdinalIgnoreCase) || p.NumeroPago.Contains(_search))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Historial de Pagos</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por estudiante o N° pago..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>N° Pago</MudTh><MudTh>Estudiante</MudTh><MudTh>Concepto</MudTh><MudTh>Monto</MudTh><MudTh>Fecha</MudTh><MudTh>Tipo</MudTh><MudTh>Estado</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Style="font-weight:600;">@context.NumeroPago</MudText></MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Estudiante</MudText></MudTd>
+            <MudTd>@context.Concepto</MudTd>
+            <MudTd><MudText Style="font-weight:700; color:#10B981;">S/ @context.MontoPagado.ToString("N2")</MudText></MudTd>
+            <MudTd>@context.FechaPago.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info">@context.TipoPago.ToString()</MudChip></MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.Anulado ? MudBlazor.Color.Error : MudBlazor.Color.Success)">
+                    @(context.Anulado ? "Anulado" : "Válido")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Receipt" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small"
+                               Href="@($"/tesoreria/pagos/recibo/{context.Id}")" Target="_blank" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private bool _cargando = true;
+    private string _search = "";
+    private List<PagoListDto> _pagos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cargando = true;
+        _pagos = await Mediator.Send(new GetPagosQuery());
+        _cargando = false;
+    }
+}

@@ -1,0 +1,118 @@
+@page "/portal/docente"
+@using ERP.Application.Features.Portal
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize(Roles = "Docente,Administrador")]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<PageTitle>Portal Docente — ERP Educativo</PageTitle>
+
+@if (_data == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
+}
+else
+{
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">👨‍🏫 Panel del Docente</MudText>
+            <MudText Typo="Typo.body2" Style="color:#6B7280;">Bienvenido, @_data.DocenteNombre — Especialidad: @_data.Especialidad</MudText>
+        </div>
+        <MudStack Row Spacing="2">
+            <MudChip T="string" Icon="@Icons.Material.Filled.Groups" Color="MudBlazor.Color.Info">@_data.TotalEstudiantes Estudiantes</MudChip>
+            <MudChip T="string" Icon="@Icons.Material.Filled.Assignment" Color="MudBlazor.Color.Warning">@_data.EvaluacionesPendientes Pendientes</MudChip>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid>
+        <!-- MIS SECCIONES -->
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h6" Class="mb-4">Mis Clases Asignadas</MudText>
+            <MudGrid Spacing="3">
+                @foreach (var sec in _data.SeccionesAsignadas)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudCard Elevation="2" Style="border-radius:16px; transition: transform 0.2s;" Class="hover-card">
+                            <MudCardHeader>
+                                <CardHeaderAvatar>
+                                    <MudAvatar Color="MudBlazor.Color.Primary">@sec.CursoNombre[0]</MudAvatar>
+                                </CardHeaderAvatar>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@sec.CursoNombre</MudText>
+                                    <MudText Typo="Typo.caption">Sección: @sec.SeccionNombre</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info" />
+                                    <MudText Typo="Typo.body2">@sec.Horario</MudText>
+                                </MudStack>
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" />
+                                    <MudText Typo="Typo.body2">@sec.AlumnosContados Estudiantes Matriculados</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Checklist" OnClick="@(() => Nav.NavigateTo($"/evaluacion/asistencia?seccionId={sec.Id}"))">Asistencia</MudButton>
+                                <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Grading" OnClick="@(() => Nav.NavigateTo($"/evaluacion/notas?seccionId={sec.Id}"))">Calificar</MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudItem>
+
+        <!-- ACCIONES Y ALERTAS -->
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px; background: white;">
+                <MudText Typo="Typo.h6" Class="mb-4">Tareas Rápidas</MudText>
+                <MudStack Spacing="2">
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Quiz" OnClick="@(() => Nav.NavigateTo("/evaluacion/evaluaciones"))">Gestionar Evaluaciones</MudButton>
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Campaign" OnClick="@(() => Nav.NavigateTo("/comunicados"))">Publicar Anuncio</MudButton>
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Summarize" OnClick="@(() => Nav.NavigateTo("/reportes"))">Reportes Académicos</MudButton>
+                </MudStack>
+
+                <MudDivider Class="my-6" />
+
+                <MudText Typo="Typo.h6" Class="mb-4">Próximos Eventos</MudText>
+                <MudTimeline TimelinePosition="TimelinePosition.Left">
+                    <MudTimelineItem Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small">
+                        <MudText Typo="Typo.body2" Style="font-weight:700;">Examen Parcial</MudText>
+                        <MudText Typo="Typo.caption">Mañana, 09:00 AM — Secc. A1</MudText>
+                    </MudTimelineItem>
+                    <MudTimelineItem Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small">
+                        <MudText Typo="Typo.body2" Style="font-weight:700;">Reunión de Facultad</MudText>
+                        <MudText Typo="Typo.caption">Viernes, 04:00 PM</MudText>
+                    </MudTimelineItem>
+                </MudTimeline>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<style>
+    .hover-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+@code {
+    private TeacherDashboardDto? _data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(email))
+        {
+            _data = await Mediator.Send(new GetTeacherDashboardQuery(email));
+        }
+    }
+}

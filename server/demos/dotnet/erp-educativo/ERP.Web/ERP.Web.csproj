@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ERP.Application\ERP.Application.csproj" />
+    <ProjectReference Include="..\ERP.Infrastructure\ERP.Infrastructure.csproj" />
+    <ProjectReference Include="..\ERP.Shared\ERP.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazor-ApexCharts" Version="*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="*" />
+    <PackageReference Include="MudBlazor" Version="*" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+</Project>

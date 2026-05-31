@@ -1,0 +1,65 @@
+@model SistemaGestionAcademias.Models.Actividad
+
+@{
+    ViewData["Title"] = "Control de Asistencia";
+}
+
+<div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+    <div>
+        <h4 class="text-secondary small text-uppercase mb-1">Cronograma de Clases</h4>
+        <h2 class="fw-bold text-primary"><i class="bi bi-calendar-check"></i> @Model.Nombre</h2>
+    </div>
+    <a asp-controller="Actividades" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Detalle
+    </a>
+</div>
+
+<div class="card shadow border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary">
+                    <tr>
+                        <th class="ps-4">Fecha</th>
+                        <th>Día</th>
+                        <th>Tema de la Sesión</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-end pe-4">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Sesiones)
+                    {
+                        // Estilo visual según si ya pasó la fecha o si ya se tomó lista
+                        var esPasado = item.Fecha < DateTime.Today;
+                        var rowClass = esPasado && !item.AsistenciaTomada ? "table-warning" : "";
+                        
+                        <tr class="@rowClass">
+                            <td class="ps-4 fw-bold">@item.Fecha.ToShortDateString()</td>
+                            <td class="text-capitalize">@item.Fecha.ToString("dddd", new System.Globalization.CultureInfo("es-ES"))</td>
+                            <td>
+                                @if(string.IsNullOrEmpty(item.TemaDelDia)) { <span class="text-muted fst-italic">Sin tema registrado</span> }
+                                else { <span>@item.TemaDelDia</span> }
+                            </td>
+                            <td class="text-center">
+                                @if (item.AsistenciaTomada)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Registrado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary opacity-50">Pendiente</span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <a asp-action="Tomar" asp-route-sesionId="@item.Id" class="btn btn-sm btn-primary fw-bold">
+                                    <i class="bi bi-people-fill"></i> @(item.AsistenciaTomada ? "Editar Lista" : "Tomar Lista")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

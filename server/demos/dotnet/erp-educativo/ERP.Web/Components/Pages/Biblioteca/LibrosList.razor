@@ -1,0 +1,110 @@
+@page "/biblioteca/libros"
+@using ERP.Application.Features.Biblioteca.Libros
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Biblioteca — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📖 Catálogo de Biblioteca</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Gestión del acervo bibliográfico</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Libro</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_libros" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="FilterFunc">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Acervo Bibliográfico</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por título o autor..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>ISBN</MudTh><MudTh>Título</MudTh><MudTh>Autor</MudTh><MudTh>Editorial</MudTh><MudTh>Año</MudTh><MudTh>Ejemplares</MudTh><MudTh>Disponible</MudTh><MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption">@(context.ISBN ?? "—")</MudText></MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Titulo</MudText></MudTd>
+            <MudTd>@(context.Autor ?? "—")</MudTd>
+            <MudTd>@(context.Editorial ?? "—")</MudTd>
+            <MudTd>@(context.AnioPublicacion?.ToString() ?? "—")</MudTd>
+            <MudTd>@context.TotalEjemplares</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small"
+                         Color="@(context.EjemplaresDisponibles > 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
+                    @context.EjemplaresDisponibles
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Libro</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Titulo" Label="Título" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField @bind-Value="_form.Autor" Label="Autor" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_form.AnioPublicacion" Label="Año" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.ISBN" Label="ISBN" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Editorial" Label="Editorial" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Categoria" Label="Categoría" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.TotalEjemplares" Label="Total Ejemplares" Variant="Variant.Outlined" Min="0" /></MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.EjemplaresDisponibles" Label="Disponibles" Variant="Variant.Outlined" Min="0" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<LibroDto> _libros = new();
+    private UpsertLibroCommand _form = new();
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+    async Task Cargar() { _cargando = true; _libros = await Mediator.Send(new GetLibrosQuery()); _cargando = false; }
+    void AbrirDialog(LibroDto? l)
+    {
+        _form = l == null ? new() : new UpsertLibroCommand { Id = l.Id, Titulo = l.Titulo, Autor = l.Autor, ISBN = l.ISBN, Editorial = l.Editorial, AnioPublicacion = l.AnioPublicacion, TotalEjemplares = l.TotalEjemplares, EjemplaresDisponibles = l.EjemplaresDisponibles, Categoria = l.Categoria };
+        _dialogAbierto = true;
+    }
+    async Task Guardar()
+    {
+        try { await Mediator.Send(_form); Snackbar.Add("Guardado", Severity.Success); _dialogAbierto = false; await Cargar(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este libro?", "Sí", "No");
+        if (ok == true) { await Mediator.Send(new DeleteLibroCommand { Id = id }); Snackbar.Add("Eliminado", Severity.Success); await Cargar(); }
+    }
+    
+    private bool FilterFunc(LibroDto l)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        if (l.Titulo.Contains(_search, StringComparison.OrdinalIgnoreCase)) return true;
+        if ((l.Autor ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}

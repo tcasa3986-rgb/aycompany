@@ -1,0 +1,98 @@
+@model SistemaGestionAcademias.Models.Alumno
+
+@{
+    ViewData["Title"] = "Nuevo Alumno";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill"></i> Registrar Nuevo Alumno</h4>
+            </div>
+            <div class="card-body bg-light p-4">
+                <form asp-action="Create" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="text-center mb-4">
+                        <div class="d-inline-block position-relative">
+                            <img id="previewImg" src="#" class="rounded-circle border border-3 border-white shadow-sm bg-white" style="width: 120px; height: 120px; object-fit: cover; display: none;" />
+                            <div id="previewIcon" class="rounded-circle bg-white border d-flex align-items-center justify-content-center shadow-sm" style="width: 120px; height: 120px;">
+                                <i class="bi bi-camera display-4 text-muted"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label for="fotoInput" class="btn btn-sm btn-outline-primary rounded-pill">
+                                <i class="bi bi-upload"></i> Subir Foto
+                            </label>
+                            <input type="file" id="fotoInput" name="foto" class="d-none" accept="image/*" onchange="mostrarVistaPrevia(this)" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Nombres" class="form-label fw-bold">Nombres</label>
+                            <input asp-for="Nombres" class="form-control" placeholder="Ej: Juan Carlos" />
+                            <span asp-validation-for="Nombres" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Apellidos" class="form-label fw-bold">Apellidos</label>
+                            <input asp-for="Apellidos" class="form-control" placeholder="Ej: Pérez Gómez" />
+                            <span asp-validation-for="Apellidos" class="text-danger small"></span>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label asp-for="DocumentoIdentidad" class="form-label fw-bold">DNI / Documento</label>
+                            <input asp-for="DocumentoIdentidad" class="form-control" />
+                            <span asp-validation-for="DocumentoIdentidad" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="FechaNacimiento" class="form-label fw-bold">Fecha de Nacimiento</label>
+                            <input asp-for="FechaNacimiento" class="form-control" type="date" />
+                            <span asp-validation-for="FechaNacimiento" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Telefono" class="form-label fw-bold">Teléfono</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="Telefono" class="form-control" />
+                            </div>
+                            <span asp-validation-for="Telefono" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Correo" class="form-label fw-bold">Correo Electrónico</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-envelope"></i></span>
+                                <input asp-for="Correo" class="form-control" placeholder="nombre@correo.com" />
+                            </div>
+                            <span asp-validation-for="Correo" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
+                        <a asp-action="Index" class="btn btn-secondary me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Alumno</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function mostrarVistaPrevia(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('previewIcon').style.display = 'none';
+                    document.getElementById('previewImg').src = e.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

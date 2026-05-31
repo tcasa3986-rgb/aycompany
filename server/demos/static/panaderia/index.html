@@ -1,155 +1,598 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Panadería</title>
-<link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-tailwind.config={theme:{extend:{colors:{
-  'bakery-dark':'#1a1209','bakery-dark-deep':'#0f0a05','bakery-gold':'#d4a017','bakery-cream':'#f5e6c8','bakery-brown':'#8b4513'
-}}}}
-</script>
-<style>
-.page-section{display:none;}
-.page-section.active{display:block;}
-.gradient-bakery-bg{background:linear-gradient(135deg,#1a1209 0%,#2d1f0a 50%,#1a1209 100%);}
-.nav-link-bk{display:flex;align-items:center;gap:8px;padding:.5rem .5rem;color:rgba(245,230,200,.75);font-size:.875rem;cursor:pointer;border-radius:6px;transition:all .2s;}
-.nav-link-bk:hover,.nav-link-bk.active{background:#d4a017;color:#1a1209;}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panadería</title>
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Figtree','sans-serif'], display: ['Figtree','sans-serif'] },
+          colors: {
+            bakery: {
+              gold:'#D4A373','gold-light':'#E9C46A','gold-dark':'#B8956A',
+              cream:'#FAEDCD','cream-light':'#FAF9F6','cream-dark':'#F0E5C5',
+              dark:'#3E2723','dark-light':'#5D4037','dark-deep':'#2C1B18',
+              peach:'#FFBB98',orange:'#F4A261',red:'#BC4749',green:'#606C38'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-bakery-bg{background:linear-gradient(135deg,#FFF8F0 0%,#FFD7A8 100%);position:relative}
+    .gradient-bakery-bg::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 50%,rgba(244,162,97,.1) 0%,transparent 50%),radial-gradient(circle at 80% 80%,rgba(233,196,106,.1) 0%,transparent 50%);pointer-events:none;z-index:0}
+    .glass-card-white{background:rgba(255,255,255,.95);backdrop-filter:blur(20px)}
+    .input-icon{padding-left:3rem}
+    .no-scrollbar::-webkit-scrollbar{display:none}
+    .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+    .nav-item{display:flex;align-items:center;padding:.5rem;border-radius:.375rem;font-size:1rem;font-weight:500;cursor:pointer;color:#FAEDCD;transition:all .2s;text-decoration:none;margin-bottom:2px}
+    .nav-item svg{margin-right:1rem;flex-shrink:0;width:1.5rem;height:1.5rem}
+    .nav-item:hover{background:#D4A373;color:#3E2723}
+    .nav-item.active{background:#D4A373;color:#3E2723;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .nav-emoji{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:.375rem;cursor:pointer;color:#FAEDCD;transition:all .2s;font-size:1rem;font-weight:500;margin-bottom:2px}
+    .nav-emoji:hover{background:rgba(212,163,115,.3);color:#fff}
+    .nav-emoji.active{background:rgba(212,163,115,.3);color:#fff}
+    .page{display:none}
+    .page.active{display:block}
+    #loginPage{position:relative}
+    #appPage{display:none}
+    .card-glass{background:rgba(255,255,255,.7);backdrop-filter:blur(10px);border-radius:1rem;padding:1.5rem;box-shadow:0 2px 15px rgba(0,0,0,.08)}
+    .card-bordered{background:#fff;border-radius:1rem;border:1px solid #e5e7eb;padding:1.5rem}
+    .badge{display:inline-flex;align-items:center;padding:.25rem .75rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+    .badge-success{background:#dcfce7;color:#166534}
+    .badge-warning{background:#fef9c3;color:#854d0e}
+    .badge-danger{background:#fee2e2;color:#991b1b}
+    .badge-info{background:#dbeafe;color:#1e40af}
+    .btn-primary{background:#D4A373;color:#fff;font-weight:600;border-radius:.75rem;padding:.625rem 1.5rem;transition:all .3s;border:none;cursor:pointer}
+    .btn-primary:hover{background:#B8956A;transform:translateY(-1px)}
+    .product-card{transition:transform .2s,box-shadow .2s}
+    .product-card:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,.12)}
+    table{border-collapse:collapse;width:100%}
+    th{background:#f9fafb;padding:.75rem 1.5rem;text-align:left;font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em}
+    td{padding:.875rem 1.5rem;font-size:.875rem;color:#374151;border-bottom:1px solid #f3f4f6}
+    tr:hover td{background:#fafafa}
+    .form-input{width:100%;border:1px solid #d1d5db;border-radius:.75rem;padding:.625rem .875rem;font-size:.875rem;outline:none;font-family:inherit}
+    .form-input:focus{border-color:#D4A373;box-shadow:0 0 0 3px rgba(212,163,115,.2)}
+  </style>
 </head>
-<body style="font-family:'figtree',sans-serif;">
+<body class="font-sans antialiased">
 
-<!-- LOGIN -->
-<div id="login-page" class="min-h-screen gradient-bakery-bg flex items-center justify-center p-4" style="display:flex;">
-  <div class="w-full max-w-md">
-    <div class="text-center mb-8">
-      <div style="width:80px;height:80px;background:linear-gradient(135deg,#d4a017,#b8860b);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2.5rem;margin-bottom:1rem;">🥖</div>
-      <h1 style="color:#d4a017;font-size:1.8rem;font-weight:700;">PANADERÍA</h1>
-      <p style="color:rgba(245,230,200,.6);font-size:.9rem;">Sistema de Gestión</p>
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 gradient-bakery-bg overflow-hidden">
+  <div class="absolute" style="top:-10%;left:-10%;width:24rem;height:24rem;background:rgba(212,163,115,.2);border-radius:9999px;filter:blur(64px)"></div>
+  <div class="absolute" style="bottom:-10%;right:-10%;width:24rem;height:24rem;background:rgba(255,187,152,.3);border-radius:9999px;filter:blur(64px)"></div>
+  <div class="w-full sm:max-w-md mt-6 px-8 py-10 glass-card-white overflow-hidden sm:rounded-3xl relative z-10 border border-white/50" style="box-shadow:0 0 30px rgba(212,163,115,.5)">
+    <div class="flex flex-col items-center mb-8">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border" style="background:rgba(212,163,115,.1);border-color:rgba(212,163,115,.3)">
+        <div class="w-2 h-2 rounded-full animate-pulse" style="background:#D4A373"></div>
+        <h1 class="text-lg font-black tracking-widest text-bakery-dark">PANADERÍA</h1>
+      </div>
     </div>
-    <div style="background:rgba(255,255,255,.07);backdrop-filter:blur(20px);border:1px solid rgba(212,160,23,.2);border-radius:16px;padding:2rem;">
-      <form id="login-form">
-        <div style="margin-bottom:1rem;">
-          <label style="display:block;font-size:.8rem;font-weight:600;color:#d4a017;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.05em;">Usuario</label>
-          <input type="email" value="admin@panaderia.com" style="width:100%;padding:.7rem 1rem;background:rgba(255,255,255,.08);border:1px solid rgba(212,160,23,.3);border-radius:8px;color:#f5e6c8;font-size:.875rem;outline:none;" placeholder="admin@panaderia.com">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold text-bakery-dark mb-2">¡Bienvenido de nuevo!</h2>
+      <p class="text-sm text-gray-500">Por favor, ingresa tus credenciales para continuar.</p>
+    </div>
+    <div class="space-y-6">
+      <div>
+        <label class="block font-medium text-sm text-bakery-dark mb-1">Email</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/></svg>
+          </div>
+          <input type="email" placeholder="tu@correo.com" class="form-input input-icon">
         </div>
-        <div style="margin-bottom:1.5rem;">
-          <label style="display:block;font-size:.8rem;font-weight:600;color:#d4a017;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.05em;">Contraseña</label>
-          <input type="password" value="password" style="width:100%;padding:.7rem 1rem;background:rgba(255,255,255,.08);border:1px solid rgba(212,160,23,.3);border-radius:8px;color:#f5e6c8;font-size:.875rem;outline:none;" placeholder="••••••••">
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="block font-medium text-sm text-bakery-dark">Password</label>
+          <a href="#" class="text-sm font-semibold" style="color:#D4A373">¿Olvidaste tu contraseña?</a>
         </div>
-        <button type="submit" style="width:100%;padding:.75rem;background:linear-gradient(135deg,#d4a017,#b8860b);border:none;border-radius:8px;color:#1a1209;font-weight:700;font-size:.95rem;cursor:pointer;">Ingresar al Sistema</button>
-      </form>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <input id="pwdInput" type="password" placeholder="•••••••••" class="form-input input-icon pr-10">
+          <button type="button" onclick="togglePwd()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-bakery-gold">
+            <svg id="eyeOpen" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            <svg id="eyeClosed" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center mt-4">
+        <label class="inline-flex items-center cursor-pointer">
+          <input id="remCb" type="checkbox" class="sr-only" onchange="toggleCb()">
+          <div id="cbBox" class="w-5 h-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center" style="transition:all .2s">
+            <svg id="cbCheck" class="w-3 h-3 text-white hidden" viewBox="0 0 20 20" fill="currentColor"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z"/></svg>
+          </div>
+          <span class="ml-2 text-sm text-gray-600">Remember me</span>
+        </label>
+      </div>
+      <div class="mt-6 pt-2">
+        <button onclick="doLogin()" class="btn-primary w-full flex justify-center items-center py-3 text-lg">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+          Log in
+        </button>
+      </div>
     </div>
   </div>
+  <div class="mt-8 text-center text-sm z-10 relative" style="color:rgba(62,39,35,.6)">&copy; 2025 Panadería. All rights reserved.</div>
 </div>
 
-<!-- APP -->
-<div id="app-page" style="display:none;min-height:100vh;" class="gradient-bakery-bg flex">
+<!-- APP PAGE -->
+<div id="appPage" class="min-h-screen gradient-bakery-bg flex">
 
   <!-- SIDEBAR -->
-  <aside style="width:260px;background:linear-gradient(160deg,#1a1209,#2d1f0a);border-right:1px solid rgba(212,160,23,.15);min-height:100vh;position:fixed;top:0;left:0;z-index:40;display:flex;flex-direction:column;overflow-y:auto;">
-    <div style="padding:1.2rem;border-bottom:1px solid rgba(212,160,23,.15);text-align:center;">
-      <div style="font-size:.65rem;font-weight:700;letter-spacing:2px;color:rgba(212,160,23,.6);text-transform:uppercase;margin-bottom:4px;">⚡ ONLINE</div>
-      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(212,160,23,.1);padding:.25rem .75rem;border-radius:20px;border:1px solid rgba(212,160,23,.3);">
-        <div style="width:8px;height:8px;background:#d4a017;border-radius:50;animation:pulse 2s infinite;"></div>
-        <span style="font-size:.8rem;font-weight:700;color:#d4a017;letter-spacing:.05em;">PANADERÍA LA TRADICIÓN</span>
+  <div id="sidebar" class="fixed inset-y-0 left-0 w-64 flex flex-col z-40 shadow-2xl transition-transform duration-300 -translate-x-full lg:translate-x-0" style="background:linear-gradient(to bottom,#3E2723,#3E2723,#2C1B18);color:#FAEDCD">
+    <div class="flex flex-col items-center justify-center py-6 px-4 border-b border-gray-700" style="background:rgba(62,39,35,.9)">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border" style="background:rgba(212,163,115,.1);border-color:rgba(212,163,115,.3)">
+        <div class="w-2 h-2 rounded-full animate-pulse" style="background:#D4A373"></div>
+        <h1 class="text-sm font-bold tracking-wider" style="color:#D4A373">PANADERÍA</h1>
       </div>
     </div>
-    <nav style="padding:.75rem .5rem;flex:1;">
-      <div class="nav-link-bk active" onclick="showPage('dashboard',this)">🏠 Dashboard</div>
-      <div style="padding:.4rem .5rem .1rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(212,160,23,.4);margin-top:.5rem;">Ventas</div>
-      <div class="nav-link-bk" onclick="showPage('pos',this)">💰 Punto de Venta</div>
-      <div class="nav-link-bk" onclick="showPage('ventas',this)">🧾 Historial Ventas</div>
-      <div class="nav-link-bk" onclick="showPage('pedidos',this)">📦 Pedidos Especiales</div>
-      <div style="padding:.4rem .5rem .1rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(212,160,23,.4);margin-top:.5rem;">Producción</div>
-      <div class="nav-link-bk" onclick="showPage('productos',this)">🥐 Productos</div>
-      <div class="nav-link-bk" onclick="showPage('recetas',this)">📋 Recetas</div>
-      <div class="nav-link-bk" onclick="showPage('produccion',this)">⚙️ Producción</div>
-      <div style="padding:.4rem .5rem .1rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(212,160,23,.4);margin-top:.5rem;">Gestión</div>
-      <div class="nav-link-bk" onclick="showPage('proveedores',this)">🏭 Proveedores</div>
-      <div class="nav-link-bk" onclick="showPage('clientes',this)">👥 Clientes</div>
-      <div class="nav-link-bk" onclick="showPage('reportes',this)">📊 Reportes</div>
+    <nav class="mt-5 px-2 overflow-y-auto flex-1 pb-4 no-scrollbar">
+      <a class="nav-item active" onclick="goTo('dashboard',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+      <a class="nav-item" onclick="goTo('pos',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Punto de Venta</a>
+      <a class="nav-item" onclick="goTo('caja',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z"/></svg>Control de Caja</a>
+      <a class="nav-item" onclick="goTo('historial-ventas',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Historial Ventas</a>
+      <a class="nav-item" onclick="goTo('productos',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>Productos</a>
+      <a class="nav-item" onclick="goTo('categorias',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>Categorías</a>
+      <a class="nav-item" onclick="goTo('proveedores',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Proveedores</a>
+      <a class="nav-item" onclick="goTo('insumos',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Insumos</a>
+      <a class="nav-item" onclick="goTo('pedidos-especiales',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Pedidos Especiales</a>
+      <a class="nav-item" onclick="goTo('compras',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z"/></svg>Compras</a>
+      <a class="nav-item" onclick="goTo('almacenes',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>Almacenes</a>
+      <a class="nav-emoji" onclick="goTo('mermas',this)"><span class="text-xl">⚖️</span><span>Mermas y Ajustes</span></a>
+      <a class="nav-emoji" onclick="goTo('transformaciones',this)"><span class="text-xl">🔄</span><span>Transformaciones</span></a>
+      <a class="nav-item" onclick="goTo('recetas',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Recetas</a>
+      <a class="nav-item" onclick="goTo('produccion',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>Producción</a>
+      <a class="nav-item" onclick="goTo('reportes',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Reportes</a>
+      <a class="nav-item" onclick="goTo('historial-inventario',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>Historial Inventario</a>
+      <a class="nav-item" onclick="goTo('usuarios',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Usuarios</a>
+      <a class="nav-item" onclick="goTo('clientes',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Clientes</a>
+      <a class="nav-item" onclick="goTo('configuracion',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Configuración</a>
     </nav>
-    <div style="padding:1rem;border-top:1px solid rgba(212,160,23,.15);">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;">
-        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#d4a017,#b8860b);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#1a1209;">A</div>
-        <div><div style="font-size:.8rem;font-weight:600;color:#f5e6c8;">Administrador</div><div style="font-size:.7rem;color:rgba(245,230,200,.5);">admin@panaderia.com</div></div>
-      </div>
-      <button onclick="logout()" style="width:100%;padding:.5rem;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:6px;font-size:.75rem;cursor:pointer;">Cerrar Sesión</button>
-    </div>
-  </aside>
+  </div>
 
-  <!-- TOPBAR + MAIN -->
-  <div style="flex:1;margin-left:260px;">
-    <header style="position:sticky;top:0;height:56px;background:rgba(26,18,9,.9);backdrop-filter:blur(10px);border-bottom:1px solid rgba(212,160,23,.15);display:flex;align-items:center;padding:0 1.5rem;z-index:30;">
-      <span id="topbar-title" style="font-weight:600;color:#d4a017;">Dashboard</span>
-    </header>
-    <main style="padding:1.5rem;">
+  <div id="sidebarOverlay" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden hidden" onclick="closeSidebar()"></div>
 
-      <div id="page-dashboard" class="page-section active">
-        <h5 style="font-weight:700;margin-bottom:1.2rem;color:#d4a017;">Dashboard</h5>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
-          <div style="background:linear-gradient(135deg,#d4a017,#b8860b);border-radius:12px;padding:1.2rem;color:#1a1209;"><div style="font-size:1.8rem;font-weight:700;">$1,850</div><div style="font-size:.82rem;opacity:.8;">Ventas del Día</div></div>
-          <div style="background:rgba(255,255,255,.07);border:1px solid rgba(212,160,23,.2);border-radius:12px;padding:1.2rem;color:#f5e6c8;"><div style="font-size:1.8rem;font-weight:700;">48</div><div style="font-size:.82rem;opacity:.7;">Ventas Hoy</div></div>
-          <div style="background:rgba(255,255,255,.07);border:1px solid rgba(212,160,23,.2);border-radius:12px;padding:1.2rem;color:#f5e6c8;"><div style="font-size:1.8rem;font-weight:700;">12</div><div style="font-size:.82rem;opacity:.7;">Pedidos Especiales</div></div>
-          <div style="background:rgba(255,255,255,.07);border:1px solid rgba(212,160,23,.2);border-radius:12px;padding:1.2rem;color:#f5e6c8;"><div style="font-size:1.8rem;font-weight:700;">32</div><div style="font-size:.82rem;opacity:.7;">Productos en catálogo</div></div>
-        </div>
-        <div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;overflow:hidden;">
-          <div style="padding:.9rem 1.2rem;border-bottom:1px solid rgba(212,160,23,.1);font-weight:600;color:#d4a017;font-size:.9rem;">Últimas Ventas</div>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead><tr style="background:rgba(212,160,23,.05);"><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Producto</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Cant.</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Total</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Hora</th></tr></thead>
-            <tbody>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.04);"><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Pan Francés</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">12</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;font-weight:600;">$6.00</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.4);">10:30</td></tr>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.04);"><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Torta de Chocolate</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">1</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;font-weight:600;">$35.00</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.4);">10:15</td></tr>
-              <tr><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Croissants (pack 4)</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">3</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;font-weight:600;">$18.00</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.4);">09:50</td></tr>
-            </tbody>
-          </table>
+  <div class="flex-1 flex flex-col lg:pl-64 transition-all duration-300" style="position:relative;z-index:1">
+    <!-- TOP NAV -->
+    <nav class="border-b sticky top-0 z-10" style="background:#FFFBF5;border-color:#FFE5CC">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-md" style="color:#8B5A3C">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative" id="userDropdown">
+              <button onclick="toggleUserMenu()" class="inline-flex items-center px-3 py-2 border rounded-md text-sm font-medium" style="border-color:#FFE5CC;color:#8B5A3C;background:#fff">
+                Administrador
+                <svg class="ml-1 h-4 w-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </button>
+              <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100 z-50">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
+                <a href="#" onclick="doLogout()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log Out</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </nav>
 
-      <div id="page-pos" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Punto de Venta</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">🥐</p><p>Sistema POS de Panadería</p></div></div>
-      <div id="page-ventas" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Historial Ventas</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">🧾</p><p>Registro de todas las ventas</p></div></div>
-      <div id="page-pedidos" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Pedidos Especiales</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">🎂</p><p>Tortas y pedidos personalizados</p></div></div>
-      <div id="page-productos" class="page-section">
-        <h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Productos</h5>
-        <div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;overflow:hidden;">
-          <table style="width:100%;border-collapse:collapse;">
-            <thead><tr style="background:rgba(212,160,23,.05);"><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Producto</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Categoría</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Precio</th><th style="padding:.65rem .9rem;font-size:.72rem;text-transform:uppercase;color:rgba(245,230,200,.4);text-align:left;">Stock</th></tr></thead>
-            <tbody>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.04);"><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Pan Francés</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.5);">Panes</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;">$0.50</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">200</td></tr>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.04);"><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Croissant</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.5);">Panes</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;">$1.50</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">48</td></tr>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.04);"><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Torta de Chocolate</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.5);">Tortas</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;">$35.00</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">5</td></tr>
-              <tr><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">Empanada de Pollo</td><td style="padding:.7rem .9rem;font-size:.875rem;color:rgba(245,230,200,.5);">Salados</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#d4a017;">$2.50</td><td style="padding:.7rem .9rem;font-size:.875rem;color:#f5e6c8;">30</td></tr>
-            </tbody>
-          </table>
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div><h2 class="font-display text-3xl font-bold text-bakery-dark-deep">Panel de Control</h2><p class="text-sm text-gray-600 mt-1">Resumen general de tu negocio</p></div>
+          <button class="inline-flex items-center px-4 py-2 bg-white border-2 border-bakery-gold text-bakery-dark font-semibold rounded-xl text-sm"><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Actualizar</button>
+        </div>
+        <!-- Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+          <div class="lg:col-span-5">
+            <div class="card-glass"><div class="flex justify-between items-center mb-4"><div><h3 class="text-lg font-bold text-bakery-dark">Ventas Mensuales</h3><p class="text-sm text-gray-500">Últimos 7 días</p></div><button class="px-3 py-1 rounded-full text-xs font-semibold text-white" style="background:#D4A373">Este Mes ▼</button></div><div class="relative h-64"><canvas id="salesBarChart"></canvas></div></div>
+          </div>
+          <div class="lg:col-span-4 space-y-4">
+            <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(16,185,129,.1)"><svg class="w-6 h-6" style="color:#10b981" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+              <div><p class="text-xs text-gray-500 font-medium">Ventas del Día</p><p class="text-2xl font-bold text-gray-800">$ 1,248.50</p></div>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(59,130,246,.1)"><svg class="w-6 h-6" style="color:#3b82f6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+              <div><p class="text-xs text-gray-500 font-medium">Pedidos Totales</p><p class="text-2xl font-bold text-gray-800">$ 38,420.00</p></div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="goTo('pos',null)" class="flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(to right,#10b981,#059669)">Nueva Venta</button>
+              <button onclick="goTo('produccion',null)" class="flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(to right,#a855f7,#9333ea)">Producir</button>
+            </div>
+          </div>
+          <div class="lg:col-span-3 grid grid-cols-3 lg:grid-cols-1 gap-4">
+            <div class="card-glass flex flex-col items-center py-3"><svg class="w-16 h-16" viewBox="0 0 36 36"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="85,100" stroke-linecap="round"/><text x="18" y="20.35" text-anchor="middle" font-size="8" fill="#374151" font-weight="bold">85%</text></svg><p class="text-xs text-gray-600 text-center mt-1">Productos Activos</p></div>
+            <div class="card-glass flex flex-col items-center py-3"><svg class="w-16 h-16" viewBox="0 0 36 36"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="72,100" stroke-linecap="round"/><text x="18" y="20.35" text-anchor="middle" font-size="8" fill="#374151" font-weight="bold">72%</text></svg><p class="text-xs text-gray-600 text-center mt-1">Tasa de Completado</p></div>
+            <div class="card-glass flex flex-col items-center py-3"><svg class="w-16 h-16" viewBox="0 0 36 36"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="3" stroke-dasharray="90,100" stroke-linecap="round"/><text x="18" y="20.35" text-anchor="middle" font-size="8" fill="#374151" font-weight="bold">90%</text></svg><p class="text-xs text-gray-600 text-center mt-1">Stock Saludable</p></div>
+          </div>
+        </div>
+        <!-- Row 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-8 gap-6 mb-8">
+          <div class="lg:col-span-5"><div class="card-glass"><div class="mb-4"><h3 class="text-lg font-bold text-bakery-dark">Tendencia de Ventas &amp; Órdenes</h3><p class="text-xs text-gray-500">Comparativa últimos 7 días</p></div><div class="relative h-80"><canvas id="multiLineChart"></canvas></div></div></div>
+          <div class="lg:col-span-3 space-y-4">
+            <div class="card-bordered">
+              <h3 class="font-bold text-bakery-dark mb-4 flex items-center"><svg class="w-5 h-5 mr-2" style="color:#D4A373" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Tareas Pendientes</h3>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:#10b981"></div><span class="text-sm text-gray-700 flex-1">Revisar inventario bajo</span><input type="checkbox" style="accent-color:#D4A373"></div>
+                <div class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:#10b981"></div><span class="text-sm text-gray-700 flex-1">Actualizar precios</span><input type="checkbox" style="accent-color:#D4A373"></div>
+                <div class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:#a855f7"></div><span class="text-sm text-gray-700 flex-1">Preparar producción</span><input type="checkbox" style="accent-color:#D4A373"></div>
+              </div>
+            </div>
+            <div class="card-bordered">
+              <h3 class="font-bold text-bakery-dark mb-4">Metas del Mes</h3>
+              <div class="space-y-4">
+                <div><div class="flex justify-between items-center mb-2"><span class="text-sm text-gray-600">Meta de Ventas</span><span class="text-sm font-bold text-gray-800">64%</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="h-3 rounded-full shadow-md" style="width:64%;background:linear-gradient(to right,#fbbf24,#f59e0b)"></div></div></div>
+                <div><div class="flex justify-between items-center mb-2"><span class="text-sm text-gray-600">Meta de Producción</span><span class="text-sm font-bold text-gray-800">83%</span></div><div class="w-full bg-gray-200 rounded-full h-3"><div class="h-3 rounded-full shadow-md" style="width:83%;background:linear-gradient(to right,#fbbf24,#f59e0b)"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Row 3 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-3"><div class="card-glass"><div class="mb-4"><h3 class="font-bold text-bakery-dark">Ventas por Categoría</h3><p class="text-xs text-gray-500 mt-1">Top 5 categorías</p></div><div class="relative h-56"><canvas id="categoryDonutChart"></canvas></div><div class="mt-4 space-y-2"><div class="flex justify-between text-xs"><span class="text-gray-600">Panes</span><span class="font-semibold">34%</span></div><div class="flex justify-between text-xs"><span class="text-gray-600">Pasteles</span><span class="font-semibold">28%</span></div><div class="flex justify-between text-xs"><span class="text-gray-600">Tortas</span><span class="font-semibold">22%</span></div></div></div></div>
+          <div class="lg:col-span-5">
+            <div class="card-bordered">
+              <h3 class="font-bold text-bakery-dark mb-4 flex items-center"><svg class="w-5 h-5 mr-2" style="color:#D4A373" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Actividad Reciente</h3>
+              <div class="space-y-3">
+                <div class="p-3 rounded-lg border hover:shadow-md transition-shadow" style="background:linear-gradient(to right,#FAEDCD,rgba(250,237,205,.5));border-color:rgba(212,163,115,.2)"><div class="flex justify-between items-start"><div><p class="text-sm font-semibold text-bakery-dark">María García</p><p class="text-xs text-gray-600">Orden #1042</p></div><div class="text-right"><p class="text-sm font-bold text-green-600">$85.00</p><span class="badge badge-success">Completado</span></div></div><p class="text-xs text-gray-500 mt-1">hace 5 minutos</p></div>
+                <div class="p-3 rounded-lg border hover:shadow-md transition-shadow" style="background:linear-gradient(to right,#FAEDCD,rgba(250,237,205,.5));border-color:rgba(212,163,115,.2)"><div class="flex justify-between items-start"><div><p class="text-sm font-semibold text-bakery-dark">Carlos López</p><p class="text-xs text-gray-600">Orden #1041</p></div><div class="text-right"><p class="text-sm font-bold text-green-600">$120.00</p><span class="badge badge-warning">Pendiente</span></div></div><p class="text-xs text-gray-500 mt-1">hace 18 minutos</p></div>
+                <div class="p-3 rounded-lg border hover:shadow-md transition-shadow" style="background:linear-gradient(to right,#FAEDCD,rgba(250,237,205,.5));border-color:rgba(212,163,115,.2)"><div class="flex justify-between items-start"><div><p class="text-sm font-semibold text-bakery-dark">Ana Martínez</p><p class="text-xs text-gray-600">Orden #1040</p></div><div class="text-right"><p class="text-sm font-bold text-green-600">$45.50</p><span class="badge badge-success">Completado</span></div></div><p class="text-xs text-gray-500 mt-1">hace 32 minutos</p></div>
+                <div class="p-3 rounded-lg border hover:shadow-md transition-shadow" style="background:linear-gradient(to right,#FAEDCD,rgba(250,237,205,.5));border-color:rgba(212,163,115,.2)"><div class="flex justify-between items-start"><div><p class="text-sm font-semibold text-bakery-dark">Cliente Anónimo</p><p class="text-xs text-gray-600">Orden #1039</p></div><div class="text-right"><p class="text-sm font-bold text-green-600">$32.00</p><span class="badge badge-success">Completado</span></div></div><p class="text-xs text-gray-500 mt-1">hace 1 hora</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="lg:col-span-4"><div class="card-glass"><div class="mb-4"><h3 class="font-bold text-bakery-dark">Ventas Semanales</h3><p class="text-xs text-gray-500 mt-1">Por día de la semana</p></div><div class="relative h-64"><canvas id="weekBarChart"></canvas></div></div></div>
         </div>
       </div>
-      <div id="page-recetas" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Recetas</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">📋</p><p>Recetas y formulaciones de productos</p></div></div>
-      <div id="page-produccion" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Producción</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">⚙️</p><p>Órdenes de producción diaria</p></div></div>
-      <div id="page-proveedores" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Proveedores</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">🏭</p><p>Gestión de proveedores e insumos</p></div></div>
-      <div id="page-clientes" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Clientes</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">👥</p><p>Clientes frecuentes</p></div></div>
-      <div id="page-reportes" class="page-section"><h5 style="font-weight:700;margin-bottom:1rem;color:#d4a017;">Reportes</h5><div style="background:rgba(255,255,255,.05);border:1px solid rgba(212,160,23,.15);border-radius:12px;padding:2rem;text-align:center;color:rgba(245,230,200,.5);"><p style="font-size:3rem;">📊</p><p>Reportes de ventas e inventario</p></div></div>
+
+      <!-- PUNTO DE VENTA -->
+      <div id="page-pos" class="page">
+        <div class="mb-4"><h2 class="font-display text-xl font-bold text-gray-800">Punto de Venta</h2></div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-0 shadow-sm rounded-lg overflow-hidden border border-gray-200 bg-gray-100" style="height:calc(100vh - 160px);min-height:500px">
+          <div class="col-span-1 lg:col-span-8 flex flex-col h-full border-r border-gray-200 overflow-hidden">
+            <div class="p-4 bg-white shadow-sm">
+              <input type="text" id="posSearch" placeholder="Buscar producto (Código o Nombre)..." class="form-input mb-2" oninput="filterProducts(this.value)">
+              <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="catFilters">
+                <button onclick="filterCat('all',this)" class="px-4 py-1 rounded-full text-sm font-bold whitespace-nowrap text-white cat-btn" style="background:#3E2723">Todos</button>
+                <button onclick="filterCat('panes',this)" class="px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap cat-btn" style="background:#FAEDCD;color:#3E2723">Panes</button>
+                <button onclick="filterCat('pasteles',this)" class="px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap cat-btn" style="background:#FAEDCD;color:#3E2723">Pasteles</button>
+                <button onclick="filterCat('tortas',this)" class="px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap cat-btn" style="background:#FAEDCD;color:#3E2723">Tortas</button>
+                <button onclick="filterCat('bebidas',this)" class="px-4 py-1 rounded-full text-sm font-medium whitespace-nowrap cat-btn" style="background:#FAEDCD;color:#3E2723">Bebidas</button>
+              </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 bg-gray-100"><div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" id="productGrid"></div></div>
+          </div>
+          <div class="col-span-1 lg:col-span-4 bg-white flex flex-col h-full shadow-xl overflow-hidden">
+            <div class="p-4 border-b border-gray-100" style="background:#3E2723"><h3 class="font-bold text-white">Carrito de Compras</h3></div>
+            <div class="flex-1 overflow-y-auto p-3" id="cartItems"><p class="text-center text-gray-400 text-sm mt-8">No hay productos en el carrito</p></div>
+            <div class="border-t border-gray-200 p-4 bg-gray-50">
+              <div class="space-y-2 mb-4">
+                <div class="flex justify-between text-sm"><span class="text-gray-600">Subtotal</span><span id="cartSubtotal" class="font-medium">$0.00</span></div>
+                <div class="flex justify-between text-sm"><span class="text-gray-600">IVA (19%)</span><span id="cartTax" class="font-medium">$0.00</span></div>
+                <div class="flex justify-between text-lg font-bold"><span>Total</span><span id="cartTotal" style="color:#3E2723">$0.00</span></div>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="clearCart()" class="flex-1 py-2 border-2 border-gray-300 rounded-xl text-sm font-semibold text-gray-600">Limpiar</button>
+                <button onclick="checkoutCart()" class="flex-1 py-2 px-4 rounded-xl text-sm font-bold text-white" style="background:linear-gradient(to right,#3E2723,#5D4037)">💳 Cobrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROL DE CAJA -->
+      <div id="page-caja" class="page">
+        <div class="mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Control de Caja</h2></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm"><p class="text-xs text-gray-500 font-medium mb-1">Efectivo Inicial</p><p class="text-3xl font-bold text-gray-800">$500.00</p><p class="text-xs text-green-600 mt-2">Caja abierta hace 3 horas</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm"><p class="text-xs text-gray-500 font-medium mb-1">Ventas del Turno</p><p class="text-3xl font-bold text-gray-800">$1,248.50</p><p class="text-xs text-blue-600 mt-2">42 transacciones</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm"><p class="text-xs text-gray-500 font-medium mb-1">Total en Caja</p><p class="text-3xl font-bold" style="color:#3E2723">$1,748.50</p><button class="mt-3 text-xs font-semibold px-4 py-1.5 rounded-lg text-white" style="background:#BC4749">Cerrar Caja</button></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><div class="p-4 border-b border-gray-100"><h3 class="font-bold text-gray-800">Movimientos de Caja</h3></div>
+        <table><thead><tr><th>Hora</th><th>Tipo</th><th>Descripción</th><th>Monto</th></tr></thead><tbody>
+          <tr><td>08:00</td><td><span class="badge badge-info">Apertura</span></td><td>Apertura de caja</td><td class="font-semibold text-green-600">+$500.00</td></tr>
+          <tr><td>09:15</td><td><span class="badge badge-success">Venta</span></td><td>Orden #1028</td><td class="font-semibold text-green-600">+$85.00</td></tr>
+          <tr><td>10:30</td><td><span class="badge badge-success">Venta</span></td><td>Orden #1029</td><td class="font-semibold text-green-600">+$120.00</td></tr>
+          <tr><td>11:00</td><td><span class="badge badge-danger">Egreso</span></td><td>Compra materiales</td><td class="font-semibold text-red-600">-$200.00</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- HISTORIAL VENTAS -->
+      <div id="page-historial-ventas" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Historial de Ventas</h2><button class="btn-primary text-sm">Exportar PDF</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><div class="p-4 border-b border-gray-100 flex gap-3"><input type="date" class="form-input" style="width:auto"><input type="date" class="form-input" style="width:auto"><button class="btn-primary text-sm px-4">Filtrar</button></div>
+        <table><thead><tr><th>Orden #</th><th>Cliente</th><th>Fecha</th><th>Items</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+          <tr><td>#1042</td><td>María García</td><td>2025-05-24 14:32</td><td>5</td><td class="font-semibold">$85.00</td><td><span class="badge badge-success">Completado</span></td></tr>
+          <tr><td>#1041</td><td>Carlos López</td><td>2025-05-24 14:10</td><td>3</td><td class="font-semibold">$120.00</td><td><span class="badge badge-warning">Pendiente</span></td></tr>
+          <tr><td>#1040</td><td>Ana Martínez</td><td>2025-05-24 13:45</td><td>2</td><td class="font-semibold">$45.50</td><td><span class="badge badge-success">Completado</span></td></tr>
+          <tr><td>#1039</td><td>Cliente Anónimo</td><td>2025-05-24 13:20</td><td>4</td><td class="font-semibold">$32.00</td><td><span class="badge badge-success">Completado</span></td></tr>
+          <tr><td>#1038</td><td>Pedro Ramírez</td><td>2025-05-24 12:55</td><td>1</td><td class="font-semibold">$18.00</td><td><span class="badge badge-danger">Anulado</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- PRODUCTOS -->
+      <div id="page-productos" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Productos</h2><button class="btn-primary text-sm">+ Nuevo Producto</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><div class="p-4 border-b border-gray-100"><input type="text" placeholder="Buscar producto..." class="form-input" style="max-width:320px"></div>
+        <table><thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+          <tr><td class="font-medium">Pan Blanco Grande</td><td>Panes</td><td>$2.500</td><td>45 unid</td><td><span class="badge badge-success">Activo</span></td><td><button class="text-sm font-medium" style="color:#D4A373">Editar</button></td></tr>
+          <tr><td class="font-medium">Croissant de Mantequilla</td><td>Pasteles</td><td>$3.800</td><td>28 unid</td><td><span class="badge badge-success">Activo</span></td><td><button class="text-sm font-medium" style="color:#D4A373">Editar</button></td></tr>
+          <tr><td class="font-medium">Torta de Chocolate</td><td>Tortas</td><td>$45.000</td><td>3 unid</td><td><span class="badge badge-warning">Stock Bajo</span></td><td><button class="text-sm font-medium" style="color:#D4A373">Editar</button></td></tr>
+          <tr><td class="font-medium">Galletas de Avena</td><td>Pasteles</td><td>$1.200</td><td>0 unid</td><td><span class="badge badge-danger">Agotado</span></td><td><button class="text-sm font-medium" style="color:#D4A373">Editar</button></td></tr>
+          <tr><td class="font-medium">Pandebono</td><td>Panes</td><td>$1.500</td><td>60 unid</td><td><span class="badge badge-success">Activo</span></td><td><button class="text-sm font-medium" style="color:#D4A373">Editar</button></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- CATEGORÍAS -->
+      <div id="page-categorias" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Categorías</h2><button class="btn-primary text-sm">+ Nueva Categoría</button></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-6 shadow-sm flex items-center gap-4"><div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style="background:#FAEDCD">🍞</div><div><p class="font-bold text-gray-800">Panes</p><p class="text-sm text-gray-500">12 productos</p></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm flex items-center gap-4"><div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style="background:#FAEDCD">🧁</div><div><p class="font-bold text-gray-800">Pasteles</p><p class="text-sm text-gray-500">8 productos</p></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm flex items-center gap-4"><div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style="background:#FAEDCD">🎂</div><div><p class="font-bold text-gray-800">Tortas</p><p class="text-sm text-gray-500">5 productos</p></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm flex items-center gap-4"><div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style="background:#FAEDCD">🥐</div><div><p class="font-bold text-gray-800">Croissants</p><p class="text-sm text-gray-500">4 productos</p></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm flex items-center gap-4"><div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style="background:#FAEDCD">☕</div><div><p class="font-bold text-gray-800">Bebidas</p><p class="text-sm text-gray-500">6 productos</p></div></div>
+        </div>
+      </div>
+
+      <!-- PROVEEDORES -->
+      <div id="page-proveedores" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Proveedores</h2><button class="btn-primary text-sm">+ Nuevo Proveedor</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Productos</th><th>Estado</th></tr></thead><tbody>
+          <tr><td class="font-medium">Harinera del Valle</td><td>Juan Pérez</td><td>300-123-4567</td><td>Harinas, Levadura</td><td><span class="badge badge-success">Activo</span></td></tr>
+          <tr><td class="font-medium">Distribuidora Lácteos</td><td>María Gómez</td><td>301-987-6543</td><td>Mantequilla, Leche</td><td><span class="badge badge-success">Activo</span></td></tr>
+          <tr><td class="font-medium">Azucares Colombia</td><td>Carlos Ríos</td><td>310-456-7890</td><td>Azúcar, Panela</td><td><span class="badge badge-warning">Contactar</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- INSUMOS -->
+      <div id="page-insumos" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Insumos</h2><button class="btn-primary text-sm">+ Nuevo Insumo</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Insumo</th><th>Unidad</th><th>Stock Actual</th><th>Stock Mínimo</th><th>Estado</th></tr></thead><tbody>
+          <tr><td class="font-medium">Harina de Trigo</td><td>kg</td><td>150</td><td>50</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td class="font-medium">Azúcar Blanca</td><td>kg</td><td>80</td><td>30</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td class="font-medium">Mantequilla</td><td>kg</td><td>12</td><td>15</td><td><span class="badge badge-danger">Bajo</span></td></tr>
+          <tr><td class="font-medium">Levadura</td><td>gr</td><td>500</td><td>200</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td class="font-medium">Chocolate</td><td>kg</td><td>5</td><td>10</td><td><span class="badge badge-danger">Bajo</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- PEDIDOS ESPECIALES -->
+      <div id="page-pedidos-especiales" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Pedidos Especiales</h2><button class="btn-primary text-sm">+ Nuevo Pedido</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Cliente</th><th>Producto</th><th>Fecha Entrega</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+          <tr><td class="font-medium">Laura Díaz</td><td>Torta 3 pisos — Bodas</td><td>2025-05-30</td><td class="font-semibold">$320.000</td><td><span class="badge badge-info">En Proceso</span></td></tr>
+          <tr><td class="font-medium">Empresa XYZ</td><td>Caja 50 Croissants</td><td>2025-05-26</td><td class="font-semibold">$190.000</td><td><span class="badge badge-warning">Pendiente</span></td></tr>
+          <tr><td class="font-medium">Andrés Torres</td><td>Torta de Quinceañera</td><td>2025-06-05</td><td class="font-semibold">$280.000</td><td><span class="badge badge-info">En Proceso</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- COMPRAS -->
+      <div id="page-compras" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Compras</h2><button class="btn-primary text-sm">+ Nueva Compra</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Proveedor</th><th>Fecha</th><th>Insumos</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+          <tr><td class="font-medium">Harinera del Valle</td><td>2025-05-23</td><td>Harina 100kg</td><td class="font-semibold">$180.000</td><td><span class="badge badge-success">Recibida</span></td></tr>
+          <tr><td class="font-medium">Distribuidora Lácteos</td><td>2025-05-22</td><td>Mantequilla 20kg</td><td class="font-semibold">$95.000</td><td><span class="badge badge-success">Recibida</span></td></tr>
+          <tr><td class="font-medium">Azucares Colombia</td><td>2025-05-20</td><td>Azúcar 50kg</td><td class="font-semibold">$75.000</td><td><span class="badge badge-warning">Pendiente</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- ALMACENES -->
+      <div id="page-almacenes" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Almacenes</h2><button class="btn-primary text-sm">+ Nuevo Almacén</button></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl p-6 shadow-sm"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#FAEDCD">🏭</div><h3 class="font-bold text-gray-800">Almacén Principal</h3></div><div class="space-y-2 text-sm"><div class="flex justify-between"><span class="text-gray-500">Capacidad</span><span class="font-medium">500 kg</span></div><div class="flex justify-between"><span class="text-gray-500">Ocupado</span><span class="font-medium">320 kg (64%)</span></div><div class="flex justify-between"><span class="text-gray-500">Temperatura</span><span class="font-medium">18°C</span></div></div></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm"><div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style="background:#FAEDCD">❄️</div><h3 class="font-bold text-gray-800">Cámara Fría</h3></div><div class="space-y-2 text-sm"><div class="flex justify-between"><span class="text-gray-500">Capacidad</span><span class="font-medium">100 kg</span></div><div class="flex justify-between"><span class="text-gray-500">Ocupado</span><span class="font-medium">45 kg (45%)</span></div><div class="flex justify-between"><span class="text-gray-500">Temperatura</span><span class="font-medium">4°C</span></div></div></div>
+        </div>
+      </div>
+
+      <!-- MERMAS Y AJUSTES -->
+      <div id="page-mermas" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Mermas y Ajustes</h2><button class="btn-primary text-sm">+ Registrar Ajuste</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Fecha</th><th>Insumo</th><th>Tipo</th><th>Cantidad</th><th>Motivo</th><th>Responsable</th></tr></thead><tbody>
+          <tr><td>2025-05-24</td><td class="font-medium">Harina de Trigo</td><td><span class="badge badge-danger">Merma</span></td><td>5 kg</td><td>Humedad</td><td>Carlos M.</td></tr>
+          <tr><td>2025-05-23</td><td class="font-medium">Mantequilla</td><td><span class="badge badge-warning">Ajuste</span></td><td>2 kg</td><td>Conteo físico</td><td>Ana G.</td></tr>
+          <tr><td>2025-05-22</td><td class="font-medium">Chocolate</td><td><span class="badge badge-danger">Merma</span></td><td>1 kg</td><td>Vencimiento</td><td>Pedro R.</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- TRANSFORMACIONES -->
+      <div id="page-transformaciones" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Transformaciones</h2><button class="btn-primary text-sm">+ Nueva Transformación</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Fecha</th><th>Insumo Origen</th><th>Cantidad</th><th>Insumo Resultado</th><th>Rendimiento</th></tr></thead><tbody>
+          <tr><td>2025-05-24</td><td class="font-medium">Harina de Trigo</td><td>10 kg</td><td>Masa de Pan</td><td>95%</td></tr>
+          <tr><td>2025-05-23</td><td class="font-medium">Cacao en Polvo</td><td>3 kg</td><td>Crema de Chocolate</td><td>88%</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- RECETAS -->
+      <div id="page-recetas" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Recetas</h2><button class="btn-primary text-sm">+ Nueva Receta</button></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4" style="border-color:#D4A373"><h3 class="font-bold text-gray-800 mb-2">Pan Blanco</h3><p class="text-xs text-gray-500 mb-3">Harina, Levadura, Sal, Agua</p><div class="flex justify-between text-sm"><span class="text-gray-500">Rendimiento: 20 unid</span><button class="font-semibold" style="color:#D4A373">Ver</button></div></div>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4" style="border-color:#D4A373"><h3 class="font-bold text-gray-800 mb-2">Croissant</h3><p class="text-xs text-gray-500 mb-3">Harina, Mantequilla, Leche, Levadura</p><div class="flex justify-between text-sm"><span class="text-gray-500">Rendimiento: 12 unid</span><button class="font-semibold" style="color:#D4A373">Ver</button></div></div>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4" style="border-color:#D4A373"><h3 class="font-bold text-gray-800 mb-2">Torta de Chocolate</h3><p class="text-xs text-gray-500 mb-3">Harina, Cacao, Huevos, Azúcar</p><div class="flex justify-between text-sm"><span class="text-gray-500">Rendimiento: 1 unid</span><button class="font-semibold" style="color:#D4A373">Ver</button></div></div>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4" style="border-color:#D4A373"><h3 class="font-bold text-gray-800 mb-2">Galletas de Avena</h3><p class="text-xs text-gray-500 mb-3">Avena, Mantequilla, Azúcar Morena</p><div class="flex justify-between text-sm"><span class="text-gray-500">Rendimiento: 24 unid</span><button class="font-semibold" style="color:#D4A373">Ver</button></div></div>
+        </div>
+      </div>
+
+      <!-- PRODUCCIÓN -->
+      <div id="page-produccion" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Producción</h2><button class="btn-primary text-sm">+ Nueva Orden de Producción</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Orden</th><th>Receta</th><th>Cantidad</th><th>Inicio</th><th>Fin Est.</th><th>Estado</th></tr></thead><tbody>
+          <tr><td class="font-medium">#P-024</td><td>Pan Blanco</td><td>100 unid</td><td>06:00</td><td>08:00</td><td><span class="badge badge-success">Completado</span></td></tr>
+          <tr><td class="font-medium">#P-025</td><td>Croissants</td><td>60 unid</td><td>07:00</td><td>09:30</td><td><span class="badge badge-info">En Proceso</span></td></tr>
+          <tr><td class="font-medium">#P-026</td><td>Galletas de Avena</td><td>120 unid</td><td>10:00</td><td>11:30</td><td><span class="badge badge-warning">Pendiente</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- REPORTES -->
+      <div id="page-reportes" class="page">
+        <div class="mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Reportes</h2></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer border-2 border-transparent hover:border-bakery-gold transition-all"><div class="text-3xl mb-3">📊</div><h3 class="font-bold text-gray-800">Ventas por Período</h3><p class="text-sm text-gray-500 mt-1">Análisis diario/semanal/mensual</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer border-2 border-transparent hover:border-bakery-gold transition-all"><div class="text-3xl mb-3">🏆</div><h3 class="font-bold text-gray-800">Productos Más Vendidos</h3><p class="text-sm text-gray-500 mt-1">Ranking de productos por ventas</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer border-2 border-transparent hover:border-bakery-gold transition-all"><div class="text-3xl mb-3">📦</div><h3 class="font-bold text-gray-800">Estado de Inventario</h3><p class="text-sm text-gray-500 mt-1">Reporte de stock actual</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer border-2 border-transparent hover:border-bakery-gold transition-all"><div class="text-3xl mb-3">🏭</div><h3 class="font-bold text-gray-800">Producción</h3><p class="text-sm text-gray-500 mt-1">Órdenes completadas y rendimiento</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer border-2 border-transparent hover:border-bakery-gold transition-all"><div class="text-3xl mb-3">💸</div><h3 class="font-bold text-gray-800">Compras y Gastos</h3><p class="text-sm text-gray-500 mt-1">Análisis de costos y proveedores</p></div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md cursor-pointer border-2 border-transparent hover:border-bakery-gold transition-all"><div class="text-3xl mb-3">👥</div><h3 class="font-bold text-gray-800">Clientes</h3><p class="text-sm text-gray-500 mt-1">Frecuencia y valor por cliente</p></div>
+        </div>
+      </div>
+
+      <!-- HISTORIAL INVENTARIO -->
+      <div id="page-historial-inventario" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Historial de Inventario</h2><button class="btn-primary text-sm">Exportar</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Fecha</th><th>Insumo</th><th>Movimiento</th><th>Cantidad</th><th>Stock Prev.</th><th>Stock Final</th><th>Origen</th></tr></thead><tbody>
+          <tr><td>2025-05-24 14:00</td><td class="font-medium">Harina de Trigo</td><td><span class="badge badge-danger">Salida</span></td><td>10 kg</td><td>160 kg</td><td>150 kg</td><td>Producción</td></tr>
+          <tr><td>2025-05-24 08:00</td><td class="font-medium">Mantequilla</td><td><span class="badge badge-success">Entrada</span></td><td>20 kg</td><td>-8 kg</td><td>12 kg</td><td>Compra</td></tr>
+          <tr><td>2025-05-23 15:30</td><td class="font-medium">Azúcar Blanca</td><td><span class="badge badge-danger">Salida</span></td><td>5 kg</td><td>85 kg</td><td>80 kg</td><td>Producción</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- USUARIOS -->
+      <div id="page-usuarios" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Usuarios</h2><button class="btn-primary text-sm">+ Nuevo Usuario</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Último Acceso</th><th>Estado</th></tr></thead><tbody>
+          <tr><td class="font-medium">Administrador</td><td>admin@panaderia.com</td><td><span class="badge badge-info">Admin</span></td><td>Hace 5 min</td><td><span class="badge badge-success">Activo</span></td></tr>
+          <tr><td class="font-medium">María Vendedora</td><td>maria@panaderia.com</td><td><span class="badge badge-warning">Cajero</span></td><td>Hace 1 hora</td><td><span class="badge badge-success">Activo</span></td></tr>
+          <tr><td class="font-medium">Carlos Panadero</td><td>carlos@panaderia.com</td><td><span class="badge" style="background:#f3e8ff;color:#7e22ce">Producción</span></td><td>Ayer</td><td><span class="badge badge-success">Activo</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- CLIENTES -->
+      <div id="page-clientes" class="page">
+        <div class="flex justify-between items-center mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Clientes</h2><button class="btn-primary text-sm">+ Nuevo Cliente</button></div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Total Compras</th><th>Última Visita</th></tr></thead><tbody>
+          <tr><td class="font-medium">María García</td><td>311-234-5678</td><td>maria@email.com</td><td class="font-semibold text-green-600">$480.000</td><td>Hoy</td></tr>
+          <tr><td class="font-medium">Carlos López</td><td>320-987-6543</td><td>carlos@email.com</td><td class="font-semibold text-green-600">$325.000</td><td>Ayer</td></tr>
+          <tr><td class="font-medium">Ana Martínez</td><td>315-456-7890</td><td>ana@email.com</td><td class="font-semibold text-green-600">$210.000</td><td>Hace 3 días</td></tr>
+          <tr><td class="font-medium">Pedro Ramírez</td><td>318-321-0987</td><td>pedro@email.com</td><td class="font-semibold text-green-600">$95.000</td><td>Hace 1 semana</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div id="page-configuracion" class="page">
+        <div class="mb-6"><h2 class="font-display text-2xl font-bold text-bakery-dark-deep">Configuración</h2></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl shadow-sm p-6">
+            <h3 class="font-bold text-gray-800 mb-4">Información del Negocio</h3>
+            <div class="space-y-4">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Negocio</label><input type="text" value="Panadería La Esperanza" class="form-input"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label><input type="text" value="601-123-4567" class="form-input"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label><input type="text" value="Calle 45 # 23-10, Bogotá" class="form-input"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Símbolo de Moneda</label><input type="text" value="$" class="form-input"></div>
+              <button class="btn-primary w-full mt-2">Guardar Cambios</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm p-6">
+            <h3 class="font-bold text-gray-800 mb-4">Opciones del Sistema</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl"><span class="text-sm font-medium text-gray-700">Impuesto IVA (19%)</span><input type="checkbox" checked style="accent-color:#D4A373;width:1.2rem;height:1.2rem"></div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl"><span class="text-sm font-medium text-gray-700">Alertas de Stock Bajo</span><input type="checkbox" checked style="accent-color:#D4A373;width:1.2rem;height:1.2rem"></div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl"><span class="text-sm font-medium text-gray-700">Imprimir Recibo Automático</span><input type="checkbox" style="accent-color:#D4A373;width:1.2rem;height:1.2rem"></div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl"><span class="text-sm font-medium text-gray-700">Modo Oscuro</span><input type="checkbox" style="accent-color:#D4A373;width:1.2rem;height:1.2rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
 
 <script>
-function showPage(name,el){
-  document.querySelectorAll('.page-section').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.nav-link-bk').forEach(l=>l.classList.remove('active'));
-  if(el)el.classList.add('active');
-  document.getElementById('topbar-title').textContent=el?el.textContent.trim():name;
+const PRODUCTOS=[
+  {id:1,name:'Pan Blanco',variant:'Grande',price:2500,stock:45,cat:'panes',icon:'🍞'},
+  {id:2,name:'Pan Integral',variant:'Mediano',price:3000,stock:30,cat:'panes',icon:'🍞'},
+  {id:3,name:'Pandebono',variant:'Unidad',price:1500,stock:60,cat:'panes',icon:'🧆'},
+  {id:4,name:'Croissant',variant:'Mantequilla',price:3800,stock:28,cat:'pasteles',icon:'🥐'},
+  {id:5,name:'Galletas Avena',variant:'Paquete x6',price:8500,stock:15,cat:'pasteles',icon:'🍪'},
+  {id:6,name:'Muffin Chocolate',variant:'Unidad',price:4200,stock:20,cat:'pasteles',icon:'🧁'},
+  {id:7,name:'Torta Chocolate',variant:'Porción',price:9000,stock:8,cat:'tortas',icon:'🎂'},
+  {id:8,name:'Torta Vainilla',variant:'Porción',price:8500,stock:6,cat:'tortas',icon:'🎂'},
+  {id:9,name:'Café Americano',variant:'Grande',price:3500,stock:100,cat:'bebidas',icon:'☕'},
+  {id:10,name:'Jugo de Naranja',variant:'400ml',price:4000,stock:25,cat:'bebidas',icon:'🍊'},
+  {id:11,name:'Empanada',variant:'Carne',price:2000,stock:40,cat:'panes',icon:'🥟'},
+  {id:12,name:'Buñuelo',variant:'Unidad',price:1200,stock:50,cat:'panes',icon:'🍩'},
+];
+let cart={},filteredCat='all',searchQ='';
+
+function renderProducts(){
+  const grid=document.getElementById('productGrid');
+  const f=PRODUCTOS.filter(p=>(filteredCat==='all'||p.cat===filteredCat)&&(!searchQ||p.name.toLowerCase().includes(searchQ.toLowerCase())));
+  grid.innerHTML=f.map(p=>`<div class="bg-white rounded-lg shadow product-card cursor-pointer group" onclick="addToCart(${p.id})"><div class="h-24 rounded-t-lg flex items-center justify-center relative overflow-hidden" style="background:#FAEDCD"><span class="absolute top-1 right-1 text-xs font-bold px-2 py-0.5 rounded-full ${p.stock>10?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">Stock: ${p.stock}</span><span class="text-4xl">${p.icon}</span></div><div class="p-3"><h4 class="font-bold text-gray-800 text-sm leading-tight mb-1">${p.name}</h4><p class="text-xs text-gray-500 mb-2">${p.variant}</p><div class="flex justify-between items-center"><span class="font-bold text-bakery-dark">$${p.price.toLocaleString('es-CO')}</span><span class="text-xs px-2 py-1 rounded text-white opacity-0 group-hover:opacity-100 transition" style="background:#D4A373">+ Agregar</span></div></div></div>`).join('');
 }
-function logout(){document.getElementById('app-page').style.display='none';document.getElementById('login-page').style.display='flex';}
-document.getElementById('login-form').addEventListener('submit',function(e){
-  e.preventDefault();
-  document.getElementById('login-page').style.display='none';
-  document.getElementById('app-page').style.display='block';
-});
+
+function addToCart(id){const p=PRODUCTOS.find(x=>x.id===id);if(!p)return;if(cart[id])cart[id].qty++;else cart[id]={...p,qty:1};renderCart();}
+function removeFromCart(id){delete cart[id];renderCart();}
+function changeQty(id,d){if(!cart[id])return;cart[id].qty+=d;if(cart[id].qty<=0)delete cart[id];renderCart();}
+
+function renderCart(){
+  const el=document.getElementById('cartItems');
+  const items=Object.values(cart);
+  if(!items.length){el.innerHTML='<p class="text-center text-gray-400 text-sm mt-8">No hay productos en el carrito</p>';updateTotals(0);return;}
+  el.innerHTML=items.map(i=>`<div class="flex items-center gap-2 p-2 border-b border-gray-100"><span class="text-lg">${i.icon}</span><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-800 truncate">${i.name}</p><p class="text-xs text-gray-500">$${i.price.toLocaleString('es-CO')} c/u</p></div><div class="flex items-center gap-1"><button onclick="changeQty(${i.id},-1)" class="w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs font-bold">−</button><span class="text-sm font-bold w-6 text-center">${i.qty}</span><button onclick="changeQty(${i.id},1)" class="w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs font-bold">+</button></div><span class="text-sm font-bold" style="color:#3E2723;min-width:56px;text-align:right">$${(i.price*i.qty).toLocaleString('es-CO')}</span><button onclick="removeFromCart(${i.id})" class="text-red-400 hover:text-red-600 ml-1 text-lg leading-none">×</button></div>`).join('');
+  updateTotals(items.reduce((s,i)=>s+i.price*i.qty,0));
+}
+
+function updateTotals(sub){const tax=sub*.19;document.getElementById('cartSubtotal').textContent='$'+sub.toLocaleString('es-CO');document.getElementById('cartTax').textContent='$'+Math.round(tax).toLocaleString('es-CO');document.getElementById('cartTotal').textContent='$'+Math.round(sub+tax).toLocaleString('es-CO');}
+function clearCart(){cart={};renderCart();}
+function checkoutCart(){if(!Object.keys(cart).length){alert('El carrito está vacío');return;}const tot=Object.values(cart).reduce((s,i)=>s+i.price*i.qty,0);alert('✅ Venta registrada\nTotal: $'+Math.round(tot*1.19).toLocaleString('es-CO'));clearCart();}
+
+function filterCat(cat,btn){
+  filteredCat=cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>{b.style.background='#FAEDCD';b.style.color='#3E2723';b.style.fontWeight='500';});
+  if(btn){btn.style.background='#3E2723';btn.style.color='#fff';btn.style.fontWeight='700';}
+  renderProducts();
+}
+function filterProducts(q){searchQ=q;renderProducts();}
+
+function goTo(pageId,navEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page-'+pageId);
+  if(pg)pg.classList.add('active');
+  document.querySelectorAll('.nav-item,.nav-emoji').forEach(n=>n.classList.remove('active'));
+  if(navEl)navEl.classList.add('active');
+  else document.querySelectorAll('.nav-item,.nav-emoji').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+pageId+"'"))n.classList.add('active');});
+  if(pageId==='pos')renderProducts();
+  if(pageId==='dashboard')setTimeout(initCharts,100);
+}
+
+function doLogin(){document.getElementById('loginPage').style.display='none';document.getElementById('appPage').style.display='flex';setTimeout(initCharts,200);}
+function doLogout(){document.getElementById('appPage').style.display='none';document.getElementById('loginPage').style.display='flex';}
+function togglePwd(){const i=document.getElementById('pwdInput'),o=document.getElementById('eyeOpen'),c=document.getElementById('eyeClosed');if(i.type==='password'){i.type='text';o.classList.add('hidden');c.classList.remove('hidden');}else{i.type='password';o.classList.remove('hidden');c.classList.add('hidden');}}
+function toggleCb(){const box=document.getElementById('cbBox'),chk=document.getElementById('cbCheck'),cb=document.getElementById('remCb');if(cb.checked){box.style.background='#D4A373';box.style.borderColor='#D4A373';chk.classList.remove('hidden');}else{box.style.background='#fff';box.style.borderColor='#d1d5db';chk.classList.add('hidden');}}
+function toggleSidebar(){const sb=document.getElementById('sidebar'),ov=document.getElementById('sidebarOverlay');sb.classList.toggle('-translate-x-full');sb.classList.toggle('translate-x-0');ov.classList.toggle('hidden');}
+function closeSidebar(){document.getElementById('sidebar').classList.add('-translate-x-full');document.getElementById('sidebar').classList.remove('translate-x-0');document.getElementById('sidebarOverlay').classList.add('hidden');}
+function toggleUserMenu(){document.getElementById('userMenu').classList.toggle('hidden');}
+document.addEventListener('click',e=>{const dd=document.getElementById('userDropdown');if(dd&&!dd.contains(e.target))document.getElementById('userMenu').classList.add('hidden');});
+
+let chartsInited=false;
+function initCharts(){
+  if(chartsInited)return;chartsInited=true;
+  const labels=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const sales=[820,940,780,1100,1050,1400,1248];
+  const orders=[640,760,580,900,820,1160,960];
+  new Chart(document.getElementById('salesBarChart'),{type:'bar',data:{labels,datasets:[{label:'Ventas',data:sales,backgroundColor:'#ec4899',borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{display:false},ticks:{callback:v=>'$'+v}},x:{grid:{display:false}}}}});
+  new Chart(document.getElementById('multiLineChart'),{type:'line',data:{labels,datasets:[{label:'Ventas',data:sales,borderColor:'#fbbf24',backgroundColor:'rgba(251,191,36,.2)',fill:true,tension:.4,pointRadius:0,borderWidth:3},{label:'Órdenes',data:orders,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.2)',fill:true,tension:.4,pointRadius:0,borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',align:'end'}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false}}}}});
+  new Chart(document.getElementById('categoryDonutChart'),{type:'doughnut',data:{labels:['Panes','Pasteles','Tortas','Bebidas','Otros'],datasets:[{data:[34,28,22,10,6],backgroundColor:['#a855f7','#ec4899','#3b82f6','#D4A373','#10b981'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:false}}}});
+  new Chart(document.getElementById('weekBarChart'),{type:'bar',data:{labels:['L','M','M','J','V','S','D'],datasets:[{label:'Ventas',data:sales,backgroundColor:'#ec4899',borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{display:false},ticks:{callback:v=>'$'+v}},x:{grid:{display:false}}}}});
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,141 @@
+@page "/personal/asistencia"
+@attribute [Authorize]
+@inject IPersonnelService PersonnelSvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Asistencia - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Asistencia del Personal</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Registro de entradas y salidas, cálculo de horas trabajadas</MudText>
+    </div>
+</div>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+            <MudText Typo="Typo.h6" Class="fw-bold mb-3">Marcar entrada / salida</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 d-block">
+                Selecciona un técnico y registra su entrada o salida del día.
+            </MudText>
+
+            <MudSelect T="int?" @bind-Value="tecnicoSelId" Label="Técnico"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3">
+                <MudSelectItem T="int?" Value="null">Selecciona un técnico</MudSelectItem>
+                @foreach (var t in tecnicos.Where(x => x.Activo))
+                {
+                    <MudSelectItem T="int?" Value="t.Id">@t.Codigo — @t.NombreCompleto</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="observaciones" Label="Observaciones (opcional)" Lines="2"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
+                       StartIcon="@Icons.Material.Filled.AccessTime"
+                       OnClick="Marcar" Disabled="@(tecnicoSelId == null || marcando)">
+                @(marcando ? "Procesando..." : "Marcar entrada / salida")
+            </MudButton>
+
+            @if (!string.IsNullOrEmpty(mensaje))
+            {
+                <MudAlert Severity="@severidadMensaje" Variant="Variant.Outlined" Class="mt-3">@mensaje</MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+            <div class="d-flex align-center justify-space-between mb-3">
+                <MudText Typo="Typo.h6" Class="fw-bold">Registros</MudText>
+                <div class="d-flex gap-2 align-center">
+                    <MudDatePicker @bind-Date="desde" @bind-Date:after="CargarAsistenciasAsync" Label="Desde"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:140px;" />
+                    <MudDatePicker @bind-Date="hasta" @bind-Date:after="CargarAsistenciasAsync" Label="Hasta"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:140px;" />
+                </div>
+            </div>
+
+            <MudTable Items="@asistencias" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table" Dense="true">
+                <HeaderContent>
+                    <MudTh>Fecha</MudTh>
+                    <MudTh>Técnico</MudTh>
+                    <MudTh>Entrada</MudTh>
+                    <MudTh>Salida</MudTh>
+                    <MudTh Style="text-align:right;">Horas</MudTh>
+                    <MudTh Style="text-align:right;">Extras</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>@context.Tecnico</MudTd>
+                    <MudTd>@(context.HoraEntrada?.ToString("HH:mm") ?? "—")</MudTd>
+                    <MudTd>@(context.HoraSalida?.ToString("HH:mm") ?? "—")</MudTd>
+                    <MudTd Style="text-align:right;">@context.HorasTrabajadas.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;">
+                        @if (context.HorasExtras > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">@context.HorasExtras.ToString("N2") h</MudChip>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 text-center" Color="Color.Secondary">Sin registros para el rango seleccionado</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private int? tecnicoSelId;
+    private string? observaciones;
+    private bool marcando;
+    private string? mensaje;
+    private Severity severidadMensaje = Severity.Info;
+
+    private List<TecnicoFullDto> tecnicos = new();
+    private List<AsistenciaListDto> asistencias = new();
+    private bool cargando = true;
+    private DateTime? desde = DateTime.Today.AddDays(-7);
+    private DateTime? hasta = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tecnicos = await PersonnelSvc.ListarTecnicosAsync();
+        await CargarAsistenciasAsync();
+    }
+
+    private async Task CargarAsistenciasAsync()
+    {
+        if (!desde.HasValue || !hasta.HasValue) return;
+        cargando = true;
+        asistencias = await PersonnelSvc.ListarAsistenciasAsync(null, desde.Value, hasta.Value);
+        cargando = false;
+    }
+
+    private async Task Marcar()
+    {
+        if (tecnicoSelId == null) return;
+        marcando = true; mensaje = null;
+        try
+        {
+            await PersonnelSvc.MarcarEntradaSalidaAsync(new MarcarEntradaSalidaDto
+            {
+                TecnicoId = tecnicoSelId.Value,
+                Observaciones = observaciones
+            });
+            mensaje = "Marcado registrado correctamente";
+            severidadMensaje = Severity.Success;
+            observaciones = null;
+            await CargarAsistenciasAsync();
+        }
+        catch (Exception ex)
+        {
+            mensaje = ex.Message;
+            severidadMensaje = Severity.Error;
+        }
+        finally { marcando = false; }
+    }
+}

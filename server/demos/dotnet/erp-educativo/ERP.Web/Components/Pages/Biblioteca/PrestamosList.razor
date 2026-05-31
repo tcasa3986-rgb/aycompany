@@ -1,0 +1,250 @@
+@page "/biblioteca/prestamos"
+@using ERP.Application.Features.Biblioteca.Prestamos
+@using ERP.Application.Features.Biblioteca.Libros
+@using ERP.Application.Features.Personas.Estudiantes
+@using ERP.Domain.Enums
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4" Style="font-weight: 700;">Préstamos de Biblioteca</MudText>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_prestamos" Dense="true" Hover="true" Loading="@_cargando" Filter="FilterFunc">
+        <ToolBarContent>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AbrirNuevoPrestamo">Nuevo Préstamo</MudButton>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar préstamo..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Fecha Préstamo</MudTh>
+            <MudTh>Libro</MudTh>
+            <MudTh>Estudiante</MudTh>
+            <MudTh>Devolución Esperada</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Multa</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.FechaPrestamo.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>@context.LibroTitulo <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">ISBN: @context.LibroISBN</MudText></MudTd>
+            <MudTd>@context.EstudianteNombre <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Cód: @context.EstudianteCodigo</MudText></MudTd>
+            <MudTd>@context.FechaDevolucionEsperada.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetEstadoColor(context.Estado, context.FechaDevolucionEsperada)">
+                    @context.Estado.ToString()
+                    @if (context.Estado == EstadoPrestamoBiblioteca.Activo && context.FechaDevolucionEsperada < DateTime.Today) { <text> (Vencido)</text> }
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.MultaGenerada > 0)
+                {
+                    <MudText Color="Color.Error" Typo="Typo.body2">S/ @context.MultaGenerada</MudText>
+                }
+                else { <text>—</text> }
+            </MudTd>
+            <MudTd>
+                @if (context.Estado == EstadoPrestamoBiblioteca.Activo)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="MudBlazor.Size.Small" OnClick="() => AbrirDevolucion(context)">Devolver</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<!-- DIÁLOGO NUEVO PRÉSTAMO -->
+<MudDialog @bind-Visible="_dialogNuevoAbierto" MaxWidth="MaxWidth.Sm" FullWidth="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Registrar Préstamo</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudAutocomplete T="LibroDto" Label="Buscar Libro" @bind-Value="_libroSeleccionado" 
+                                 SearchFunc="BuscarLibro" ToStringFunc="@(l => l==null ? null : $"{l.Titulo} ({l.EjemplaresDisponibles} disp.)")"
+                                 ResetValueOnEmptyText="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudAutocomplete T="EstudianteDto" Label="Buscar Estudiante" @bind-Value="_estudianteSeleccionado" 
+                                 SearchFunc="BuscarEstudiante" ToStringFunc="@(e => e==null ? null : $"{e.Codigo} - {e.Nombres} {e.ApellidoPaterno}")"
+                                 ResetValueOnEmptyText="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudDatePicker Label="Fecha de Devolución Esperada" @bind-Date="_fechaEsperada" Variant="Variant.Outlined" MinDate="DateTime.Today" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_observaciones" Label="Observaciones" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _dialogNuevoAbierto = false">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="GuardarPrestamo" Disabled="@(_libroSeleccionado == null || _estudianteSeleccionado == null || _libroSeleccionado.EjemplaresDisponibles <= 0)">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- DIÁLOGO DEVOLVER -->
+<MudDialog @bind-Visible="_dialogDevolverAbierto" MaxWidth="MaxWidth.Xs" FullWidth="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Devolver Libro</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_prestamoADevolver != null)
+        {
+            <MudText Class="mb-3">Confirmar devolución del libro <strong>@_prestamoADevolver.LibroTitulo</strong> por el estudiante <strong>@_prestamoADevolver.EstudianteNombre</strong>.</MudText>
+            
+            @if (_prestamoADevolver.FechaDevolucionEsperada < DateTime.Today)
+            {
+                var diasRetraso = (int)(DateTime.Today - _prestamoADevolver.FechaDevolucionEsperada).TotalDays;
+                <MudAlert Severity="Severity.Error" Class="mb-3">
+                    El préstamo está vencido por @diasRetraso días.
+                </MudAlert>
+                <MudNumericField @bind-Value="_multaCalculada" Label="Multa a aplicar (S/)" Variant="Variant.Outlined" Min="0" />
+            }
+            <MudTextField @bind-Value="_observacionDevolucion" Label="Observaciones de la devolución" Variant="Variant.Outlined" Lines="2" Class="mt-3" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _dialogDevolverAbierto = false">Cancelar</MudButton>
+        <MudButton Color="Color.Success" OnClick="ConfirmarDevolucion">Confirmar Devolución</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<PrestamoDto> _prestamos = new();
+    private bool _cargando = false;
+    private string _search = "";
+
+    // Para el diálogo nuevo
+    private bool _dialogNuevoAbierto = false;
+    private LibroDto? _libroSeleccionado;
+    private EstudianteDto? _estudianteSeleccionado;
+    private DateTime? _fechaEsperada = DateTime.Today.AddDays(7);
+    private string? _observaciones;
+
+    // Para el diálogo de devolución
+    private bool _dialogDevolverAbierto = false;
+    private PrestamoDto? _prestamoADevolver;
+    private decimal? _multaCalculada = 0;
+    private string? _observacionDevolucion = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        _cargando = true;
+        _prestamos = await Mediator.Send(new GetPrestamosQuery());
+        _cargando = false;
+    }
+
+    private bool FilterFunc(PrestamoDto p)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        if (p.EstudianteNombre.Contains(_search, StringComparison.OrdinalIgnoreCase)) return true;
+        if (p.LibroTitulo.Contains(_search, StringComparison.OrdinalIgnoreCase)) return true;
+        if (p.EstudianteCodigo.Contains(_search, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private MudBlazor.Color GetEstadoColor(EstadoPrestamoBiblioteca estado, DateTime esperada)
+    {
+        if (estado == EstadoPrestamoBiblioteca.Devuelto) return MudBlazor.Color.Success;
+        if (estado == EstadoPrestamoBiblioteca.Activo && esperada < DateTime.Today) return MudBlazor.Color.Error;
+        return MudBlazor.Color.Info;
+    }
+
+    // == NUEVO PRÉSTAMO ==
+    private void AbrirNuevoPrestamo()
+    {
+        _libroSeleccionado = null;
+        _estudianteSeleccionado = null;
+        _fechaEsperada = DateTime.Today.AddDays(7);
+        _observaciones = "";
+        _dialogNuevoAbierto = true;
+    }
+
+    private async Task<IEnumerable<LibroDto>> BuscarLibro(string value, CancellationToken token)
+    {
+        var libros = await Mediator.Send(new GetLibrosQuery(), token);
+        if (string.IsNullOrEmpty(value)) return libros;
+        return libros.Where(l => l.Titulo.Contains(value, StringComparison.InvariantCultureIgnoreCase) || 
+                                (l.ISBN != null && l.ISBN.Contains(value, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+    private async Task<IEnumerable<EstudianteDto>> BuscarEstudiante(string value, CancellationToken token)
+    {
+        var estudiantes = await Mediator.Send(new GetEstudiantesQuery(), token);
+        if (string.IsNullOrEmpty(value)) return estudiantes;
+        return estudiantes.Where(e => e.Nombres.Contains(value, StringComparison.InvariantCultureIgnoreCase) || 
+                                      e.ApellidoPaterno.Contains(value, StringComparison.InvariantCultureIgnoreCase) ||
+                                      e.Codigo.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private async Task GuardarPrestamo()
+    {
+        if (_libroSeleccionado == null || _estudianteSeleccionado == null || _fechaEsperada == null) return;
+
+        try
+        {
+            await Mediator.Send(new CreatePrestamoCommand
+            {
+                LibroId = _libroSeleccionado.Id,
+                EstudianteId = _estudianteSeleccionado.Id,
+                FechaDevolucionEsperada = _fechaEsperada.Value,
+                Observaciones = _observaciones
+            });
+            Snackbar.Add("Préstamo registrado.", Severity.Success);
+            _dialogNuevoAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    // == DEVOLUCIÓN ==
+    private void AbrirDevolucion(PrestamoDto prestamo)
+    {
+        _prestamoADevolver = prestamo;
+        _observacionDevolucion = "";
+        
+        // Calcular multa sugerida si hay retraso (ej. S/ 2 por día)
+        if (prestamo.FechaDevolucionEsperada < DateTime.Today)
+        {
+            var dias = (int)(DateTime.Today - prestamo.FechaDevolucionEsperada).TotalDays;
+            _multaCalculada = dias * 2m; // 2 soles por día de multa sugerida
+        }
+        else
+        {
+            _multaCalculada = 0;
+        }
+
+        _dialogDevolverAbierto = true;
+    }
+
+    private async Task ConfirmarDevolucion()
+    {
+        if (_prestamoADevolver == null) return;
+
+        await Mediator.Send(new DevolverLibroCommand
+        {
+            PrestamoId = _prestamoADevolver.Id,
+            MultaGenerada = _multaCalculada > 0 ? _multaCalculada : null,
+            ObservacionDevolucion = _observacionDevolucion
+        });
+        
+        Snackbar.Add("Libro devuelto con éxito.", Severity.Success);
+        _dialogDevolverAbierto = false;
+        await Cargar();
+    }
+}

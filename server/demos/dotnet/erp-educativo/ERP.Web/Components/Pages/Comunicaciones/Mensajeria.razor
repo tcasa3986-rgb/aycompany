@@ -1,0 +1,93 @@
+@page "/comunicaciones/mensajeria"
+@using ERP.Application.Features.Comunicaciones
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Mensajería — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📩 Bandeja de Entrada</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Comunicaciones directas con la institución</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Redactar Mensaje</MudButton>
+</MudStack>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Style="border-radius:16px; overflow:hidden;">
+            <MudList T="int" Clickable="true" @bind-SelectedValue="_selectedMessageId">
+                @foreach (var msg in _mensajes)
+                {
+                    <MudListItem Value="@msg.Id" OnClick="@(() => _mensajeSeleccionado = msg)">
+                        <div class="d-flex align-center">
+                            <MudBadge Color="MudBlazor.Color.Error" Dot="true" Visible="@(!msg.Leido)" Overlap="true" Bordered="true">
+                                <MudAvatar Color="@(msg.Leido ? MudBlazor.Color.Default : MudBlazor.Color.Primary)" Size="MudBlazor.Size.Small" Class="mr-3">@msg.Remitente[0]</MudAvatar>
+                            </MudBadge>
+                            <div style="flex:1; min-width:0;">
+                                <MudText Typo="Typo.body2" Style="@(msg.Leido ? "" : "font-weight:700;")" Class="text-truncate">@msg.Remitente</MudText>
+                                <MudText Typo="Typo.caption" Class="text-truncate d-block">@msg.Asunto</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Style="color:#9CA3AF;">@msg.FechaEnvio.ToString("HH:mm")</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudDivider />
+                }
+            </MudList>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        @if (_mensajeSeleccionado != null)
+        {
+            <MudPaper Elevation="2" Class="pa-8" Style="border-radius:16px; min-height:400px;">
+                <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+                    <MudStack Row AlignItems="AlignItems.Center">
+                        <MudAvatar Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large">@_mensajeSeleccionado.Remitente[0]</MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.h6">@_mensajeSeleccionado.Remitente</MudText>
+                            <MudText Typo="Typo.caption">Para: Mí (@_userEmail)</MudText>
+                        </div>
+                    </MudStack>
+                    <MudText Typo="Typo.caption">@_mensajeSeleccionado.FechaEnvio.ToString("f")</MudText>
+                </MudStack>
+
+                <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight:700;">@_mensajeSeleccionado.Asunto</MudText>
+                <MudDivider Class="mb-6" />
+                <MudText Typo="Typo.body1" Style="white-space: pre-wrap; color:#374151;">@_mensajeSeleccionado.Contenido</MudText>
+
+                <div class="mt-12">
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Reply">Responder</MudButton>
+                    <MudButton Variant="Variant.Outlined" Class="ml-2" StartIcon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error">Eliminar</MudButton>
+                </div>
+            </MudPaper>
+        }
+        else
+        {
+            <MudPaper Elevation="2" Class="d-flex flex-column align-center justify-center pa-12" Style="border-radius:16px; min-height:400px; color:#9CA3AF; border:2px dashed #E5E7EB;">
+                <MudIcon Icon="@Icons.Material.Filled.MailOutline" Style="font-size: 5rem;" />
+                <MudText Typo="Typo.h6">Selecciona un mensaje para leerlo</MudText>
+            </MudPaper>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<MensajeDto> _mensajes = new();
+    private MensajeDto? _mensajeSeleccionado;
+    private int _selectedMessageId;
+    private string _userEmail = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userEmail = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? "usuario@erpeducativo.com";
+        _mensajes = await Mediator.Send(new GetMensajesQuery(_userEmail));
+    }
+}

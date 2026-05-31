@@ -1,0 +1,56 @@
+@inject ISalesService SalesSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Selecciona una OT terminada para emitir su factura. Se incluirán todos los servicios y repuestos.
+        </MudText>
+        <MudSelect T="int?" @bind-Value="otId" Label="Orden de Trabajo *"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelectItem T="int?" Value="null">Selecciona una OT</MudSelectItem>
+            @foreach (var ot in OTs)
+            {
+                <MudSelectItem T="int?" Value="ot.Id">
+                    @ot.Numero — @ot.Cliente · @ot.Vehiculo (S/. @ot.Total.ToString("N2"))
+                </MudSelectItem>
+            }
+        </MudSelect>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Generar"
+                   Disabled="@(otId == null || generando)"
+                   StartIcon="@Icons.Material.Filled.Receipt">@(generando ? "Generando..." : "Generar factura")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<OrdenTrabajoListDto> OTs { get; set; } = new();
+
+    private int? otId;
+    private bool generando;
+    private string? error;
+
+    private async Task Generar()
+    {
+        if (otId == null) return;
+        generando = true; error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var facturaId = await SalesSvc.CrearFacturaDesdeOTAsync(otId.Value, auth.User.Identity?.Name);
+            MudDialog.Close(DialogResult.Ok(facturaId));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { generando = false; }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

@@ -1,0 +1,106 @@
+@page "/configuracion/institucion"
+@using ERP.Application.Features.Configuracion.Institucion
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Institución — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">
+            🏢 Configuración de la Institución
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">
+            Administra los datos generales de tu centro educativo
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" 
+               Color="MudBlazor.Color.Primary" OnClick="GuardarCambios" Style="border-radius: 8px;">
+        Guardar Cambios
+    </MudButton>
+</MudStack>
+
+@if (_cargando)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 16px;">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color:#1E1B4B;">Datos Principales</MudText>
+                
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_institucion.Nombre" Label="Nombre de la Institución" 
+                                      Required="true" RequiredError="El nombre es obligatorio" Variant="Variant.Outlined" />
+                    </MudItem>
+                    
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_institucion.RUC" Label="RUC / NIT" Variant="Variant.Outlined" />
+                    </MudItem>
+                    
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_institucion.Telefono" Label="Teléfono de Contacto" Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_institucion.Direccion" Label="Dirección Completa" Variant="Variant.Outlined" Lines="2" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius: 16px; height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color:#1E1B4B;">Contacto y Web</MudText>
+                
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="_institucion.Email" Label="Correo Electrónico" 
+                                  InputType="InputType.Email" Variant="Variant.Outlined" />
+                                  
+                    <MudTextField @bind-Value="_institucion.SitioWeb" Label="Sitio Web" Variant="Variant.Outlined" />
+                    
+                    <MudTextField @bind-Value="_institucion.Slogan" Label="Slogan" Variant="Variant.Outlined" Lines="2" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _cargando = true;
+    private InstitucionDto _institucion = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cargando = true;
+        _institucion = await Mediator.Send(new GetInstitucionQuery());
+        _cargando = false;
+    }
+
+    private async Task GuardarCambios()
+    {
+        if (string.IsNullOrWhiteSpace(_institucion.Nombre))
+        {
+            Snackbar.Add("El nombre de la institución es obligatorio.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var command = new UpdateInstitucionCommand { Institucion = _institucion };
+            await Mediator.Send(command);
+            Snackbar.Add("Datos de la institución guardados correctamente.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+        }
+    }
+}

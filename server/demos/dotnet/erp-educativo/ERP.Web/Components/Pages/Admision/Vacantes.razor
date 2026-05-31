@@ -1,0 +1,60 @@
+@page "/admision/vacantes"
+@using ERP.Application.Features.Admision
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Control de Vacantes — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📊 Control de Vacantes</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Disponibilidad por carrera para el periodo actual</MudText>
+    </div>
+</MudStack>
+
+<MudGrid>
+    @foreach (var v in _vacantes)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+                <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@v.CarreraNombre</MudText>
+                <MudDivider Class="my-3" />
+                
+                <MudStack Row Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.body2" Style="color:#6B7280;">Ocupación</MudText>
+                    <MudText Typo="Typo.body2" Style="font-weight:700;">@v.Matriculados / @v.VacantesTotales</MudText>
+                </MudStack>
+                
+                <MudProgressLinear Color="@GetColor(v.PorcentajeOcupacion)" Value="@((double)v.PorcentajeOcupacion)" Size="MudBlazor.Size.Large" Class="my-4">
+                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Inherit"><b>@v.PorcentajeOcupacion.ToString("0")%</b></MudText>
+                </MudProgressLinear>
+
+                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.caption" Style="color:#6B7280;">Disponibles:</MudText>
+                    <MudChip T="string" Color="@(v.Disponibles > 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Size="MudBlazor.Size.Small">
+                        @v.Disponibles Libres
+                    </MudChip>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private List<VacanteDetalleDto> _vacantes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _vacantes = await Mediator.Send(new GetVacantesPorCarreraQuery());
+    }
+
+    private MudBlazor.Color GetColor(decimal pct) => pct switch
+    {
+        >= 90 => MudBlazor.Color.Error,
+        >= 70 => MudBlazor.Color.Warning,
+        _ => MudBlazor.Color.Success
+    };
+}

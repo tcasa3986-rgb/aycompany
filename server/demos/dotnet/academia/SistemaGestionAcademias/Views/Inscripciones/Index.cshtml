@@ -1,0 +1,60 @@
+@model IEnumerable<SistemaGestionAcademias.Models.Inscripcion>
+
+@{
+    ViewData["Title"] = "Libro de Matrículas";
+}
+
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 text-dark fw-bold"><i class="bi bi-journal-bookmark-fill"></i> Libro de Matrículas</h4>
+        <a asp-action="Create" class="btn btn-dark rounded-pill px-4 shadow-sm fw-bold">
+            <i class="bi bi-pencil-fill"></i> Nueva Matrícula
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-hover table-striped mb-0 align-middle">
+            <thead class="bg-light text-secondary">
+                <tr>
+                    <th class="ps-4">Fecha</th>
+                    <th>Alumno</th>
+                    <th>Actividad / Taller</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model) {
+                    <tr>
+                        <td class="ps-4 text-muted">@item.FechaInscripcion.ToShortDateString()</td>
+                        <td>
+                            <div class="fw-bold text-primary">@item.Alumno.NombreCompleto</div>
+                            <small class="text-muted">@item.Alumno.DocumentoIdentidad</small>
+                        </td>
+                        <td>
+                            <i class="bi bi-activity"></i> @item.Actividad.Nombre
+                        </td>
+                        <td>
+                            @if(item.Estado == "Pagado") {
+                                <span class="badge bg-success">Pagado</span>
+                            } else if (item.Estado == "Pendiente") {
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                            } else {
+                                <span class="badge bg-info text-dark">@item.Estado</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a asp-action="Comprobante" asp-route-id="@item.Id" target="_blank" class="btn btn-outline-dark btn-sm" title="Imprimir Constancia">
+                                    <i class="bi bi-printer-fill"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

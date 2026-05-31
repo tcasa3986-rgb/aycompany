@@ -1,0 +1,26 @@
+@inject IHostEnvironment Env
+
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>AutoTaller ERP — Sistema de Gestión</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <!-- MudBlazor + Material Icons + Roboto -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="ERP.TallerAutomotriz.Web.styles.css" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+</body>
+</html>

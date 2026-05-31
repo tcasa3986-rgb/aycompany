@@ -1,0 +1,117 @@
+@page "/academico/cierre"
+@using ERP.Application.Features.Evaluacion.Asistencia
+@using ERP.Application.Features.Academico.Promedios
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4" Style="font-weight: 700;">Cierre de Ciclo: Promedios Finales</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4" Style="border-radius:12px;">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudSelect T="int" Label="Seleccionar Sección para Cierre" @bind-Value="_seccionSeleccionada" Variant="Variant.Outlined" SelectedValuesChanged="OnSeccionChanged">
+                <MudSelectItem Value="0" Disabled="true">Seleccione una clase...</MudSelectItem>
+                @foreach (var sec in _secciones)
+                {
+                    <MudSelectItem Value="@sec.Id">@($"{sec.CursoNombre} - {sec.Nombre} ({sec.PeriodoNombre})")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="6" Class="d-flex align-center justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="MudBlazor.Size.Large" OnClick="CalcularPromedios" Disabled="@(_seccionSeleccionada == 0 || _calculando)">
+                @if (_calculando) { <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" /> }
+                else { <MudText>Ejecutar Cálculo de Promedios</MudText> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_promedios != null)
+{
+    <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px;">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">Acta Final de Notas (@_promedios.Count Alumnos)</MudText>
+        </div>
+
+        @if (_promedios.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info">Aún no se ha realizado el cálculo de promedios para esta clase o no hay alumnos matriculados.</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="@_promedios" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Código</MudTh>
+                    <MudTh>Apellidos y Nombres</MudTh>
+                    <MudTh Style="text-align:right;">Promedio Final</MudTh>
+                    <MudTh>Condición</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.EstudianteCodigo</MudTd>
+                    <MudTd Style="font-weight:600;">@context.EstudianteNombre</MudTd>
+                    <MudTd Style="text-align:right;">
+                        <MudText Typo="Typo.h6" Color="@(context.Aprobado ? Color.Success : Color.Error)">
+                            @context.PromedioCalculado?.ToString("0.00")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Color="@(context.Aprobado ? Color.Success : Color.Error)" Size="MudBlazor.Size.Small">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private List<SeccionDto> _secciones = new();
+    private int _seccionSeleccionada = 0;
+    
+    private List<PromedioDto>? _promedios;
+    private bool _calculando = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _secciones = await Mediator.Send(new GetSeccionesActivasQuery());
+    }
+
+    private async Task OnSeccionChanged()
+    {
+        if (_seccionSeleccionada > 0)
+        {
+            _promedios = await Mediator.Send(new GetPromediosPorSeccionQuery { SeccionId = _seccionSeleccionada });
+        }
+        else
+        {
+            _promedios = null;
+        }
+    }
+
+    private async Task CalcularPromedios()
+    {
+        if (_seccionSeleccionada == 0) return;
+
+        _calculando = true;
+        try
+        {
+            // Ejecutar el motor de cálculo
+            await Mediator.Send(new CalcularYGuardarPromediosCommand { SeccionId = _seccionSeleccionada });
+            
+            Snackbar.Add("Promedios calculados correctamente.", Severity.Success);
+            
+            // Recargar la tabla con los promedios recién calculados
+            _promedios = await Mediator.Send(new GetPromediosPorSeccionQuery { SeccionId = _seccionSeleccionada });
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _calculando = false;
+        }
+    }
+}

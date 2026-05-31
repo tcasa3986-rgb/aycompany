@@ -1,0 +1,13 @@
+@using MudBlazor
+
+<MudNavGroup Title="@Title" Icon="@Icon"
+             Style="color:rgba(255,255,255,0.9); font-weight:600;"
+             IconStyle="color:#F97316;">
+    @ChildContent
+</MudNavGroup>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

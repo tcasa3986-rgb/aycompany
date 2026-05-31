@@ -1,0 +1,73 @@
+@model IEnumerable<SistemaGestionAcademias.Models.Categoria>
+
+@{
+    ViewData["Title"] = "Gestión de Categorías";
+}
+
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 text-info fw-bold"><i class="bi bi-tags-fill"></i> Gestión de Categorías</h4>
+        <a asp-action="Create" class="btn btn-info text-white rounded-pill px-4 shadow-sm fw-bold">
+            <i class="bi bi-plus-lg"></i> Nueva Categoría
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-hover table-striped mb-0 align-middle">
+            <thead class="bg-light text-secondary">
+                <tr>
+                    <th class="ps-4">Nombre</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model) {
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">@item.Nombre</div>
+                        </td>
+                        <td class="text-muted">@item.Descripcion</td>
+                        <td>
+                            @if(item.Estado) {
+                                <span class="badge bg-success">Activo</span>
+                            } else {
+                                <span class="badge bg-danger">Inactivo</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                
+                                @if (item.Estado)
+                                {
+                                    <a asp-action="ToggleStatus" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning" title="Desactivar Categoría">
+                                        <i class="bi bi-archive-fill"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a asp-action="ToggleStatus" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success" title="Reactivar Categoría">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </a>
+                                }
+
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="Ver Detalles"><i class="bi bi-eye"></i></a>
+                                
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        
+        @if (!Model.Any())
+        {
+            <div class="text-center p-5 text-muted">
+                <i class="bi bi-tags display-4 opacity-50"></i>
+                <p class="mt-2">No hay categorías registradas aún.</p>
+            </div>
+        }
+    </div>
+</div>

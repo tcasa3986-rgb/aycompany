@@ -1,0 +1,137 @@
+@inject ICustomerService CustomerSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="TipoCliente" @bind-Value="Cliente.Tipo" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="TipoCliente.PersonaNatural">Persona natural</MudSelectItem>
+                        <MudSelectItem Value="TipoCliente.Empresa">Empresa</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Cliente.Codigo" Label="Código (opcional, se autogenera)"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Cliente.DocumentoIdentidad" Label="DNI / RUC *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Cliente.NombreRazonSocial"
+                                  Label="@(Cliente.Tipo == TipoCliente.Empresa ? "Razón social *" : "Nombres y apellidos *")"
+                                  Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                @if (Cliente.Tipo == TipoCliente.Empresa)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Cliente.NombreComercial" Label="Nombre comercial"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Cliente.ContactoPrincipal" Label="Contacto principal"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Cliente.CargoContacto" Label="Cargo del contacto"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Cliente.Email" Label="Email" InputType="InputType.Email"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Cliente.TelefonoPrincipal" Label="Teléfono principal"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Phone" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Cliente.TelefonoSecundario" Label="Teléfono secundario"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Cliente.Ciudad" Label="Ciudad"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Cliente.Direccion" Label="Dirección"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="Cliente.LimiteCredito" Label="Límite de crédito (S/.)"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="Cliente.RecibeNotificaciones" Color="Color.Primary"
+                               Label="Recibe notificaciones (SMS/Email)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Cliente.Notas" Label="Notas internas" Lines="2"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@(guardando ? null : Icons.Material.Filled.Save)">
+            @(guardando ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ClienteFormDto Cliente { get; set; } = new();
+
+    private MudForm? form;
+    private bool guardando;
+    private string? error;
+
+    private async Task Guardar()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        guardando = true;
+        error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+
+            if (Cliente.Id == 0)
+                await CustomerSvc.CrearClienteAsync(Cliente, usuario);
+            else
+                await CustomerSvc.ActualizarClienteAsync(Cliente, usuario);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

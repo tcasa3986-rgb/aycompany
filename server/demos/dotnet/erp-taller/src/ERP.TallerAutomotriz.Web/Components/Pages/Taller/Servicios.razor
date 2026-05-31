@@ -1,0 +1,157 @@
+@page "/servicios"
+@attribute [Authorize]
+@inject IWorkshopService WorkshopSvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Catálogo de Servicios - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Catálogo de Servicios</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Servicios disponibles, paquetes y tarifas</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoServicio">Nuevo servicio</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar servicio..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:480px;" />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@servicios.Count servicio(s)</MudText>
+    </div>
+
+    <MudTable Items="@servicios" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Categoría</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh Style="text-align:right;">Tiempo</MudTh>
+            <MudTh Style="text-align:right;">Precio</MudTh>
+            <MudTh Style="text-align:center;">Paquete</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Class="fw-medium">@context.Codigo</MudText></MudTd>
+            <MudTd><MudText Typo="Typo.body2">@context.Nombre</MudText></MudTd>
+            <MudTd>@(context.Categoria ?? "—")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@TipoTexto(context.Tipo)</MudChip></MudTd>
+            <MudTd Style="text-align:right;">@context.TiempoEstimadoMinutos min</MudTd>
+            <MudTd Style="text-align:right;"><MudText Typo="Typo.body2" Class="fw-medium">S/. @context.PrecioEstandar.ToString("N2")</MudText></MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.EsPaquete)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Tertiary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Inventory2">Paquete</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarServicio(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarServicio(context)" Disabled="!context.Activo" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No hay servicios. <MudLink OnClick="NuevoServicio">Crear el primero</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private List<ServicioListDto> servicios = new();
+    private List<CategoriaServicioDto> categorias = new();
+    private bool cargando = true;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await WorkshopSvc.ListarCategoriasServicioAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        servicios = await WorkshopSvc.ListarServiciosAsync(buscar);
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try
+        {
+            await Task.Delay(350, token);
+            await CargarAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task NuevoServicio()
+    {
+        var parametros = new DialogParameters { ["Servicio"] = new ServicioFormDto(), ["Categorias"] = categorias };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<ServicioFormDialog>("Nuevo servicio", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Servicio creado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarServicio(int id)
+    {
+        var dto = await WorkshopSvc.ObtenerServicioAsync(id);
+        if (dto == null) return;
+        var parametros = new DialogParameters { ["Servicio"] = dto, ["Categorias"] = categorias };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<ServicioFormDialog>("Editar servicio", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Servicio actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EliminarServicio(ServicioListDto s)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Confirmar",
+            $"¿Desactivar el servicio '{s.Nombre}'?",
+            yesText: "Sí, desactivar", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                await WorkshopSvc.EliminarServicioAsync(s.Id);
+                Snackbar.Add("Servicio desactivado", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private static string TipoTexto(TipoServicio t) => t switch
+    {
+        TipoServicio.MantenimientoPreventivo => "Preventivo",
+        TipoServicio.Correctivo => "Correctivo",
+        TipoServicio.Hojalateria => "Hojalatería",
+        TipoServicio.Electrico => "Eléctrico",
+        TipoServicio.AireAcondicionado => "Aire acond.",
+        TipoServicio.AlineacionBalanceo => "Alineación",
+        TipoServicio.Diagnostico => "Diagnóstico",
+        _ => "Otro"
+    };
+}

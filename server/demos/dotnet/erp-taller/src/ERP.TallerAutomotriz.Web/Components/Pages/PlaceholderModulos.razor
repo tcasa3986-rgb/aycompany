@@ -1,0 +1,66 @@
+@page "/proveedores"
+@page "/compras/ordenes"
+@page "/compras/cuentas-pagar"
+@page "/reportes"
+@page "/configuracion/empresa"
+@page "/configuracion/usuarios"
+@page "/configuracion/parametros"
+@page "/configuracion"
+@page "/perfil"
+@attribute [Authorize]
+@inject NavigationManager Nav
+
+<PageTitle>@Titulo - AutoTaller ERP</PageTitle>
+
+<MudPaper Class="pa-8 text-center" Elevation="0" Style="border-radius:12px;">
+    <MudIcon Icon="@Icons.Material.Filled.Construction" Size="Size.Large" Color="Color.Warning" Style="font-size:5rem;" />
+    <MudText Typo="Typo.h4" Class="fw-bold mt-3">@Titulo</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
+        Este módulo forma parte de la fundación implementada y será desarrollado en las siguientes iteraciones.
+    </MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1 d-block">Ruta actual: <code>@Nav.Uri.Replace(Nav.BaseUri, "/")</code></MudText>
+
+    <MudGrid Class="mt-6" Justify="Justify.Center">
+        <MudItem xs="12" sm="8" md="6">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="text-start">
+                <strong>Listo para construir:</strong> entidades de dominio, DbContext, migraciones, Identity y layout
+                ya están en su lugar. Cada módulo se conectará a sus servicios y vistas específicas.
+            </MudAlert>
+        </MudItem>
+    </MudGrid>
+
+    <MudButton Class="mt-6" Variant="Variant.Filled" Color="Color.Primary" Href="/" StartIcon="@Icons.Material.Filled.Dashboard">
+        Volver al dashboard
+    </MudButton>
+</MudPaper>
+
+@code {
+    private string Titulo => Nav.Uri.Replace(Nav.BaseUri, "/") switch
+    {
+        var u when u.StartsWith("/recepcion") => "Recepción de Vehículos",
+        var u when u.StartsWith("/ordenes") => "Órdenes de Trabajo",
+        var u when u.StartsWith("/agenda") => "Agenda y Citas",
+        var u when u.StartsWith("/clientes") => "Clientes (CRM)",
+        var u when u.StartsWith("/vehiculos") => "Vehículos",
+        var u when u.StartsWith("/inventario/repuestos") => "Inventario · Repuestos",
+        var u when u.StartsWith("/inventario/movimientos") => "Inventario · Movimientos",
+        var u when u.StartsWith("/inventario/almacenes") => "Inventario · Almacenes",
+        var u when u.StartsWith("/proveedores") => "Proveedores",
+        var u when u.StartsWith("/compras/ordenes") => "Órdenes de Compra",
+        var u when u.StartsWith("/compras/cuentas-pagar") => "Cuentas por Pagar",
+        var u when u.StartsWith("/facturacion/cotizaciones") => "Cotizaciones",
+        var u when u.StartsWith("/facturacion/caja") => "Caja",
+        var u when u.StartsWith("/facturacion/cuentas-cobrar") => "Cuentas por Cobrar",
+        var u when u.StartsWith("/facturacion") => "Facturación",
+        var u when u.StartsWith("/personal/tecnicos") => "Personal · Técnicos",
+        var u when u.StartsWith("/personal/asistencia") => "Personal · Asistencia",
+        var u when u.StartsWith("/personal/comisiones") => "Personal · Comisiones",
+        var u when u.StartsWith("/reportes") => "Reportes y KPIs",
+        var u when u.StartsWith("/configuracion/empresa") => "Configuración · Empresa",
+        var u when u.StartsWith("/configuracion/usuarios") => "Configuración · Usuarios y Roles",
+        var u when u.StartsWith("/configuracion/parametros") => "Configuración · Parámetros",
+        var u when u.StartsWith("/configuracion") => "Configuración",
+        var u when u.StartsWith("/perfil") => "Mi Perfil",
+        _ => "Módulo"
+    };
+}

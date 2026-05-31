@@ -1,0 +1,171 @@
+@page "/personal/tecnicos"
+@attribute [Authorize]
+@inject IPersonnelService PersonnelSvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Técnicos - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Técnicos</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Personal técnico del taller</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoTecnico">Nuevo técnico</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar por código, nombres o DNI..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:480px;" />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@tecnicos.Count técnico(s)</MudText>
+    </div>
+
+    <MudTable Items="@tecnicos" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Nombre completo</MudTh>
+            <MudTh>DNI</MudTh>
+            <MudTh>Contacto</MudTh>
+            <MudTh>Nivel</MudTh>
+            <MudTh>Especialidades</MudTh>
+            <MudTh Style="text-align:right;">Tarifa/h</MudTh>
+            <MudTh Style="text-align:center;">OTs activas</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Class="fw-bold">@context.Codigo</MudText></MudTd>
+            <MudTd><MudText Typo="Typo.body2" Class="fw-medium">@context.NombreCompleto</MudText></MudTd>
+            <MudTd>@context.DocumentoIdentidad</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Telefono))
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@context.Telefono</MudText>
+                }
+                @if (!string.IsNullOrEmpty(context.Email))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Email</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@NivelColor(context.Nivel)" Variant="Variant.Filled">@context.Nivel</MudChip>
+            </MudTd>
+            <MudTd><MudText Typo="Typo.caption">@(context.Especialidades ?? "—")</MudText></MudTd>
+            <MudTd Style="text-align:right;">S/. @context.TarifaHora.ToString("N2")</MudTd>
+            <MudTd Style="text-align:center;">
+                <MudChip T="string" Size="Size.Small" Color="@(context.OTsAsignadas > 0 ? Color.Primary : Color.Default)" Variant="Variant.Filled">@context.OTsAsignadas</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.Activo)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Activo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled">Inactivo</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarTecnico(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarTecnico(context)" Disabled="!context.Activo" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No hay técnicos. <MudLink OnClick="NuevoTecnico">Crear el primero</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private List<TecnicoFullDto> tecnicos = new();
+    private bool cargando = true;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        tecnicos = await PersonnelSvc.ListarTecnicosAsync(buscar);
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try
+        {
+            await Task.Delay(350, token);
+            await CargarAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task NuevoTecnico()
+    {
+        var parametros = new DialogParameters { ["Tecnico"] = new TecnicoFormDto() };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<TecnicoFormDialog>("Nuevo técnico", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Técnico registrado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarTecnico(int id)
+    {
+        var dto = await PersonnelSvc.ObtenerTecnicoAsync(id);
+        if (dto == null) return;
+        var parametros = new DialogParameters { ["Tecnico"] = dto };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<TecnicoFormDialog>("Editar técnico", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Técnico actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EliminarTecnico(TecnicoFullDto t)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Confirmar",
+            $"¿Desactivar al técnico '{t.NombreCompleto}'?",
+            yesText: "Sí, desactivar", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                await PersonnelSvc.EliminarTecnicoAsync(t.Id);
+                Snackbar.Add("Técnico desactivado", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private static Color NivelColor(NivelExperiencia n) => n switch
+    {
+        NivelExperiencia.Maestro => Color.Tertiary,
+        NivelExperiencia.Senior => Color.Primary,
+        NivelExperiencia.SemiSenior => Color.Info,
+        NivelExperiencia.Junior => Color.Default,
+        NivelExperiencia.Aprendiz => Color.Default,
+        _ => Color.Default
+    };
+}

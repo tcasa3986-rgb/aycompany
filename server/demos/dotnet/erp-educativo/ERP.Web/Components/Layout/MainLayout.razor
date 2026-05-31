@@ -1,0 +1,200 @@
+@inherits LayoutComponentBase
+@using MudBlazor
+
+<MudThemeProvider Theme="@_erpTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <!-- TOP APP BAR -->
+    <MudAppBar Elevation="2" Style="background: linear-gradient(135deg, #0F2D5C 0%, #1A4B8C 60%, #1E5FA8 100%); z-index:1300; border-bottom: 2px solid #10B981;">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.School" Style="color:#10B981; font-size:2rem; filter: drop-shadow(0 0 6px rgba(16,185,129,0.5));" />
+            <MudText Typo="Typo.h6" Style="color:white; font-weight:700; letter-spacing:0.5px;">
+                ERP Educativo
+            </MudText>
+        </MudStack>
+        <MudSpacer />
+        <!-- Búsqueda -->
+        <MudTextField @bind-Value="_busqueda" Placeholder="Buscar..." Variant="Variant.Outlined"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="background:rgba(255,255,255,0.15); border-radius:8px; max-width:280px;"
+                      Class="mr-4 mt-2" />
+        <!-- Notificaciones -->
+        <MudBadge Content="3" Color="Color.Success" Overlap="true" Class="mr-2">
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="Color.Inherit" />
+        </MudBadge>
+        <!-- Usuario -->
+        <AuthorizeView>
+            <Authorized Context="authState">
+                <MudMenu>
+                    <ActivatorContent>
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Style="cursor:pointer;">
+                            <MudAvatar Style="background: linear-gradient(135deg, #10B981, #059669); font-weight:700; border: 2px solid rgba(255,255,255,0.3);">@(authState.User.Identity?.Name?.Substring(0,1).ToUpper() ?? "U")</MudAvatar>
+                            <MudText Style="color:white; font-weight:600;">@authState.User.Identity?.Name</MudText>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Style="color:white;" />
+                        </MudStack>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/perfil">Mi Perfil</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Settings" Href="/configuracion/institucion">Configuración</MudMenuItem>
+                        <MudDivider />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" Style="color:red;" Href="/account/logout">Cerrar Sesión</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Text" Style="color:white;" Href="/login">Iniciar Sesión</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <!-- SIDEBAR DRAWER -->
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always"
+               Elevation="4" Variant="DrawerVariant.Responsive"
+               Style="background: linear-gradient(180deg, #0A1F3D 0%, #0F2D5C 45%, #0D3A6E 100%); width:260px; border-right: 1px solid rgba(16,185,129,0.2);">
+        <MudNavMenu>
+            <!-- Header del menú -->
+            <div style="padding:16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,0.5); font-size:0.65rem; letter-spacing:2px; font-weight:600;">
+                    MENÚ PRINCIPAL
+                </MudText>
+            </div>
+
+            <NavItem Href="/" Icon="@Icons.Material.Filled.Dashboard" Text="Dashboard" />
+            
+            <AuthorizeView Roles="Estudiante,Administrador">
+                <NavItem Href="/portal/estudiante" Icon="@Icons.Material.Filled.AccountCircle" Text="Mi Portal (Estudiante)" />
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Docente,Administrador">
+                <NavItem Href="/portal/docente" Icon="@Icons.Material.Filled.Badge" Text="Mi Portal (Docente)" />
+            </AuthorizeView>
+
+            <!-- ACADÉMICO -->
+            <NavGroup Title="Académico" Icon="@Icons.Material.Filled.MenuBook">
+                <NavItem Href="/academico/facultades" Icon="@Icons.Material.Filled.AccountBalance" Text="Facultades" Indent />
+                <NavItem Href="/academico/carreras" Icon="@Icons.Material.Filled.School" Text="Carreras" Indent />
+                <NavItem Href="/academico/cursos" Icon="@Icons.Material.Filled.Book" Text="Cursos" Indent />
+                <NavItem Href="/academico/secciones" Icon="@Icons.Material.Filled.Group" Text="Secciones" Indent />
+                <NavItem Href="/academico/horarios" Icon="@Icons.Material.Filled.Schedule" Text="Horarios" Indent />
+                <NavItem Href="/academico/planes" Icon="@Icons.Material.Filled.GridView" Text="Plan de Estudios" Indent />
+            </NavGroup>
+
+            <!-- ADMISIÓN -->
+            <NavGroup Title="Admisión y Matrícula" Icon="@Icons.Material.Filled.Assignment">
+                <NavItem Href="/admision/postulantes" Icon="@Icons.Material.Filled.PersonAdd" Text="Postulantes" Indent />
+                <NavItem Href="/admision/vacantes" Icon="@Icons.Material.Filled.PieChart" Text="Control Vacantes" Indent />
+                <NavItem Href="/admision/matriculas" Icon="@Icons.Material.Filled.HowToReg" Text="Matrículas" Indent />
+            </NavGroup>
+
+            <!-- PERSONAS -->
+            <NavGroup Title="Personas" Icon="@Icons.Material.Filled.People">
+                <NavItem Href="/personas/estudiantes" Icon="@Icons.Material.Filled.Person" Text="Estudiantes" Indent />
+                <NavItem Href="/personas/docentes" Icon="@Icons.Material.Filled.SupervisorAccount" Text="Docentes" Indent />
+                <NavItem Href="/personas/personal" Icon="@Icons.Material.Filled.ManageAccounts" Text="Personal Admin." Indent />
+            </NavGroup>
+
+            <!-- EVALUACIÓN -->
+            <NavGroup Title="Evaluación" Icon="@Icons.Material.Filled.Grade">
+                <NavItem Href="/evaluacion/asistencia" Icon="@Icons.Material.Filled.Checklist" Text="Asistencia" Indent />
+                <NavItem Href="/evaluacion/notas" Icon="@Icons.Material.Filled.Grading" Text="Calificaciones" Indent />
+                <NavItem Href="/evaluacion/evaluaciones" Icon="@Icons.Material.Filled.Quiz" Text="Evaluaciones" Indent />
+                <NavItem Href="/evaluacion/encuestas" Icon="@Icons.Material.Filled.Assignment" Text="Encuestas y Feedback" Indent />
+                <NavItem Href="/academico/cierre" Icon="@Icons.Material.Filled.FactCheck" Text="Cierre de Ciclo" Indent />
+            </NavGroup>
+
+            <!-- FINANCIERO -->
+            <NavGroup Title="Tesorería" Icon="@Icons.Material.Filled.AccountBalanceWallet">
+                <NavItem Href="/tesoreria/conceptos" Icon="@Icons.Material.Filled.Payments" Text="Conceptos de Pago" Indent />
+                <NavItem Href="/tesoreria/deudas" Icon="@Icons.Material.Filled.Receipt" Text="Deudas" Indent />
+                <NavItem Href="/tesoreria/pagos" Icon="@Icons.Material.Filled.Payment" Text="Pagos" Indent />
+                <NavItem Href="/tesoreria/caja" Icon="@Icons.Material.Filled.PointOfSale" Text="Caja" Indent />
+            </NavGroup>
+
+            <!-- BIBLIOTECA -->
+            <NavGroup Title="Biblioteca" Icon="@Icons.Material.Filled.LocalLibrary">
+                <NavItem Href="/biblioteca/libros" Icon="@Icons.Material.Filled.LibraryBooks" Text="Catálogo" Indent />
+                <NavItem Href="/biblioteca/prestamos" Icon="@Icons.Material.Filled.Bookmark" Text="Préstamos" Indent />
+            </NavGroup>
+            
+            <!-- INVENTARIO -->
+            <NavGroup Title="Inventario" Icon="@Icons.Material.Filled.Inventory">
+                <NavItem Href="/inventario/activos" Icon="@Icons.Material.Filled.Computer" Text="Activos Fijos" Indent />
+            </NavGroup>
+
+            <!-- TRÁMITES -->
+            <NavItem Href="/tramites" Icon="@Icons.Material.Filled.Description" Text="Trámites y Documentos" />
+
+            <!-- REPORTES -->
+            <NavItem Href="/reportes" Icon="@Icons.Material.Filled.BarChart" Text="Reportes y BI" />
+
+            <!-- COMUNICACIONES -->
+            <NavGroup Title="Comunicaciones" Icon="@Icons.Material.Filled.Email">
+                <NavItem Href="/comunicados" Icon="@Icons.Material.Filled.Campaign" Text="Comunicados" Indent />
+                <NavItem Href="/comunicaciones/mensajeria" Icon="@Icons.Material.Filled.Inbox" Text="Mensajería" Indent />
+            </NavGroup>
+
+            <!-- CONFIGURACIÓN -->
+            <div style="padding:16px 0 8px; border-top: 1px solid rgba(255,255,255,0.1); margin-top:8px;">
+                <MudText Typo="Typo.caption" Style="color:rgba(255,255,255,0.5); font-size:0.65rem; letter-spacing:2px; font-weight:600; padding:0 16px;">
+                    SISTEMA
+                </MudText>
+            </div>
+            <NavItem Href="/configuracion/institucion" Icon="@Icons.Material.Filled.Business" Text="Institución" />
+            <NavItem Href="/configuracion/calendario" Icon="@Icons.Material.Filled.Event" Text="Calendario Académico" />
+            <NavItem Href="/configuracion/usuarios" Icon="@Icons.Material.Filled.AdminPanelSettings" Text="Usuarios y Roles" />
+            <NavItem Href="/configuracion/parametros" Icon="@Icons.Material.Filled.Tune" Text="Parámetros" />
+        </MudNavMenu>
+    </MudDrawer>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <MudMainContent Style="background:#EEF2F7; min-height:100vh;">
+        <div style="padding:24px;">
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private string _busqueda = "";
+
+    private readonly MudTheme _erpTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1A4B8C",
+            Secondary = "#10B981",
+            Tertiary = "#0EA5E9",
+            AppbarBackground = "#0F2D5C",
+            Background = "#EEF2F7",
+            Surface = "#FFFFFF",
+            DrawerBackground = "#0A1F3D",
+            DrawerText = "#E8F0FE",
+            DrawerIcon = "#10B981",
+            TextPrimary = "#0F172A",
+            TextSecondary = "#475569",
+            ActionDefault = "#1A4B8C",
+            Success = "#10B981",
+            Info = "#0EA5E9",
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = ["Inter", "Roboto", "sans-serif"] },
+            H1 = new H1Typography { FontSize = "2rem", FontWeight = "700" },
+            H5 = new H5Typography { FontSize = "1.25rem", FontWeight = "600" },
+            H6 = new H6Typography { FontSize = "1.1rem", FontWeight = "600" },
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DrawerWidthLeft = "260px",
+            AppbarHeight = "64px"
+        }
+    };
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

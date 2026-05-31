@@ -1,0 +1,101 @@
+@model SistemaGestionAcademias.ViewModels.AsistenciaPlanillaViewModel
+
+@{
+    ViewData["Title"] = "Tomar Asistencia";
+}
+
+<form asp-action="Guardar">
+    <input type="hidden" asp-for="SesionId" />
+    <input type="hidden" asp-for="ActividadId" />
+    
+    <div class="card shadow border-0 mt-4 mb-5">
+        <div class="card-header bg-primary text-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 fw-bold">@Model.NombreActividad</h5>
+                    <small class="opacity-75"><i class="bi bi-calendar-event"></i> Fecha: @Model.FechaSesion</small>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-light fw-bold text-primary shadow-sm">
+                        <i class="bi bi-save-fill"></i> Guardar Asistencia
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body bg-light">
+            <div class="mb-4 bg-white p-3 rounded border">
+                <label asp-for="Tema" class="form-label fw-bold text-secondary">Tema o Actividad del Día:</label>
+                <input asp-for="Tema" class="form-control" placeholder="Ej: Introducción, Examen Parcial, Práctica de campo..." />
+            </div>
+
+            <div class="table-responsive bg-white rounded border">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Estudiante</th>
+                            <th class="text-center" style="width: 200px;">Estado</th>
+                            <th>Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Asistencias.Count; i++)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <input type="hidden" asp-for="Asistencias[i].AlumnoId" />
+                                    <input type="hidden" asp-for="Asistencias[i].AsistenciaId" />
+                                    <span class="fw-bold">@Model.Asistencias[i].NombreAlumno</span>
+                                </td>
+                                <td class="text-center">
+                                    <select asp-for="Asistencias[i].Estado" class="form-select form-select-sm fw-bold border-2" onchange="cambiarColor(this)">
+                                        <option value="Presente" class="text-success">Presente</option>
+                                        <option value="Tardanza" class="text-warning">Tardanza</option>
+                                        <option value="Falta" class="text-danger">Falta</option>
+                                        <option value="Justificado" class="text-info">Justificado</option>
+                                    </select>
+                                </td>
+                                <td class="pe-3">
+                                    <input asp-for="Asistencias[i].Observacion" class="form-control form-control-sm" placeholder="Comentario opcional..." />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (Model.Asistencias.Count == 0)
+                {
+                    <div class="text-center p-5 text-muted">
+                        <i class="bi bi-person-x display-4 opacity-25"></i>
+                        <p class="mt-3">No hay alumnos inscritos en este taller.</p>
+                        <a asp-controller="Inscripciones" asp-action="Create" class="btn btn-sm btn-outline-primary">Ir a Matricular</a>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <div class="card-footer bg-white py-3 text-end">
+            <a asp-action="Index" asp-route-actividadId="@Model.ActividadId" class="btn btn-secondary me-2">Cancelar</a>
+            
+            <button type="submit" class="btn btn-primary fw-bold px-4">Guardar Asistencia</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        function cambiarColor(select) {
+            select.classList.remove('border-success', 'border-warning', 'border-danger', 'border-info', 'text-success', 'text-warning', 'text-danger', 'text-info');
+            
+            var val = select.value;
+            if (val === 'Presente') { select.classList.add('border-success', 'text-success'); }
+            else if (val === 'Tardanza') { select.classList.add('border-warning', 'text-warning'); }
+            else if (val === 'Falta') { select.classList.add('border-danger', 'text-danger'); }
+            else if (val === 'Justificado') { select.classList.add('border-info', 'text-info'); }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var selects = document.querySelectorAll('select');
+            selects.forEach(s => cambiarColor(s));
+        });
+    </script>
+}

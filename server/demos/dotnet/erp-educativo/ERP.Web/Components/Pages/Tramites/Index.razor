@@ -1,0 +1,141 @@
+@page "/tramites"
+@using ERP.Application.Features.Tramites
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Trámites y Documentos — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📄 Trámites y Documentos</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Gestión de certificados, constancias y solicitudes</MudText>
+    </div>
+</MudStack>
+
+<MudGrid Class="mb-6">
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px;">
+            <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <div>
+                    <MudText Typo="Typo.subtitle2" Style="color:#6B7280;">Pendientes</MudText>
+                    <MudText Typo="Typo.h4" Style="font-weight:700; color:#F59E0B;">@_solicitudes.Count(x => x.Estado == EstadoSolicitudDocumento.Pendiente)</MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Large" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px;">
+            <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <div>
+                    <MudText Typo="Typo.subtitle2" Style="color:#6B7280;">En Proceso</MudText>
+                    <MudText Typo="Typo.h4" Style="font-weight:700; color:#3B82F6;">@_solicitudes.Count(x => x.Estado == EstadoSolicitudDocumento.EnProceso)</MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.Sync" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px;">
+            <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <div>
+                    <MudText Typo="Typo.subtitle2" Style="color:#6B7280;">Listos / Entregados</MudText>
+                    <MudText Typo="Typo.h4" Style="font-weight:700; color:#10B981;">@_solicitudes.Count(x => x.Estado == EstadoSolicitudDocumento.Listo || x.Estado == EstadoSolicitudDocumento.Entregado)</MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" />
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_solicitudes" Dense="true" Hover="true" Loading="@_cargando">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Solicitudes Recientes</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por estudiante o trámite..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>N° Solicitud</MudTh>
+            <MudTh>Estudiante</MudTh>
+            <MudTh>Documento</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Pago</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.NumeroSolicitud</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Style="font-weight:600;">@context.EstudianteNombre</MudText>
+            </MudTd>
+            <MudTd>@context.TipoDocumento</MudTd>
+            <MudTd>@context.FechaSolicitud.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetEstadoColor(context.Estado)">
+                    @context.Estado.ToString()
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.Pagado ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Variant="Variant.Text">
+                    @(context.Pagado ? "Pagado" : "Pendiente")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="MudBlazor.Size.Small">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Sync" OnClick="@(() => CambiarEstado(context.Id, EstadoSolicitudDocumento.EnProceso))">En Proceso</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.TaskAlt" OnClick="@(() => CambiarEstado(context.Id, EstadoSolicitudDocumento.Listo))">Listo para Entrega</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.CheckCircle" OnClick="@(() => CambiarEstado(context.Id, EstadoSolicitudDocumento.Entregado))">Entregar</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Cancel" Color="MudBlazor.Color.Error" OnClick="@(() => CambiarEstado(context.Id, EstadoSolicitudDocumento.Rechazado))">Rechazar</MudMenuItem>
+                </MudMenu>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private bool _cargando = true;
+    private string _search = "";
+    private List<SolicitudDocumentoDto> _solicitudes = new();
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _solicitudes = await Mediator.Send(new GetSolicitudesQuery());
+        _cargando = false;
+    }
+
+    async Task CambiarEstado(int id, EstadoSolicitudDocumento nuevoEstado)
+    {
+        try
+        {
+            await Mediator.Send(new CambiarEstadoSolicitudCommand { Id = id, NuevoEstado = nuevoEstado });
+            Snackbar.Add($"Estado actualizado a {nuevoEstado}", Severity.Success);
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private MudBlazor.Color GetEstadoColor(EstadoSolicitudDocumento estado) => estado switch
+    {
+        EstadoSolicitudDocumento.Pendiente => MudBlazor.Color.Warning,
+        EstadoSolicitudDocumento.EnProceso => MudBlazor.Color.Info,
+        EstadoSolicitudDocumento.Listo => MudBlazor.Color.Primary,
+        EstadoSolicitudDocumento.Entregado => MudBlazor.Color.Success,
+        EstadoSolicitudDocumento.Rechazado => MudBlazor.Color.Error,
+        _ => MudBlazor.Color.Default
+    };
+}

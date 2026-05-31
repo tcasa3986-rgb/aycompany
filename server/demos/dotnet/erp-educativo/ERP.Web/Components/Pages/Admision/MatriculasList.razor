@@ -1,0 +1,95 @@
+@page "/admision/matriculas"
+@using ERP.Application.Features.Admision.Matriculas
+@using ERP.Domain.Enums
+@using MediatR
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Matrículas — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">
+            🎓 Gestión de Matrículas
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">
+            Listado completo de estudiantes matriculados
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" 
+               Color="MudBlazor.Color.Primary" Href="/admision/matriculas/nueva" Style="border-radius: 8px;">
+        Nueva Matrícula
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_matriculas" Dense="true" Hover="true" Loading="@_cargando" 
+              Filter="new Func<MatriculaListDto,bool>(FilterFunc)" Style="padding:10px;">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Matrículas Registradas</MudText>
+            <MudSpacer />
+    <MudTextField @bind-Value="_searchString" Placeholder="Buscar por código, estudiante o carrera..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Estudiante</MudTh>
+            <MudTh>Carrera</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Código">@context.NumeroMatricula</MudTd>
+            <MudTd DataLabel="Estudiante">
+                <MudText Typo="Typo.body2" Style="font-weight:600;">@context.Estudiante</MudText>
+                <MudText Typo="Typo.caption" Style="color:gray;">@context.CodigoEstudiante</MudText>
+            </MudTd>
+            <MudTd DataLabel="Carrera">@context.Carrera</MudTd>
+            <MudTd DataLabel="Fecha">@context.FechaMatricula.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Estado">
+                @{
+                    var color = context.Estado switch
+                    {
+                        EstadoMatricula.Confirmada => MudBlazor.Color.Success,
+                        EstadoMatricula.Pendiente => MudBlazor.Color.Warning,
+                        EstadoMatricula.Anulada => MudBlazor.Color.Error,
+                        _ => MudBlazor.Color.Default
+                    };
+                }
+                <MudChip T="string" Color="color" Size="MudBlazor.Size.Small">@context.Estado.ToString()</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small" Href="@($"/personas/estudiantes/detalle/{context.EstudianteId}")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Default" Size="MudBlazor.Size.Small" Href="@($"/admision/matriculas/ficha/{context.Id}")" Target="_blank" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private bool _cargando = true;
+    private string _searchString = "";
+    private List<MatriculaListDto> _matriculas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cargando = true;
+        _matriculas = await Mediator.Send(new GetMatriculasQuery());
+        _cargando = false;
+    }
+
+    private bool FilterFunc(MatriculaListDto element)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        if (element.Estudiante.Contains(_searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.NumeroMatricula.Contains(_searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Carrera.Contains(_searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}

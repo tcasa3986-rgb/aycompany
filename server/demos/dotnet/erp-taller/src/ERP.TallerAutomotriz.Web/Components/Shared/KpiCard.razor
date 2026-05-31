@@ -1,0 +1,24 @@
+@*
+  Tarjeta KPI: ícono a la izquierda + valor grande + subtexto.
+*@
+<MudPaper Class="@($"kpi-card kpi-card--{Color}")" Elevation="0">
+    <div class="kpi-card-icon">
+        <MudIcon Icon="@Icon" Size="Size.Large" />
+    </div>
+    <div class="kpi-card-body">
+        <MudText Typo="Typo.caption" Class="kpi-card-title">@Titulo</MudText>
+        <MudText Typo="Typo.h5" Class="kpi-card-value">@Valor</MudText>
+        @if (!string.IsNullOrEmpty(Subtexto))
+        {
+            <MudText Typo="Typo.caption" Class="kpi-card-sub">@Subtexto</MudText>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = "";
+    [Parameter, EditorRequired] public string Valor { get; set; } = "";
+    [Parameter] public string? Subtexto { get; set; }
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Info;
+    [Parameter] public string Color { get; set; } = "primary"; // primary | success | info | warning | error
+}

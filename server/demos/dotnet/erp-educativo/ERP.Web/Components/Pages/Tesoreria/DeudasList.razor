@@ -1,0 +1,80 @@
+@page "/tesoreria/deudas"
+@using ERP.Application.Features.Tesoreria.Pagos
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Deudas — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">💳 Gestión de Deudas</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Control de cuentas por cobrar y vencimientos</MudText>
+    </div>
+</MudStack>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px; border-left:4px solid #EF4444;">
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">DEUDAS VENCIDAS</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#EF4444;">@_deudas.Count(d => d.Estado == EstadoPago.Vencido)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px; border-left:4px solid #F59E0B;">
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">DEUDAS PENDIENTES</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#F59E0B;">@_deudas.Count(d => d.Estado == EstadoPago.Pendiente)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px; border-left:4px solid #10B981;">
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">TOTAL POR COBRAR</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#10B981;">S/ @_deudas.Where(d => d.Estado != EstadoPago.Pagado).Sum(d => d.MontoOriginal + d.MontoMora).ToString("N2")</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_deudas" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<DeudaListDto,bool>(d => string.IsNullOrWhiteSpace(_search) || d.Estudiante.Contains(_search, StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Cuentas por Cobrar</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Número</MudTh><MudTh>Estudiante</MudTh><MudTh>Concepto</MudTh><MudTh>Monto</MudTh><MudTh>Vencimiento</MudTh><MudTh>Estado</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption">@context.NumeroDeuda</MudText></MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Estudiante</MudText></MudTd>
+            <MudTd>@context.Concepto</MudTd>
+            <MudTd>S/ @context.MontoOriginal.ToString("N2")</MudTd>
+            <MudTd>@context.FechaVencimiento.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                @{
+                    var col = context.Estado switch { EstadoPago.Pagado => MudBlazor.Color.Success, EstadoPago.Vencido => MudBlazor.Color.Error, _ => MudBlazor.Color.Warning };
+                }
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="col">@context.Estado.ToString()</MudChip>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private bool _cargando = true;
+    private string _search = "";
+    private List<DeudaListDto> _deudas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cargando = true;
+        _deudas = await Mediator.Send(new GetDeudasQuery());
+        _cargando = false;
+    }
+}

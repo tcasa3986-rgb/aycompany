@@ -1,0 +1,107 @@
+@page "/portal/estudiante"
+@using ERP.Application.Features.Portal
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize(Roles = "Estudiante,Administrador")]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Mi Portal — ERP Educativo</PageTitle>
+
+@if (_data == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" Class="my-7" />
+}
+else
+{
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">👋 ¡Hola, @_data.EstudianteNombre!</MudText>
+            <MudText Typo="Typo.body2" Style="color:#6B7280;">@_data.Carrera — Ciclo @_data.Ciclo</MudText>
+        </div>
+        <MudChip T="string" Icon="@Icons.Material.Filled.School" Color="MudBlazor.Color.Primary" Variant="Variant.Filled">Estudiante Activo</MudChip>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <!-- CURSOS -->
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h6" Class="mb-3">Mis Cursos Actuales</MudText>
+            <MudGrid Spacing="2">
+                @foreach (var curso in _data.CursosActuales)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px; border-left: 6px solid #10B981;">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@curso.CursoNombre</MudText>
+                                <MudDivider />
+                                <MudStack Row Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2">Promedio Actual:</MudText>
+                                    <MudText Typo="Typo.body2" Color="@(curso.PromedioActual >= 10.5m ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Style="font-weight:700;">
+                                        @curso.PromedioActual.ToString("0.00")
+                                    </MudText>
+                                </MudStack>
+                                <MudStack Row Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2">Asistencia:</MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight:600;">@curso.PorcentajeAsistencia.ToString("0")%</MudText>
+                                </MudStack>
+                                <MudProgressLinear Color="@(curso.PorcentajeAsistencia >= 70 ? MudBlazor.Color.Success : MudBlazor.Color.Error)" 
+                                                  Value="@((double)curso.PorcentajeAsistencia)" Size="MudBlazor.Size.Small" />
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudItem>
+
+        <!-- PAGOS Y DEUDAS -->
+        <MudItem xs="12" md="4">
+            <MudText Typo="Typo.h6" Class="mb-3">Pagos Pendientes</MudText>
+            @if (!_data.DeudasPendientes.Any())
+            {
+                <MudAlert Severity="Severity.Success">¡Estás al día con tus pagos!</MudAlert>
+            }
+            else
+            {
+                @foreach (var deuda in _data.DeudasPendientes)
+                {
+                    <MudPaper Elevation="2" Class="pa-4 mb-3" Style="border-radius:12px; background: #FFF7ED;">
+                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <div>
+                                <MudText Typo="Typo.subtitle2" Style="font-weight:700; color:#9A3412;">@deuda.ConceptoNombre</MudText>
+                                <MudText Typo="Typo.caption" Style="color:#6B7280;">Vence: @deuda.FechaVencimiento.ToString("dd/MM/yyyy")</MudText>
+                            </div>
+                            <MudText Typo="Typo.h6" Style="font-weight:800; color:#C2410C;">S/ @deuda.MontoTotal.ToString("N2")</MudText>
+                        </MudStack>
+                        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small" FullWidth="true" Class="mt-2">Pagar Ahora</MudButton>
+                    </MudPaper>
+                }
+            }
+
+            <MudText Typo="Typo.h6" Class="mt-6 mb-3">Accesos Rápidos</MudText>
+            <MudList T="string" Clickable="true" Dense="true" Class="pa-0">
+                <MudListItem Text="Boleta de Notas" Icon="@Icons.Material.Filled.Description" Href="/portal/estudiante/boleta" />
+                <MudListItem Text="Solicitar Certificado" Icon="@Icons.Material.Filled.HistoryEdu" OnClick="@(() => Snackbar.Add("Función próximamente", Severity.Info))" />
+                <MudListItem Text="Ver Horario" Icon="@Icons.Material.Filled.CalendarMonth" OnClick="@(() => Snackbar.Add("Función próximamente", Severity.Info))" />
+            </MudList>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private StudentDashboardDto? _data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(email))
+        {
+            _data = await Mediator.Send(new GetStudentDashboardQuery(email));
+        }
+    }
+}

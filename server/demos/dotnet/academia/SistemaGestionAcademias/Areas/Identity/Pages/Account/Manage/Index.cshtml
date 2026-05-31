@@ -1,0 +1,48 @@
+@page
+@model SistemaGestionAcademias.Areas.Identity.Pages.Account.Manage.IndexModel
+@{
+    ViewData["Title"] = "Datos Personales";
+    // También usamos la ruta completa aquí para evitar errores con la navegación
+    ViewData["ActivePage"] = SistemaGestionAcademias.Areas.Identity.Pages.Account.Manage.ManageNavPages.Index;
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h4 class="fw-bold text-primary mb-4 border-bottom pb-2">@ViewData["Title"]</h4>
+        
+        <partial name="_StatusMessage" model="Model.StatusMessage" />
+        
+        <form id="profile-form" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Username" class="form-label fw-bold">Nombre de Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-person-badge"></i></span>
+                        <input asp-for="Username" class="form-control" disabled />
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.PhoneNumber" class="form-label fw-bold">Teléfono de Contacto</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+                        <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Ingrese su celular" />
+                    </div>
+                    <span asp-validation-for="Input.PhoneNumber" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mt-4 d-grid gap-2 d-md-flex justify-content-md-end">
+                <button id="update-profile-button" type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">
+                    <i class="bi bi-check-circle-fill me-2"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

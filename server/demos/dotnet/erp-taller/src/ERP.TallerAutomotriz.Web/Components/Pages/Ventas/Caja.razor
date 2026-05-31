@@ -1,0 +1,172 @@
+@page "/facturacion/caja"
+@attribute [Authorize]
+@inject ISalesService SalesSvc
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Caja - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Caja</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Apertura y cierre de caja, control de ingresos por modalidad</MudText>
+    </div>
+</div>
+
+@if (cajas == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var caja in cajas)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+                    <div class="d-flex align-center justify-space-between mb-3">
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@caja.Codigo</MudText>
+                            <MudText Typo="Typo.h6" Class="fw-bold">@caja.Nombre</MudText>
+                        </div>
+                        @if (caja.Abierta)
+                        {
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.LockOpen">Abierta</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Lock">Cerrada</MudChip>
+                        }
+                    </div>
+
+                    @if (caja.Abierta)
+                    {
+                        <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background:#F4F6FA;border-radius:8px;">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">APERTURA</MudText>
+                            <MudText Typo="Typo.body2">@caja.FechaApertura?.ToString("dd/MM/yyyy HH:mm") · @caja.UsuarioApertura</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-bold mt-1">Monto inicial: S/. @caja.MontoApertura.ToString("N2")</MudText>
+                        </MudPaper>
+
+                        <MudGrid Spacing="2" Class="mb-3">
+                            <MudItem xs="6">
+                                <div class="caja-stat">
+                                    <MudIcon Icon="@Icons.Material.Filled.Money" Color="Color.Success" />
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">EFECTIVO</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold">S/. @caja.IngresosEfectivo.ToString("N2")</MudText>
+                                    </div>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <div class="caja-stat">
+                                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Color="Color.Info" />
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">TARJETAS</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold">S/. @caja.IngresosTarjeta.ToString("N2")</MudText>
+                                    </div>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <div class="caja-stat">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Tertiary" />
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">TRANSFERENCIA</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold">S/. @caja.IngresosTransferencia.ToString("N2")</MudText>
+                                    </div>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <div class="caja-stat">
+                                    <MudIcon Icon="@Icons.Material.Filled.QrCode" Color="Color.Warning" />
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">QR / OTROS</MudText>
+                                        <MudText Typo="Typo.body1" Class="fw-bold">S/. @caja.IngresosOtros.ToString("N2")</MudText>
+                                    </div>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudPaper Class="pa-3" Elevation="0" Style="background:linear-gradient(135deg, #1F2C50 0%, #2BB59A 100%);color:#fff;border-radius:8px;">
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <MudText Typo="Typo.caption" Style="opacity:0.85;">TOTAL INGRESOS DEL DÍA</MudText>
+                                    <MudText Typo="Typo.h5" Class="fw-bold">S/. @caja.TotalIngresos.ToString("N2")</MudText>
+                                </div>
+                                <div class="text-right">
+                                    <MudText Typo="Typo.caption" Style="opacity:0.85;">EFECTIVO ESPERADO</MudText>
+                                    <MudText Typo="Typo.h6" Class="fw-bold">S/. @caja.MontoEsperado.ToString("N2")</MudText>
+                                </div>
+                            </div>
+                            <MudText Typo="Typo.caption" Style="opacity:0.85;" Class="d-block mt-2">@caja.CantidadPagos pago(s) registrado(s)</MudText>
+                        </MudPaper>
+
+                        <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Error" FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Lock" OnClick="() => CerrarCaja(caja)">
+                            Cerrar caja con arqueo
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+                            La caja está cerrada. Ábrela para registrar pagos.
+                        </MudAlert>
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.LockOpen" OnClick="() => AbrirCaja(caja)">
+                            Abrir caja
+                        </MudButton>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<style>
+    .caja-stat {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid var(--c-border);
+    }
+</style>
+
+@code {
+    private List<CajaEstadoDto>? cajas;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cajas = await SalesSvc.ListarCajasAsync();
+    }
+
+    private async Task AbrirCaja(CajaEstadoDto c)
+    {
+        var dto = new AperturaCajaDto { CajaId = c.Id };
+        var parametros = new DialogParameters { ["Apertura"] = dto, ["Caja"] = c };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<AperturaCajaDialog>("Abrir caja", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Caja abierta", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task CerrarCaja(CajaEstadoDto c)
+    {
+        var dto = new CierreCajaDto { CajaId = c.Id, MontoCierreFisico = c.MontoEsperado };
+        var parametros = new DialogParameters { ["Cierre"] = dto, ["Caja"] = c };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<CierreCajaDialog>("Cerrar caja", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Caja cerrada", Severity.Success);
+            await CargarAsync();
+        }
+    }
+}

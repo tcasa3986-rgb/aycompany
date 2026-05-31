@@ -1,0 +1,132 @@
+@page "/personas/docentes"
+@using ERP.Application.Features.Personas.Docentes
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Docentes — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">👨‍🏫 Docentes</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Directorio del cuerpo docente</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Docente</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_docentes" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<DocenteDto,bool>(d => string.IsNullOrWhiteSpace(_search) || d.NombreCompleto.Contains(_search,StringComparison.OrdinalIgnoreCase) || d.DNI.Contains(_search) || d.Especialidad!.Contains(_search,StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Cuerpo Docente</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por nombre, DNI o especialidad..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh><MudTh>Docente</MudTh><MudTh>Especialidad</MudTh><MudTh>Grado</MudTh><MudTh>Contrato</MudTh><MudTh>Estado</MudTh><MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Style="color:#6B7280;">@context.Codigo</MudText></MudTd>
+            <MudTd>
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Style="background:linear-gradient(135deg,#0EA5E9,#6B21A8); font-size:0.75rem; width:32px; height:32px;">
+                        @(context.Nombres.Length > 0 ? context.Nombres[0].ToString().ToUpper() : "D")
+                    </MudAvatar>
+                    <div>
+                        <MudText Style="font-weight:600; font-size:0.875rem;">@context.NombreCompleto</MudText>
+                        <MudText Typo="Typo.caption" Style="color:#9CA3AF;">@context.Email</MudText>
+                    </div>
+                </MudStack>
+            </MudTd>
+            <MudTd>@(context.Especialidad ?? "—")</MudTd>
+            <MudTd>@(context.GradoAcademico ?? "—")</MudTd>
+            <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info">@context.TipoContrato.ToString()</MudChip></MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small"
+                         Color="@(context.Estado == EstadoDocente.Activo ? MudBlazor.Color.Success : MudBlazor.Color.Default)">
+                    @context.Estado.ToString()
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small" Href="@($"/personas/docentes/detalle/{context.Id}")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Docente</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Codigo" Label="Código" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField @bind-Value="_form.DNI" Label="DNI / Documento" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Nombres" Label="Nombres" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.ApellidoPaterno" Label="Apellido Paterno" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.ApellidoMaterno" Label="Apellido Materno" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Email" Label="Correo" InputType="InputType.Email" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Telefono" Label="Teléfono" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.GradoAcademico" Label="Grado Académico" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Especialidad" Label="Especialidad" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TipoContrato" @bind-Value="_form.TipoContrato" Label="Tipo de Contrato" Variant="Variant.Outlined">
+                        @foreach (TipoContrato v in Enum.GetValues(typeof(TipoContrato))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="EstadoDocente" @bind-Value="_form.Estado" Label="Estado" Variant="Variant.Outlined">
+                        @foreach (EstadoDocente v in Enum.GetValues(typeof(EstadoDocente))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<DocenteDto> _docentes = new();
+    private UpsertDocenteCommand _form = new();
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _docentes = await Mediator.Send(new GetDocentesQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(DocenteDto? d)
+    {
+        _form = d == null ? new() : new UpsertDocenteCommand { Id = d.Id, Codigo = d.Codigo, Nombres = d.Nombres, ApellidoPaterno = d.ApellidoPaterno, ApellidoMaterno = d.ApellidoMaterno, DNI = d.DNI, Email = d.Email, Telefono = d.Telefono, GradoAcademico = d.GradoAcademico, Especialidad = d.Especialidad, TipoContrato = d.TipoContrato, Estado = d.Estado };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        try { await Mediator.Send(_form); Snackbar.Add("Guardado correctamente", Severity.Success); _dialogAbierto = false; await Cargar(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este docente?", "Sí", "No");
+        if (ok == true) { await Mediator.Send(new DeleteDocenteCommand { Id = id }); Snackbar.Add("Eliminado", Severity.Success); await Cargar(); }
+    }
+}

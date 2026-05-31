@@ -1,0 +1,148 @@
+@page "/configuracion/parametros"
+@using ERP.Application.Features.Configuracion.Parametros
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Parámetros del Sistema — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">⚙️ Parámetros del Sistema</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Configuración de variables globales y constantes del ERP</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Parámetro</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_parametros" Dense="true" Hover="true" Loading="@_cargando" GroupBy="@_groupDefinition">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lista de Parámetros</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por clave o valor..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <ColGroup>
+            <col /><col /><col /><col /><col />
+        </ColGroup>
+        <HeaderContent>
+            <MudTh>Clave</MudTh>
+            <MudTh>Valor</MudTh>
+            <MudTh>Descripción</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <GroupHeaderTemplate>
+            <MudTh Class="mud-theme-primary" colspan="4">
+                <MudText Style="font-weight: 700; color: white;">@context.Key?.ToString()?.ToUpper()</MudText>
+            </MudTh>
+        </GroupHeaderTemplate>
+        <RowTemplate>
+            <MudTd>
+                <MudText Style="font-weight:600; font-family: monospace;">@context.Clave</MudText>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Variant="Variant.Text" Color="MudBlazor.Color.Info" Style="font-weight: 700;">
+                    @context.Valor
+                </MudChip>
+            </MudTd>
+            <MudTd>@context.Descripcion</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Parámetro</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Grupo" Label="Grupo / Categoría" Variant="Variant.Outlined" Placeholder="Ej: GENERAL, FINANZAS, ACADEMICO" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Clave" Label="Clave" Variant="Variant.Outlined" Required="true" Placeholder="Ej: MONEDA_SIMBOLO" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Valor" Label="Valor" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Descripcion" Label="Descripción" Variant="Variant.Outlined" Lines="2" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<ParametroDto> _parametros = new();
+    private UpsertParametroCommand _form = new();
+
+    private TableGroupDefinition<ParametroDto> _groupDefinition = new()
+    {
+        GroupName = "Grupo",
+        Selector = (x) => x.Grupo ?? "SIN GRUPO"
+    };
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _parametros = await Mediator.Send(new GetParametrosQuery());
+        _cargando = false;
+    }
+
+    private void AbrirDialog(ParametroDto? p)
+    {
+        _form = p == null ? new() : new UpsertParametroCommand 
+        { 
+            Id = p.Id, 
+            Clave = p.Clave, 
+            Valor = p.Valor, 
+            Descripcion = p.Descripcion, 
+            Grupo = p.Grupo 
+        };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Clave) || string.IsNullOrWhiteSpace(_form.Valor))
+        {
+            Snackbar.Add("Clave y Valor son obligatorios", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await Mediator.Send(_form);
+            Snackbar.Add("Parámetro guardado", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este parámetro?", "Sí", "No");
+        if (ok == true)
+        {
+            await Mediator.Send(new DeleteParametroCommand { Id = id });
+            Snackbar.Add("Eliminado", Severity.Success);
+            await Cargar();
+        }
+    }
+}

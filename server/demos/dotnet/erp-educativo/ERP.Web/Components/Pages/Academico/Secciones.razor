@@ -1,0 +1,207 @@
+@page "/academico/secciones"
+@using ERP.Application.Features.Academico.Secciones
+@using ERP.Application.Features.Academico.Cursos
+@using ERP.Application.Features.Configuracion.Periodos
+@using ERP.Application.Features.Personas.Docentes
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Secciones — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">🏫 Gestión de Secciones</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Apertura de secciones/aulas por periodo académico</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nueva Sección</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_secciones" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<SeccionDto,bool>(s => string.IsNullOrWhiteSpace(_search) || s.Nombre.Contains(_search,StringComparison.OrdinalIgnoreCase) || s.Curso.Contains(_search,StringComparison.OrdinalIgnoreCase) || (s.DocentePrincipal != null && s.DocentePrincipal.Contains(_search,StringComparison.OrdinalIgnoreCase)))">
+        <ToolBarContent>
+            <MudSelect T="int?" Value="@_filtroPeriodo" ValueChanged="OnPeriodoFilterChanged" Label="Filtrar por Periodo" Variant="Variant.Outlined" Class="mr-4" Style="max-width: 300px;">
+                <MudSelectItem T="int?" Value="null">Todos los periodos</MudSelectItem>
+                @foreach (var p in _periodos)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por curso, sección o docente..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Periodo</MudTh>
+            <MudTh>Curso</MudTh>
+            <MudTh>Sección</MudTh>
+            <MudTh>Docente Principal</MudTh>
+            <MudTh>Inscritos</MudTh>
+            <MudTh>Capacidad</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.PeriodoAcademico</MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Curso</MudText></MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info">@context.Nombre</MudChip>
+            </MudTd>
+            <MudTd>@context.DocentePrincipal</MudTd>
+            <MudTd>
+                <MudText Color="@(context.Inscritos >= context.Capacidad ? MudBlazor.Color.Error : MudBlazor.Color.Success)">
+                    @context.Inscritos
+                </MudText>
+            </MudTd>
+            <MudTd>@context.Capacidad</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nueva") Sección</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-Value="_form.PeriodoAcademicoId" Label="Periodo Académico" Variant="Variant.Outlined" Required="true">
+                        @foreach (var p in _periodos)
+                        {
+                            <MudSelectItem Value="@p.Id">@p.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-Value="_form.CursoId" Label="Curso" Variant="Variant.Outlined" Required="true">
+                        @foreach (var c in _cursos)
+                        {
+                            <MudSelectItem Value="@c.Id">@c.Codigo - @c.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Nombre" Label="Nombre de Sección" Variant="Variant.Outlined" Required="true" HelperText="Ej: Sección A, G1, etc." /></MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.Capacidad" Label="Capacidad (Alumnos)" Variant="Variant.Outlined" Required="true" Min="1" Max="200" /></MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="int?" @bind-Value="_form.DocentePrincipalId" Label="Docente Principal (Opcional)" Variant="Variant.Outlined" Clearable="true">
+                        @foreach (var d in _docentes)
+                        {
+                            <MudSelectItem T="int?" Value="@d.Id">@d.Nombres @d.ApellidoPaterno @d.ApellidoMaterno (@d.Especialidad)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private int? _filtroPeriodo = null;
+    
+    private List<SeccionDto> _secciones = new();
+    private List<PeriodoAcademicoDto> _periodos = new();
+    private List<CursoDto> _cursos = new();
+    private List<DocenteDto> _docentes = new();
+    
+    private UpsertSeccionCommand _form = new();
+
+    protected override async Task OnInitializedAsync() 
+    { 
+        _periodos = await Mediator.Send(new GetPeriodosQuery());
+        _cursos = await Mediator.Send(new GetCursosQuery());
+        _docentes = await Mediator.Send(new GetDocentesQuery());
+        
+        // Seleccionar por defecto el periodo actual
+        var periodoActual = _periodos.FirstOrDefault(p => p.EsActual);
+        if (periodoActual != null)
+        {
+            _filtroPeriodo = periodoActual.Id;
+        }
+
+        await CargarSecciones(); 
+    }
+
+    async Task CargarSecciones()
+    {
+        _cargando = true;
+        _secciones = await Mediator.Send(new GetSeccionesQuery { PeriodoAcademicoId = _filtroPeriodo });
+        _cargando = false;
+    }
+
+    async Task OnPeriodoFilterChanged(int? value)
+    {
+        _filtroPeriodo = value;
+        await CargarSecciones();
+    }
+
+    void AbrirDialog(SeccionDto? s)
+    {
+        if (s == null)
+        {
+            _form = new() { Capacidad = 30, PeriodoAcademicoId = _filtroPeriodo ?? 0 };
+        }
+        else
+        {
+            _form = new UpsertSeccionCommand 
+            { 
+                Id = s.Id, 
+                CursoId = s.CursoId, 
+                PeriodoAcademicoId = s.PeriodoAcademicoId,
+                Nombre = s.Nombre,
+                Capacidad = s.Capacidad,
+                DocentePrincipalId = s.DocentePrincipalId
+            };
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (_form.PeriodoAcademicoId == 0 || _form.CursoId == 0)
+        {
+            Snackbar.Add("Debe seleccionar un periodo y un curso", Severity.Warning);
+            return;
+        }
+
+        try { 
+            await Mediator.Send(_form); 
+            Snackbar.Add("Guardado correctamente", Severity.Success); 
+            _dialogAbierto = false; 
+            await CargarSecciones(); 
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar esta sección?", "Sí", "No");
+        if (ok == true) 
+        { 
+            try 
+            {
+                await Mediator.Send(new DeleteSeccionCommand { Id = id }); 
+                Snackbar.Add("Eliminado", Severity.Success); 
+                await CargarSecciones(); 
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

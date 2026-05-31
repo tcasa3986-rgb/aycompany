@@ -1,0 +1,50 @@
+@model SistemaGestionAcademias.Models.CajaDiaria
+@inject SistemaGestionAcademias.Services.ConfiguracionService ConfigService
+@{
+    ViewData["Title"] = "Apertura de Caja";
+    var config = await ConfigService.ObtenerConfiguracion();
+}
+
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-5 text-center">
+                <div class="mb-4 text-success">
+                    <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-4">
+                        <i class="bi bi-shop display-1 text-success"></i>
+                    </div>
+                </div>
+                
+                <h2 class="fw-bold mb-2">Iniciar Jornada</h2>
+                <p class="text-muted mb-4">
+                    Bienvenido, <strong>@User.Identity?.Name</strong>. <br>
+                    Por favor, ingresa el monto de dinero físico (sencillo) con el que inicias el día.
+                </p>
+
+                <form asp-action="Abrir">
+                    <div class="mb-4 text-start">
+                        <label asp-for="MontoInicial" class="form-label fw-bold small text-uppercase text-secondary">Monto Inicial en Caja</label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <span class="input-group-text bg-success text-white fw-bold border-success">@config.MonedaSimbolo</span>
+                            <input asp-for="MontoInicial" class="form-control fw-bold text-center fs-3 border-success" type="number" step="0.01" placeholder="0.00" autofocus required />
+                        </div>
+                        <span asp-validation-for="MontoInicial" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm py-3">
+                            <i class="bi bi-unlock-fill me-2"></i> APERTURAR CAJA
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center small text-muted py-3">
+                Fecha de operación: <strong>@DateTime.Today.ToShortDateString()</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

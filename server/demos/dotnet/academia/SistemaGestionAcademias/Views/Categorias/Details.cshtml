@@ -1,0 +1,53 @@
+@model SistemaGestionAcademias.Models.Categoria
+
+@{
+    ViewData["Title"] = "Detalles de Categoría";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow border-0">
+            <div class="card-header bg-info text-white py-3 d-flex justify-content-between align-items-center">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-info-circle-fill"></i> Información de Categoría</h4>
+            </div>
+
+            <div class="card-body bg-light p-4">
+                <div class="bg-white p-4 rounded shadow-sm border">
+                    <div class="text-center mb-4">
+                        <div class="display-1 text-info mb-2"><i class="bi bi-tag"></i></div>
+                        <h2 class="fw-bold text-dark">@Model.Nombre</h2>
+                        
+                        <div class="mt-2">
+                            @if(Model.Estado)
+                            {
+                                <span class="badge bg-success fs-6 rounded-pill px-3">Activa</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger fs-6 rounded-pill px-3">Inactiva</span>
+                            }
+                        </div>
+                    </div>
+
+                    <hr class="text-muted" />
+
+                    <div class="mb-3">
+                        <label class="fw-bold text-muted small text-uppercase">Descripción</label>
+                        <p class="lead fs-6">
+                            @(string.IsNullOrEmpty(Model.Descripcion) ? "Sin descripción registrada." : Model.Descripcion)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning fw-bold px-4 shadow-sm">
+                        <i class="bi bi-pencil-square"></i> Editar
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary px-4 shadow-sm">
+                        <i class="bi bi-arrow-left"></i> Volver a la lista
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

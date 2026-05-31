@@ -1,0 +1,161 @@
+@inject ICustomerService CustomerSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudAutocomplete T="ClienteListDto" @bind-Value="_clienteSeleccionado"
+                                     Label="Cliente *" Required="true"
+                                     SearchFunc="@BuscarClientes"
+                                     ToStringFunc="@(c => c == null ? "" : $"{c.Codigo} — {c.NombreRazonSocial}")"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     ResetValueOnEmptyText="false" CoerceText="true"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Vehiculo.Placa" Label="Placa *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Style="text-transform:uppercase;" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Vehiculo.Marca" Label="Marca *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Vehiculo.Modelo" Label="Modelo *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="Vehiculo.Anio" Label="Año *" Min="1900" Max="2100"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudTextField @bind-Value="Vehiculo.Color" Label="Color"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="Vehiculo.KilometrajeActual" Label="Kilometraje actual"
+                                     Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TipoCombustible" @bind-Value="Vehiculo.Combustible" Label="Combustible"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="TipoCombustible.Gasolina">Gasolina</MudSelectItem>
+                        <MudSelectItem Value="TipoCombustible.Diesel">Diesel</MudSelectItem>
+                        <MudSelectItem Value="TipoCombustible.Gas">Gas (GLP/GNV)</MudSelectItem>
+                        <MudSelectItem Value="TipoCombustible.Electrico">Eléctrico</MudSelectItem>
+                        <MudSelectItem Value="TipoCombustible.Hibrido">Híbrido</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TipoTransmision" @bind-Value="Vehiculo.Transmision" Label="Transmisión"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="TipoTransmision.Manual">Manual</MudSelectItem>
+                        <MudSelectItem Value="TipoTransmision.Automatica">Automática</MudSelectItem>
+                        <MudSelectItem Value="TipoTransmision.CVT">CVT</MudSelectItem>
+                        <MudSelectItem Value="TipoTransmision.SemiAutomatica">Semi-automática</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Vehiculo.VIN" Label="VIN / Chasis"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Vehiculo.Motor" Label="N° de motor"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Vehiculo.Notas" Label="Notas / Observaciones técnicas" Lines="2"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@(guardando ? null : Icons.Material.Filled.Save)">
+            @(guardando ? "Guardando..." : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public VehiculoFormDto Vehiculo { get; set; } = new();
+
+    private MudForm? form;
+    private bool guardando;
+    private string? error;
+    private List<ClienteListDto> _todosClientes = new();
+    private ClienteListDto? _clienteSeleccionado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _todosClientes = await CustomerSvc.ListarTodosClientesAsync();
+        if (Vehiculo.ClienteId > 0)
+            _clienteSeleccionado = _todosClientes.FirstOrDefault(c => c.Id == Vehiculo.ClienteId);
+    }
+
+    private Task<IEnumerable<ClienteListDto>> BuscarClientes(string? value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_todosClientes.Take(10).AsEnumerable());
+
+        var v = value.ToLower();
+        return Task.FromResult(_todosClientes.Where(c =>
+            c.NombreRazonSocial.ToLower().Contains(v) ||
+            c.Codigo.ToLower().Contains(v) ||
+            c.DocumentoIdentidad.Contains(v)).Take(10).AsEnumerable());
+    }
+
+    private async Task Guardar()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+        if (_clienteSeleccionado == null)
+        {
+            error = "Debe seleccionar un cliente.";
+            return;
+        }
+        Vehiculo.ClienteId = _clienteSeleccionado.Id;
+
+        guardando = true;
+        error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+
+            if (Vehiculo.Id == 0)
+                await CustomerSvc.CrearVehiculoAsync(Vehiculo, usuario);
+            else
+                await CustomerSvc.ActualizarVehiculoAsync(Vehiculo, usuario);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

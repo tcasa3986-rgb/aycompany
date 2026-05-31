@@ -1,0 +1,219 @@
+@page "/admision/postulantes"
+@using ERP.Application.Features.Admision.Postulantes
+@using ERP.Application.Features.Academico.Carreras
+@using ERP.Application.Features.Configuracion.Periodos
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Postulantes — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📝 Gestión de Postulantes</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Proceso de admisión y registro de prospectos</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.PersonAdd" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Postulante</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_postulantes" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<PostulanteDto,bool>(p => string.IsNullOrWhiteSpace(_search) || p.NombreCompleto.Contains(_search,StringComparison.OrdinalIgnoreCase) || p.DNI.Contains(_search))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lista de Postulantes</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por nombre o DNI..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Carrera</MudTh>
+            <MudTh>Periodo</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Puntaje</MudTh>
+            <MudTh>Fecha Registro</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Style="background:linear-gradient(135deg,#6B21A8,#F97316); font-size:0.75rem; width:32px; height:32px;">
+                        @(context.Nombres.Length > 0 ? context.Nombres[0].ToString().ToUpper() : "P")
+                    </MudAvatar>
+                    <div>
+                        <MudText Style="font-weight:600; font-size:0.875rem;">@context.NombreCompleto</MudText>
+                        <MudText Typo="Typo.caption" Style="color:#9CA3AF;">@context.DNI</MudText>
+                    </div>
+                </MudStack>
+            </MudTd>
+            <MudTd>@context.CarreraNombre</MudTd>
+            <MudTd>@context.PeriodoNombre</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetEstadoColor(context.Estado)">
+                    @context.Estado.ToString()
+                </MudChip>
+            </MudTd>
+            <MudTd>@(context.PuntajeExamen?.ToString("N2") ?? "—")</MudTd>
+            <MudTd>@context.FechaRegistro.ToShortDateString()</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Postulante</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.DNI" Label="DNI / Documento" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="TipoSexo" @bind-Value="_form.Sexo" Label="Sexo" Variant="Variant.Outlined">
+                        @foreach (TipoSexo v in Enum.GetValues(typeof(TipoSexo))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_fechaNacimiento" Label="Fecha de Nacimiento" Variant="Variant.Outlined" /></MudItem>
+                
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Nombres" Label="Nombres" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.ApellidoPaterno" Label="Apellido Paterno" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.ApellidoMaterno" Label="Apellido Materno" Variant="Variant.Outlined" /></MudItem>
+                
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Email" Label="Correo" InputType="InputType.Email" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Telefono" Label="Teléfono" Variant="Variant.Outlined" /></MudItem>
+                
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-Value="_form.CarreraId" Label="Carrera a Postular" Variant="Variant.Outlined" Required="true">
+                        @foreach (var c in _carreras) { <MudSelectItem Value="@c.Id">@c.Nombre</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-Value="_form.PeriodoAcademicoId" Label="Periodo Académico" Variant="Variant.Outlined" Required="true">
+                        @foreach (var p in _periodos) { <MudSelectItem Value="@p.Id">@p.Nombre</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="EstadoPostulante" @bind-Value="_form.Estado" Label="Estado" Variant="Variant.Outlined">
+                        @foreach (EstadoPostulante v in Enum.GetValues(typeof(EstadoPostulante))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_form.PuntajeExamen" Label="Puntaje Examen" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Observaciones" Label="Observaciones" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<PostulanteDto> _postulantes = new();
+    private List<CarreraDto> _carreras = new();
+    private List<PeriodoAcademicoDto> _periodos = new();
+    private UpsertPostulanteCommand _form = new();
+    private DateTime? _fechaNacimiento = DateTime.Now.AddYears(-18);
+
+    protected override async Task OnInitializedAsync() 
+    { 
+        await CargarCatalogos();
+        await Cargar(); 
+    }
+
+    async Task CargarCatalogos()
+    {
+        _carreras = await Mediator.Send(new GetCarrerasQuery());
+        _periodos = await Mediator.Send(new GetPeriodosQuery());
+    }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _postulantes = await Mediator.Send(new GetPostulantesQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(PostulanteDto? p)
+    {
+        if (p == null)
+        {
+            _form = new() 
+            { 
+                CarreraId = _carreras.FirstOrDefault()?.Id ?? 0,
+                PeriodoAcademicoId = _periodos.FirstOrDefault(x => x.EsActual)?.Id ?? _periodos.FirstOrDefault()?.Id ?? 0
+            };
+            _fechaNacimiento = DateTime.Now.AddYears(-18);
+        }
+        else
+        {
+            _form = new UpsertPostulanteCommand
+            {
+                Id = p.Id,
+                Nombres = p.Nombres,
+                ApellidoPaterno = p.ApellidoPaterno,
+                ApellidoMaterno = p.ApellidoMaterno,
+                DNI = p.DNI,
+                FechaNacimiento = p.FechaNacimiento,
+                Sexo = p.Sexo,
+                Telefono = p.Telefono,
+                Email = p.Email,
+                CarreraId = p.CarreraId,
+                PeriodoAcademicoId = p.PeriodoAcademicoId,
+                Estado = p.Estado,
+                PuntajeExamen = p.PuntajeExamen
+            };
+            _fechaNacimiento = p.FechaNacimiento;
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        try
+        {
+            _form.FechaNacimiento = _fechaNacimiento ?? DateTime.Now.AddYears(-18);
+            await Mediator.Send(_form);
+            Snackbar.Add("Guardado correctamente", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este postulante?", "Sí", "No");
+        if (ok == true)
+        {
+            await Mediator.Send(new DeletePostulanteCommand { Id = id });
+            Snackbar.Add("Eliminado", Severity.Success);
+            await Cargar();
+        }
+    }
+
+    private MudBlazor.Color GetEstadoColor(EstadoPostulante estado) => estado switch
+    {
+        EstadoPostulante.Registrado => MudBlazor.Color.Default,
+        EstadoPostulante.EnProceso => MudBlazor.Color.Info,
+        EstadoPostulante.Admitido => MudBlazor.Color.Success,
+        EstadoPostulante.Matriculado => MudBlazor.Color.Primary,
+        EstadoPostulante.NoAdmitido => MudBlazor.Color.Error,
+        EstadoPostulante.Retirado => MudBlazor.Color.Warning,
+        _ => MudBlazor.Color.Default
+    };
+}

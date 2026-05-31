@@ -1,0 +1,211 @@
+@page "/inventario/movimientos"
+@attribute [Authorize]
+@inject IInventoryService InventorySvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Movimientos de Inventario - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Movimientos de Inventario</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Kardex completo de entradas, salidas y ajustes</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SwapHoriz"
+               OnClick="NuevoMovimiento">Nuevo movimiento</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3 flex-wrap">
+        <MudSelect T="int?" @bind-Value="repuestoFiltro" @bind-Value:after="CargarAsync"
+                   Label="Repuesto" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Clearable="true" Style="min-width:240px;">
+            <MudSelectItem T="int?" Value="null">Todos</MudSelectItem>
+            @foreach (var r in repuestos)
+            {
+                <MudSelectItem T="int?" Value="r.Id">@r.CodigoInterno — @r.Descripcion</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSelect T="int?" @bind-Value="almacenFiltro" @bind-Value:after="CargarAsync"
+                   Label="Almacén" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Clearable="true" Style="min-width:180px;">
+            <MudSelectItem T="int?" Value="null">Todos</MudSelectItem>
+            @foreach (var a in almacenes)
+            {
+                <MudSelectItem T="int?" Value="a.Id">@a.Nombre</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudDatePicker @bind-Date="desde" @bind-Date:after="CargarAsync" Label="Desde"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:160px;" />
+        <MudDatePicker @bind-Date="hasta" @bind-Date:after="CargarAsync" Label="Hasta"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:160px;" />
+
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@total movimiento(s)</MudText>
+    </div>
+
+    <MudTable Items="@movimientos" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Repuesto</MudTh>
+            <MudTh>Almacén</MudTh>
+            <MudTh Style="text-align:right;">Cantidad</MudTh>
+            <MudTh Style="text-align:right;">Costo unit.</MudTh>
+            <MudTh Style="text-align:right;">Saldo nuevo</MudTh>
+            <MudTh>Documento</MudTh>
+            <MudTh>Usuario</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.Fecha.ToString("dd/MM/yyyy")</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Fecha.ToString("HH:mm")</MudText>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@TipoColor(context.Tipo)" Variant="Variant.Filled" Icon="@TipoIcon(context.Tipo)">
+                    @TipoTexto(context.Tipo)
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption" Class="fw-medium">@context.CodigoRepuesto</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.DescripcionRepuesto</MudText>
+            </MudTd>
+            <MudTd>@context.Almacen</MudTd>
+            <MudTd Style="text-align:right;">
+                <MudText Typo="Typo.body2" Class="fw-medium" Color="@(EsEntrada(context.Tipo) ? Color.Success : Color.Error)">
+                    @(EsEntrada(context.Tipo) ? "+" : "-")@context.Cantidad.ToString("N2")
+                </MudText>
+            </MudTd>
+            <MudTd Style="text-align:right;">S/. @context.CostoUnitario.ToString("N2")</MudTd>
+            <MudTd Style="text-align:right;">@context.SaldoNuevo.ToString("N2")</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.NumeroDocumento))
+                {
+                    <MudText Typo="Typo.caption">@context.TipoDocumento @context.NumeroDocumento</MudText>
+                }
+                @if (!string.IsNullOrEmpty(context.Justificacion))
+                {
+                    <MudTooltip Text="@context.Justificacion">
+                        <MudIcon Icon="@Icons.Material.Filled.StickyNote2" Size="Size.Small" Color="Color.Default" />
+                    </MudTooltip>
+                }
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@(context.Usuario ?? "—")</MudText>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No hay movimientos para los filtros seleccionados.
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-center mt-4">
+            <MudPagination Color="Color.Primary" Count="totalPages" Selected="page" SelectedChanged="OnPageChanged" />
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private int? repuestoFiltro;
+    private int? almacenFiltro;
+    private DateTime? desde = DateTime.Today.AddDays(-30);
+    private DateTime? hasta = DateTime.Today;
+
+    private List<MovimientoListDto> movimientos = new();
+    private List<RepuestoListDto> repuestos = new();
+    private List<AlmacenDto> almacenes = new();
+
+    private bool cargando = true;
+    private int page = 1;
+    private const int pageSize = 15;
+    private int total = 0;
+    private int totalPages = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        repuestos = await InventorySvc.ListarTodosRepuestosAsync();
+        almacenes = await InventorySvc.ListarAlmacenesAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await InventorySvc.ListarMovimientosAsync(repuestoFiltro, almacenFiltro, desde, hasta, page, pageSize);
+        movimientos = resultado.Items;
+        total = resultado.Total;
+        totalPages = resultado.TotalPages;
+        cargando = false;
+    }
+
+    private async Task OnPageChanged(int p)
+    {
+        page = p;
+        await CargarAsync();
+    }
+
+    private async Task NuevoMovimiento()
+    {
+        var dto = new MovimientoFormDto
+        {
+            RepuestoId = repuestos.FirstOrDefault()?.Id ?? 0,
+            AlmacenId = almacenes.FirstOrDefault()?.Id ?? 0
+        };
+        var parametros = new DialogParameters
+        {
+            ["Movimiento"] = dto,
+            ["Repuestos"] = repuestos.Select(r => (r.Id, r.CodigoInterno, r.Descripcion)).ToList(),
+            ["Almacenes"] = almacenes
+        };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<MovimientoFormDialog>("Registrar movimiento", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Movimiento registrado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private static bool EsEntrada(TipoMovimientoInventario t) =>
+        t is TipoMovimientoInventario.EntradaCompra
+          or TipoMovimientoInventario.DevolucionCliente
+          or TipoMovimientoInventario.AjustePositivo
+          or TipoMovimientoInventario.TrasladoEntrada;
+
+    private static Color TipoColor(TipoMovimientoInventario t) => t switch
+    {
+        TipoMovimientoInventario.EntradaCompra => Color.Success,
+        TipoMovimientoInventario.DevolucionCliente => Color.Info,
+        TipoMovimientoInventario.AjustePositivo => Color.Warning,
+        TipoMovimientoInventario.AjusteNegativo => Color.Error,
+        TipoMovimientoInventario.SalidaConsumoOT => Color.Primary,
+        TipoMovimientoInventario.DevolucionProveedor => Color.Default,
+        TipoMovimientoInventario.TrasladoEntrada => Color.Tertiary,
+        TipoMovimientoInventario.TrasladoSalida => Color.Tertiary,
+        _ => Color.Default
+    };
+
+    private static string TipoIcon(TipoMovimientoInventario t) => EsEntrada(t)
+        ? Icons.Material.Filled.ArrowDownward
+        : Icons.Material.Filled.ArrowUpward;
+
+    private static string TipoTexto(TipoMovimientoInventario t) => t switch
+    {
+        TipoMovimientoInventario.EntradaCompra => "Compra",
+        TipoMovimientoInventario.SalidaConsumoOT => "Consumo OT",
+        TipoMovimientoInventario.DevolucionCliente => "Dev. cliente",
+        TipoMovimientoInventario.DevolucionProveedor => "Dev. proveedor",
+        TipoMovimientoInventario.AjustePositivo => "Ajuste +",
+        TipoMovimientoInventario.AjusteNegativo => "Ajuste −",
+        TipoMovimientoInventario.TrasladoEntrada => "Traslado in",
+        TipoMovimientoInventario.TrasladoSalida => "Traslado out",
+        _ => t.ToString()
+    };
+}

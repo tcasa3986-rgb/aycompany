@@ -1,0 +1,26 @@
+@*
+  KPI con ring circular (similar al diseño de la imagen).
+*@
+<MudPaper Class="kpi-circular" Elevation="0">
+    <div class="kpi-circular-ring" style="--ring-color: @RingColor; --pct: @Porcentaje">
+        <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" stroke="#E3E7EE" stroke-width="10" fill="none" />
+            <circle cx="60" cy="60" r="52" stroke="@RingColor" stroke-width="10" fill="none"
+                    stroke-dasharray="@_dash" stroke-dashoffset="@_offset" stroke-linecap="round"
+                    transform="rotate(-90 60 60)" />
+        </svg>
+        <div class="kpi-circular-text">
+            <MudText Typo="Typo.h5" Class="fw-bold">@Porcentaje%</MudText>
+        </div>
+    </div>
+    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary" Class="text-center mt-2 d-block">@Titulo</MudText>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = "";
+    [Parameter] public int Porcentaje { get; set; }
+    [Parameter] public string RingColor { get; set; } = "#3FA9F5";
+
+    private double _dash => 2 * Math.PI * 52;
+    private double _offset => _dash * (1 - Math.Clamp(Porcentaje, 0, 100) / 100.0);
+}

@@ -1,0 +1,255 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Manual Técnico VetSystem</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1, h2, h3 {
+            color: #0f172a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+        }
+        h1 {
+            border-bottom: 4px solid #0bb8c8;
+            color: #0bb8c8;
+            text-align: center;
+        }
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #c53030;
+        }
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        ul {
+            margin-bottom: 1.5rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Manual Técnico y de Usuario - Sistema Veterinario "VetSystem"</h1>
+<h2>1. Tecnologías de Desarrollo</h2>
+<p>El sistema ha sido desarrollado utilizando un stack tecnológico moderno, robusto y escalable, ideal para aplicaciones web empresariales:</p>
+<ul>
+<li><strong>Lenguaje de Programación (Backend):</strong> Python 3</li>
+<li><strong>Framework Web:</strong> Django (MVT - Model View Template)</li>
+<li><strong>Base de Datos:</strong> MySQL / MariaDB</li>
+<li><strong>Frontend (Interfaz de Usuario):</strong><ul>
+<li>HTML5 / CSS3</li>
+<li>Bootstrap 5 (Framework CSS)</li>
+<li>JavaScript Vanilla (Para interactividad y librerías)</li>
+<li>Chart.js (Para gráficos estadísticos interactivos)</li>
+<li>FontAwesome (Iconografía)</li>
+</ul>
+</li>
+<li><strong>Arquitectura:</strong> Monolítica con renderizado del lado del servidor (SSR).</li>
+</ul>
+<hr />
+<h2>2. Funcionalidades del Sistema</h2>
+<p>El sistema VetSystem está compuesto por módulos integrados que cubren todas las necesidades operativas de una clínica veterinaria:</p>
+<h3>2.1. Panel de Control (Dashboard)</h3>
+<ul>
+<li>Visualización en tiempo real de métricas clave (KPIs): Total de mascotas, clientes, citas de hoy e ingresos del día.</li>
+<li>Gráficos estadísticos dinámicos (Pacientes por especie, Citas por estado, Rendimiento mensual).</li>
+<li>Tablas resumen interactivas de los próximos eventos.</li>
+</ul>
+<h3>2.2. Gestión de Clientes y Mascotas</h3>
+<ul>
+<li>Registro completo de propietarios (Datos personales, contacto, ubicación).</li>
+<li>Registro detallado de mascotas asociadas a cada cliente (Nombre, especie, raza, peso, fecha de nacimiento, foto).</li>
+</ul>
+<h3>2.3. Agenda Médica</h3>
+<ul>
+<li>Calendario interactivo para programar, reprogramar y cancelar turnos.</li>
+<li>Manejo de distintos tipos de citas (Consulta general, vacunación, peluquería, cirugía).</li>
+<li>Control de estados (Pendiente, Confirmada, Cancelada, Atendida).</li>
+</ul>
+<h3>2.4. Área Clínica (Médico)</h3>
+<ul>
+<li><strong>Historia Clínica:</strong> Registro evolutivo de cada paciente. Incluye motivo de consulta, examen físico detallado (peso, temperatura, frecuencia cardíaca/respiratoria), diagnóstico y tratamiento.</li>
+<li><strong>Vacunaciones:</strong> Control del esquema de vacunación, lote de vacunas y fechas de próximas dosis recomendadas.</li>
+<li><strong>Telemedicina:</strong> Plataforma integrada para registrar consultas virtuales a distancia y adjuntar enlaces de videollamada.</li>
+</ul>
+<h3>2.5. Peluquería (Grooming)</h3>
+<ul>
+<li>Gestión de órdenes de servicio estético para mascotas.</li>
+<li>Control de fecha y hora de inicio/fin del servicio, observaciones y estado del progreso (En curso, Terminado).</li>
+</ul>
+<h3>2.6. Gestión Comercial e Inventario</h3>
+<ul>
+<li><strong>Inventario:</strong> Catálogo completo de productos, medicamentos y accesorios.</li>
+<li>Control riguroso de stock (Stock actual vs. Stock mínimo).</li>
+<li>Kárdex de movimientos: Registro automático de entradas (compras) y salidas (ventas/uso interno).</li>
+<li><strong>Facturación:</strong> Emisión de comprobantes de pago detallados, selección de métodos de pago (Efectivo, Tarjeta, Transferencia) y cálculo automático de IGV/IVA.</li>
+<li><strong>Control de Caja:</strong> Apertura y cierre diario de caja registradora de la clínica, calculando el dinero inicial, los ingresos del día y el arqueo final.</li>
+</ul>
+<h3>2.7. Reportes y Business Intelligence (BI)</h3>
+<ul>
+<li>Generación de reportes tabulares y gráficos financieros.</li>
+<li>Filtros dinámicos por rango de fechas para analizar el rendimiento económico mensual o diario de la veterinaria.</li>
+</ul>
+<h3>2.8. Sistema y Seguridad</h3>
+<ul>
+<li><strong>Configuración Global:</strong> Personalización de los datos de la clínica (Nombre, Logo corporativo, Moneda local, Contacto, Colores de la interfaz).</li>
+<li><strong>Usuarios:</strong> Creación de perfiles de acceso (Administradores, Cajeros, Veterinarios).</li>
+<li><strong>Mantenimiento:</strong> Herramienta interna para realizar Backups (Copias de seguridad) directos de la base de datos SQL, Restauración de backups y Reseteo del sistema (limpieza de datos transaccionales para iniciar en limpio).</li>
+</ul>
+<hr />
+<h2>3. Instalación y Configuración Local</h2>
+<p>Para ejecutar el sistema en una computadora nueva (con Windows), siga estos pasos:</p>
+<h3>Prerrequisitos</h3>
+<ol>
+<li>Instalar <strong>Python 3.10 o superior</strong> (asegurarse de marcar la casilla "Add Python to PATH" durante la instalación).</li>
+<li>Instalar un servidor local de bases de datos como <strong>XAMPP</strong>, <strong>WAMP</strong> o instalar <strong>MySQL Server</strong> de forma independiente.</li>
+</ol>
+<h3>Paso a paso</h3>
+<ol>
+<li><strong>Preparar la Base de Datos:</strong><ul>
+<li>Inicie su servidor MySQL (ej. abrir panel de XAMPP e iniciar "MySQL").</li>
+<li>Abra phpMyAdmin o la consola MySQL y cree una base de datos vacía llamada: <code>sistema_veterinaria_db</code>.</li>
+</ul>
+</li>
+<li><strong>Configurar el Proyecto:</strong><ul>
+<li>Copie la carpeta del código fuente (<code>sistema-veterinaria</code>) en su computadora (ej. en <code>C:\Webs\Python\sistema-veterinaria</code>).</li>
+<li>Abra la terminal (Símbolo del sistema o PowerShell) y navegue hasta la carpeta del proyecto:
+    <code>cd C:\Webs\Python\sistema-veterinaria</code></li>
+</ul>
+</li>
+<li><strong>Entorno Virtual y Dependencias (Recomendado):</strong><ul>
+<li>Cree un entorno virtual (solo la primera vez): <code>python -m venv venv</code></li>
+<li>Active el entorno virtual: <code>venv\Scripts\activate</code></li>
+<li>Instale las librerías necesarias: <code>pip install -r requirements.txt</code> (o instale <code>django</code>, <code>mysqlclient</code>, etc., si no hay requirements).</li>
+</ul>
+</li>
+<li><strong>Migrar la Base de Datos:</strong><ul>
+<li>Construya las tablas en MySQL ejecutando:
+    <code>python manage.py makemigrations</code>
+    <code>python manage.py migrate</code></li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>4. Cómo Ejecutar la Aplicación (Modo Desarrollo)</h2>
+<p>Cada vez que desee encender el sistema para trabajar localmente, siga estos dos sencillos pasos desde el Símbolo del Sistema (CMD) o PowerShell:</p>
+<ol>
+<li>Navegue a la carpeta y active el entorno virtual:
+    <code>cd C:\Webs\Python\sistema-veterinaria</code>
+    <code>venv\Scripts\activate</code></li>
+<li>Encienda el servidor local de Django:
+    <code>python manage.py runserver</code></li>
+<li>Abra su navegador web preferido y visite la siguiente dirección:
+    <strong>http://127.0.0.1:8000/</strong></li>
+</ol>
+<hr />
+<h2>5. Credenciales de Acceso (Usuario Administrador)</h2>
+<p>Si es la primera vez que instala el sistema, debe crear un Superusuario maestro.
+Con el entorno virtual activado, ejecute:</p>
+<p><code>python manage.py createsuperuser</code></p>
+<p>Siga las instrucciones en la pantalla de la consola:
+*   <strong>Username (Usuario):</strong> admin
+*   <strong>Email:</strong> (puede dejarlo en blanco presionando Enter)
+*   <strong>Password (Contraseña):</strong> admin123 <em>(Nota: al escribir la contraseña en la consola, no se verán los caracteres por seguridad, pero sí se están registrando).</em>
+*   <strong>Password (Confirmación):</strong> admin123</p>
+<p>Utilice estas credenciales en la pantalla de inicio de sesión de la aplicación web.</p>
+<hr />
+<h2>6. Recomendación de Hosting y Despliegue a Producción</h2>
+<p>Para llevar esta aplicación a internet para que funcione 24/7, la recomendación ideal, buscando la mejor relación calidad/precio para aplicaciones en Django, es utilizar un plan <strong>VPS (Servidor Privado Virtual)</strong> o un servicio PaaS.</p>
+<p><strong>Las mejores opciones:</strong>
+1.  <strong>DigitalOcean (Droplet) / Linode / Vultr</strong> (Recomendado - Mayor control y economía, ~$5 - $10 USD/mes).
+2.  <strong>PythonAnywhere</strong> (Excelente para principiantes en Python, muy fácil despliegue, plan básico ~$5 USD/mes).
+3.  <strong>Railway.app / Render</strong> (Modernos, sincronización directa con GitHub, cobran por uso).</p>
+<h3>Guía Paso a Paso para Despliegue (Ejemplo General para VPS con Ubuntu Server)</h3>
+<p>Para un VPS (como DigitalOcean), la arquitectura estándar de producción es: <strong>Gunicorn (Servidor de aplicaciones) + Nginx (Proxy Inverso) + MySQL/PostgreSQL</strong>.</p>
+<p><strong>Paso 1: Preparar el Servidor</strong>
+1. Acceda a su VPS mediante SSH: <code>ssh root@ip_del_servidor</code>
+2. Actualice los paquetes del servidor: <code>apt update &amp;&amp; apt upgrade -y</code>
+3. Instale dependencias de sistema: <code>apt install python3-pip python3-venv nginx mysql-server libmysqlclient-dev -y</code></p>
+<p><strong>Paso 2: Configurar la Base de Datos en el Servidor</strong>
+1. Entre a MySQL: <code>mysql -u root</code>
+2. Cree la base de datos y un usuario seguro:
+   <code>CREATE DATABASE sistema_veterinaria_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</code>
+   <code>CREATE USER 'vet_user'@'localhost' IDENTIFIED BY 'TuContraSegura123!';</code>
+   <code>GRANT ALL PRIVILEGES ON sistema_veterinaria_db.* TO 'vet_user'@'localhost';</code>
+   <code>FLUSH PRIVILEGES; EXIT;</code></p>
+<p><strong>Paso 3: Subir el Código y Preparar Entorno</strong>
+1. Transfiera los archivos de su proyecto al servidor (usando FTP/FileZilla, SCP, o clonando desde GitHub). Colóquelo en <code>/var/www/sistema-veterinaria/</code>
+2. Navegue al directorio: <code>cd /var/www/sistema-veterinaria</code>
+3. Cree y active un entorno virtual: <code>python3 -m venv venv</code> y <code>source venv/bin/activate</code>
+4. Instale las librerías de Python e incluya el servidor de producción: <code>pip install -r requirements.txt gunicorn</code>
+5. Edite su archivo <code>settings.py</code> para producción:
+   * Cambie <code>DEBUG = False</code>
+   * Añada la IP o Dominio del servidor: <code>ALLOWED_HOSTS = ['midominio.com', 'IP_DEL_SERVIDOR']</code>
+   * Actualice las credenciales en <code>DATABASES</code> para que coincidan con el Paso 2.
+6. Ejecute migraciones y recolecte archivos estáticos:
+   <code>python manage.py migrate</code>
+   <code>python manage.py collectstatic</code></p>
+<p><strong>Paso 4: Configurar Gunicorn como Servicio del Sistema (Para que nunca se apague)</strong>
+1. Cree un archivo de servicio: <code>nano /etc/systemd/system/gunicorn.service</code>
+2. Pegue esta configuración básica:
+   ```ini
+   [Unit]
+   Description=gunicorn daemon
+   After=network.target</p>
+<p>[Service]
+   User=root
+   Group=www-data
+   WorkingDirectory=/var/www/sistema-veterinaria
+   Environment="PATH=/var/www/sistema-veterinaria/venv/bin"
+   ExecStart=/var/www/sistema-veterinaria/venv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/var/www/sistema-veterinaria/sistema_veterinaria.sock veterinaria.wsgi:application</p>
+<p>[Install]
+   WantedBy=multi-user.target
+   <code>``
+3. Inicie el servicio:</code>systemctl start gunicorn<code>y</code>systemctl enable gunicorn`</p>
+<p><strong>Paso 5: Configurar Nginx (Para recibir a los usuarios por el puerto 80)</strong>
+1. Cree un archivo de configuración Nginx: <code>nano /etc/nginx/sites-available/sistema_veterinaria</code>
+2. Agregue el siguiente bloque (cambie su_dominio.com):
+   ```nginx
+   server {
+       listen 80;
+       server_name su_dominio.com IP_DEL_SERVIDOR;</p>
+<pre><code>   location = /favicon.ico { access_log off; log_not_found off; }
+
+   location /static/ {
+       root /var/www/sistema-veterinaria;
+   }
+
+   location /media/ {
+       root /var/www/sistema-veterinaria;
+   }
+
+   location / {
+       include proxy_params;
+       proxy_pass http://unix:/var/www/sistema-veterinaria/sistema_veterinaria.sock;
+   }
+</code></pre>
+<p>}
+   <code>``
+3. Active el sitio:</code>ln -s /etc/nginx/sites-available/sistema_veterinaria /etc/nginx/sites-enabled<code>4. Reinicie Nginx:</code>systemctl restart nginx`</p>
+<p><strong>Paso final:</strong> Si va a su navegador y digita la IP de su servidor o su dominio, el sistema VetSystem estará disponible públicamente, de manera robusta y segura.</p>
+</body>
+</html>

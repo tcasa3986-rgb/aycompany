@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ERP.TallerAutomotriz.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>

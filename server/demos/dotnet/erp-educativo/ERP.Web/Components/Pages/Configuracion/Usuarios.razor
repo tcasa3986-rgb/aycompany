@@ -1,0 +1,249 @@
+@page "/configuracion/usuarios"
+@using ERP.Infrastructure.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Administrador")]
+@rendermode InteractiveServer
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Usuarios y Roles — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">👥 Gestión de Usuarios y Accesos</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Administración de cuentas de usuario, roles y permisos del sistema</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.PersonAdd" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Usuario</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_usuarios" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<UserViewModel,bool>(u => string.IsNullOrWhiteSpace(_search) || u.Email.Contains(_search,StringComparison.OrdinalIgnoreCase) || u.NombreCompleto.Contains(_search,StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Cuentas de Usuario</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por nombre o correo..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Usuario</MudTh>
+            <MudTh>Roles</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Último Acceso</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Medium">
+                        @(context.Email.Length > 0 ? context.Email[0].ToString().ToUpper() : "U")
+                    </MudAvatar>
+                    <div>
+                        <MudText Style="font-weight:600;">@context.NombreCompleto</MudText>
+                        <MudText Typo="Typo.caption" Style="color:#6B7280;">@context.Email</MudText>
+                    </div>
+                </MudStack>
+            </MudTd>
+            <MudTd>
+                @foreach (var role in context.Roles)
+                {
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Variant="Variant.Text" Color="MudBlazor.Color.Primary">@role</MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.Bloqueado ? MudBlazor.Color.Error : MudBlazor.Color.Success)">
+                    @(context.Bloqueado ? "Bloqueado" : "Activo")
+                </MudChip>
+            </MudTd>
+            <MudTd>@(context.UltimoAcceso?.ToString("dd/MM/yyyy HH:mm") ?? "Nunca")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="@(context.Bloqueado ? MudBlazor.Color.Success : MudBlazor.Color.Warning)" Size="MudBlazor.Size.Small" OnClick="@(() => ToggleBloqueo(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(string.IsNullOrEmpty(_form.Id) ? "Nuevo" : "Editar") Usuario</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Nombres" Label="Nombres" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Apellidos" Label="Apellidos" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Email" Label="Correo Electrónico" Variant="Variant.Outlined" Required="true" Disabled="@(!string.IsNullOrEmpty(_form.Id))" /></MudItem>
+                
+                @if (string.IsNullOrEmpty(_form.Id))
+                {
+                    <MudItem xs="12"><MudTextField @bind-Value="_form.Password" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" Required="true" /></MudItem>
+                }
+                
+                <MudItem xs="12">
+                    <MudSelect T="string" Label="Roles" MultiSelection="true" @bind-SelectedValues="_selectedRoles" Variant="Variant.Outlined">
+                        @foreach (var role in _availableRoles)
+                        {
+                            <MudSelectItem T="string" Value="@role">@role</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar Usuario</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<UserViewModel> _usuarios = new();
+    private UserFormModel _form = new();
+    private IReadOnlyCollection<string> _selectedRoles = new List<string>();
+    private List<string> _availableRoles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _availableRoles = await RoleManager.Roles.Select(r => r.Name!).ToListAsync();
+        await Cargar();
+    }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        var users = await UserManager.Users.ToListAsync();
+        _usuarios = new();
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            _usuarios.Add(new UserViewModel
+            {
+                Id = user.Id,
+                Email = user.Email ?? "",
+                Nombres = user.Nombres,
+                Apellidos = user.Apellidos,
+                Bloqueado = user.Bloqueado,
+                UltimoAcceso = user.UltimoAcceso,
+                Roles = roles.ToList()
+            });
+        }
+        _cargando = false;
+    }
+
+    private void AbrirDialog(UserViewModel? u)
+    {
+        if (u == null)
+        {
+            _form = new();
+            _selectedRoles = new List<string>();
+        }
+        else
+        {
+            _form = new UserFormModel
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Nombres = u.Nombres,
+                Apellidos = u.Apellidos
+            };
+            _selectedRoles = u.Roles.AsReadOnly();
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (string.IsNullOrEmpty(_form.Email)) return;
+
+        try
+        {
+            if (string.IsNullOrEmpty(_form.Id))
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = _form.Email,
+                    Email = _form.Email,
+                    Nombres = _form.Nombres,
+                    Apellidos = _form.Apellidos,
+                    EmailConfirmed = true
+                };
+                var result = await UserManager.CreateAsync(user, _form.Password);
+                if (result.Succeeded)
+                {
+                    await UserManager.AddToRolesAsync(user, _selectedRoles);
+                    Snackbar.Add("Usuario creado", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add(string.Join(", ", result.Errors.Select(e => e.Description)), Severity.Error);
+                    return;
+                }
+            }
+            else
+            {
+                var user = await UserManager.FindByIdAsync(_form.Id);
+                if (user != null)
+                {
+                    user.Nombres = _form.Nombres;
+                    user.Apellidos = _form.Apellidos;
+                    await UserManager.UpdateAsync(user);
+
+                    var currentRoles = await UserManager.GetRolesAsync(user);
+                    await UserManager.RemoveFromRolesAsync(user, currentRoles);
+                    await UserManager.AddToRolesAsync(user, _selectedRoles);
+                    Snackbar.Add("Usuario actualizado", Severity.Success);
+                }
+            }
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    async Task ToggleBloqueo(UserViewModel u)
+    {
+        var user = await UserManager.FindByIdAsync(u.Id);
+        if (user != null)
+        {
+            user.Bloqueado = !user.Bloqueado;
+            user.LockoutEnabled = user.Bloqueado;
+            user.LockoutEnd = user.Bloqueado ? DateTimeOffset.MaxValue : null;
+            await UserManager.UpdateAsync(user);
+            Snackbar.Add(user.Bloqueado ? "Usuario bloqueado" : "Usuario desbloqueado", Severity.Info);
+            await Cargar();
+        }
+    }
+
+    public class UserViewModel
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Nombres { get; set; } = "";
+        public string Apellidos { get; set; } = "";
+        public string NombreCompleto => $"{Nombres} {Apellidos}";
+        public List<string> Roles { get; set; } = new();
+        public bool Bloqueado { get; set; }
+        public DateTime? UltimoAcceso { get; set; }
+    }
+
+    public class UserFormModel
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Nombres { get; set; } = "";
+        public string Apellidos { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

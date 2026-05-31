@@ -1,0 +1,120 @@
+@page "/tesoreria/pagos/recibo/{Id:int}"
+@layout LoginLayout
+@using ERP.Application.Features.Tesoreria.Pagos
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Recibo de Pago — ERP Educativo</PageTitle>
+
+@if (_pago == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="print-container pa-8" style="background:white; min-height:100vh; max-width:800px; margin:auto; border:1px solid #ddd;">
+        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-8">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.School" Style="color:#10B981; font-size:3rem;" />
+                <div>
+                    <MudText Typo="Typo.h5" Style="font-weight:900; color:#0F2D5C;">ERP EDUCATIVO</MudText>
+                    <MudText Typo="Typo.caption">RUC: 20123456789 | Cusco, Perú</MudText>
+                </div>
+            </MudStack>
+            <div style="text-align:right;">
+                <MudText Typo="Typo.h6" Style="font-weight:700;">RECIBO DE PAGO</MudText>
+                <MudText Typo="Typo.h5" Color="MudBlazor.Color.Error">@_pago.NumeroPago</MudText>
+            </div>
+        </MudStack>
+
+        <MudDivider Class="mb-6" />
+
+        <MudGrid Class="mb-8">
+            <MudItem xs="6">
+                <MudText Typo="Typo.subtitle2" Style="color:#6B7280;">ESTUDIANTE</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight:700;">@_pago.Estudiante</MudText>
+                <MudText Typo="Typo.body2">@_pago.EstudianteEmail</MudText>
+            </MudItem>
+            <MudItem xs="6" Style="text-align:right;">
+                <MudText Typo="Typo.subtitle2" Style="color:#6B7280;">FECHA DE PAGO</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight:700;">@_pago.FechaPago.ToString("dd/MM/yyyy HH:mm")</MudText>
+                <MudText Typo="Typo.body2">Cajero: Admin</MudText>
+            </MudItem>
+        </MudGrid>
+
+        <table style="width:100%; border-collapse: collapse; margin-bottom: 40px;">
+            <thead style="background:#F8FAFC;">
+                <tr>
+                    <th style="padding:12px; text-align:left; border-bottom:2px solid #E2E8F0;">Descripción del Concepto</th>
+                    <th style="padding:12px; text-align:right; border-bottom:2px solid #E2E8F0;">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding:16px; border-bottom:1px solid #E2E8F0;">
+                        <MudText Style="font-weight:600;">@_pago.Concepto</MudText>
+                        <MudText Typo="Typo.caption">Ref: @_pago.NumeroDeuda</MudText>
+                    </td>
+                    <td style="padding:16px; text-align:right; border-bottom:1px solid #E2E8F0;">
+                        S/ @_pago.MontoPagado.ToString("N2")
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td style="padding:16px; text-align:right; font-weight:700;">TOTAL PAGADO</td>
+                    <td style="padding:16px; text-align:right; font-weight:900; font-size:1.2rem; color:#1A4B8C;">
+                        S/ @_pago.MontoPagado.ToString("N2")
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <MudGrid>
+            <MudItem xs="6">
+                <MudText Typo="Typo.subtitle2" Style="color:#6B7280;">MÉTODO DE PAGO</MudText>
+                <MudText Typo="Typo.body2">@_pago.TipoPago.ToString()</MudText>
+                @if (!string.IsNullOrEmpty(_pago.NumeroOperacion))
+                {
+                    <MudText Typo="Typo.body2">Op: @_pago.NumeroOperacion</MudText>
+                }
+            </MudItem>
+            <MudItem xs="6" Style="text-align:right;">
+                <div style="margin-top:40px; border-top:1px solid #ccc; display:inline-block; padding-top:8px; min-width:200px; text-align:center;">
+                    <MudText Typo="Typo.caption">Sello y Firma Autorizada</MudText>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <div class="no-print mt-12 d-flex justify-center">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Imprimir" StartIcon="@Icons.Material.Filled.Print" Class="mx-2">Imprimir Recibo</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Default" Href="/tesoreria/pagos" Class="mx-2">Volver</MudButton>
+        </div>
+    </div>
+}
+
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        .print-container { border: none !important; box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; }
+        body { background: white !important; }
+    }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private PagoDto? _pago;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pago = await Mediator.Send(new GetPagoByIdQuery { Id = Id });
+    }
+
+    private void Imprimir()
+    {
+        // En una app real usaríamos JS Interop para window.print()
+    }
+}

@@ -1,0 +1,296 @@
+@page "/"
+@using MudBlazor
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+@using ERP.Application.Features.Dashboard
+@using MediatR
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Dashboard — ERP Educativo</PageTitle>
+
+<!-- HEADER DASHBOARD -->
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">
+            🎓 Dashboard Institucional
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">
+            Bienvenido, Administrador · @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+        </MudText>
+    </div>
+    <MudStack Row Spacing="2">
+        <MudChip T="string" Icon="@Icons.Material.Filled.CalendarMonth"
+                 Color="MudBlazor.Color.Primary" Variant="Variant.Outlined">
+            2026 - I
+        </MudChip>
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.FileDownload"
+                   Style="background:#F97316; color:white; border-radius:8px;">
+            Exportar
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+<!-- ─── KPI CARDS ─────────────────────────────────────────────────────────── -->
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Estudiantes Activos" Valor="@(_data?.EstudiantesActivos.ToString("N0") ?? "0")" Icono="@Icons.Material.Filled.People"
+                 ColorFondo="linear-gradient(135deg,#6B21A8,#7C3AED)"
+                 Tendencia="+8%" TendenciaPositiva="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Docentes Activos" Valor="@(_data?.DocentesActivos.ToString("N0") ?? "0")" Icono="@Icons.Material.Filled.SupervisorAccount"
+                 ColorFondo="linear-gradient(135deg,#F97316,#FB923C)"
+                 Tendencia="+2%" TendenciaPositiva="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Matrículas Totales" Valor="@(_data?.MatriculasPeriodo.ToString("N0") ?? "0")" Icono="@Icons.Material.Filled.HowToReg"
+                 ColorFondo="linear-gradient(135deg,#06B6D4,#22D3EE)"
+                 Tendencia="+12%" TendenciaPositiva="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Ingresos Mensuales" Valor="@($"S/ {(_data?.IngresosMes ?? 0):N2}")" Icono="@Icons.Material.Filled.AttachMoney"
+                 ColorFondo="linear-gradient(135deg,#10B981,#34D399)"
+                 Tendencia="+5%" TendenciaPositiva="true" />
+    </MudItem>
+</MudGrid>
+
+<!-- ─── SEGUNDA FILA KPIs ─────────────────────────────────────────────────── -->
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Deuda por Cobrar" Valor="@($"S/ {(_data?.DeudaPorCobrar ?? 0):N2}")" Icono="@Icons.Material.Filled.Receipt"
+                 ColorFondo="linear-gradient(135deg,#EF4444,#F87171)"
+                 Tendencia="-3%" TendenciaPositiva="false" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Asistencia Promedio" Valor="87%" Icono="@Icons.Material.Filled.Checklist"
+                 ColorFondo="linear-gradient(135deg,#8B5CF6,#A78BFA)"
+                 Tendencia="+1%" TendenciaPositiva="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Cursos Activos" Valor="@(_data?.CursosActivos.ToString("N0") ?? "0")" Icono="@Icons.Material.Filled.Book"
+                 ColorFondo="linear-gradient(135deg,#F59E0B,#FCD34D)"
+                 Tendencia="0%" TendenciaPositiva="true" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <KpiCard Titulo="Trámites Pendientes" Valor="23" Icono="@Icons.Material.Filled.Description"
+                 ColorFondo="linear-gradient(135deg,#EC4899,#F472B6)"
+                 Tendencia="-15%" TendenciaPositiva="false" />
+    </MudItem>
+</MudGrid>
+
+<!-- ─── GRÁFICOS FILA 1 ───────────────────────────────────────────────────── -->
+<MudGrid Spacing="3" Class="mb-6">
+    <!-- Matrículas por mes -->
+    <MudItem xs="12" md="8">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudText Typo="Typo.h6" Class="mb-1" Style="color:#1E1B4B;">📊 Matrículas por Mes</MudText>
+            <MudText Typo="Typo.body2" Style="color:#9CA3AF;" Class="mb-3">Evolución del período académico 2026</MudText>
+            <ApexChart TItem="MatriculaData" Options="_chartMatriculas">
+                <ApexPointSeries TItem="MatriculaData"
+                                 Items="_matriculasData"
+                                 SeriesType="SeriesType.Area"
+                                 Name="Matrículas"
+                                 XValue="@(e => e.Mes)"
+                                 YValue="@(e => e.Total)"
+                                 Color="#6B21A8" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+    <!-- Distribución por carrera -->
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px; height:100%;">
+            <MudText Typo="Typo.h6" Class="mb-1" Style="color:#1E1B4B;">🎯 Estudiantes por Carrera</MudText>
+            <MudText Typo="Typo.body2" Style="color:#9CA3AF;" Class="mb-3">Distribución actual</MudText>
+            <ApexChart TItem="CarreraData" Options="_chartCarreras">
+                <ApexPointSeries TItem="CarreraData"
+                                 Items="_carrerasData"
+                                 SeriesType="SeriesType.Donut"
+                                 Name="Carrera"
+                                 XValue="@(e => e.Nombre)"
+                                 YValue="@(e => e.Cantidad)" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<!-- ─── GRÁFICOS FILA 2 ───────────────────────────────────────────────────── -->
+<MudGrid Spacing="3" Class="mb-6">
+    <!-- Ingresos vs Deudas -->
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudText Typo="Typo.h6" Class="mb-1" Style="color:#1E1B4B;">💰 Ingresos vs Deudas</MudText>
+            <MudText Typo="Typo.body2" Style="color:#9CA3AF;" Class="mb-3">Comparativa mensual (S/)</MudText>
+            <ApexChart TItem="FinancieroData" Options="_chartFinanciero">
+                <ApexPointSeries TItem="FinancieroData"
+                                 Items="_financieroData"
+                                 SeriesType="SeriesType.Bar"
+                                 Name="Ingresos"
+                                 XValue="@(e => e.Mes)"
+                                 YValue="@(e => e.Ingresos)"
+                                 Color="#10B981" />
+                <ApexPointSeries TItem="FinancieroData"
+                                 Items="_financieroData"
+                                 SeriesType="SeriesType.Bar"
+                                 Name="Deudas"
+                                 XValue="@(e => e.Mes)"
+                                 YValue="@(e => e.Deudas)"
+                                 Color="#EF4444" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+    <!-- Asistencia por mes -->
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudText Typo="Typo.h6" Class="mb-1" Style="color:#1E1B4B;">✅ Asistencia Promedio %</MudText>
+            <MudText Typo="Typo.body2" Style="color:#9CA3AF;" Class="mb-3">Porcentaje mensual</MudText>
+            <ApexChart TItem="AsistenciaData" Options="_chartAsistencia">
+                <ApexPointSeries TItem="AsistenciaData"
+                                 Items="_asistenciaData"
+                                 SeriesType="SeriesType.Line"
+                                 Name="% Asistencia"
+                                 XValue="@(e => e.Mes)"
+                                 YValue="@(e => e.Porcentaje)"
+                                 Color="#F97316" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<!-- ─── TABLAS RESUMEN ────────────────────────────────────────────────────── -->
+<MudGrid Spacing="3">
+    <!-- Últimas matrículas -->
+    <MudItem xs="12" md="7">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px;">
+            <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                <MudText Typo="Typo.h6" Style="color:#1E1B4B;">📋 Últimas Matrículas</MudText>
+                <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small"
+                           Href="/admision/matriculas">Ver todas →</MudButton>
+            </MudStack>
+            <MudTable Items="@(_data?.UltimasMatriculas ?? new())" Dense="true" Hover="true"
+                      Style="font-size:0.85rem;" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Código</MudTh>
+                    <MudTh>Estudiante</MudTh>
+                    <MudTh>Carrera</MudTh>
+                    <MudTh>Fecha</MudTh>
+                    <MudTh>Estado</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Codigo</MudTd>
+                    <MudTd>@context.Estudiante</MudTd>
+                    <MudTd>@context.Carrera</MudTd>
+                    <MudTd>@context.Fecha</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Color="@(context.Estado == "Confirmada" ? MudBlazor.Color.Success : MudBlazor.Color.Warning)">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+    <!-- Alertas -->
+    <MudItem xs="12" md="5">
+        <MudPaper Elevation="2" Style="border-radius:16px; padding:20px; height:100%;">
+            <MudText Typo="Typo.h6" Style="color:#1E1B4B;" Class="mb-3">🔔 Alertas del Sistema</MudText>
+            <MudStack Spacing="2">
+                <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.Warning">
+                    <strong>42 estudiantes</strong> con asistencia menor al 70%
+                </MudAlert>
+                <MudAlert Severity="Severity.Error" Icon="@Icons.Material.Filled.MoneyOff">
+                    <strong>S/ 12,300</strong> en deudas vencidas por cobrar
+                </MudAlert>
+                <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info">
+                    <strong>23 trámites</strong> pendientes de atender
+                </MudAlert>
+                <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                    Período académico <strong>2026-I</strong> activo
+                </MudAlert>
+                <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.Book">
+                    <strong>8 libros</strong> de biblioteca vencidos
+                </MudAlert>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private DashboardDataDto? _data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _data = await Mediator.Send(new GetDashboardDataQuery());
+    }
+
+    // ─── MODELOS GRÁFICOS ────────────────────────────────────────────────────────────
+    record MatriculaData(string Mes, int Total);
+    record CarreraData(string Nombre, int Cantidad);
+    record FinancieroData(string Mes, decimal Ingresos, decimal Deudas);
+    record AsistenciaData(string Mes, decimal Porcentaje);
+
+    // ─── DATOS DEMO (GRAFICOS) ─────────────────────────────────────────────────────────
+    private readonly List<MatriculaData> _matriculasData =
+    [
+        new("Ene", 45), new("Feb", 62), new("Mar", 78), new("Abr", 91),
+        new("May", 85), new("Jun", 110), new("Jul", 98), new("Ago", 14)
+    ];
+
+    private readonly List<CarreraData> _carrerasData =
+    [
+        new("Administración", 320), new("Computación", 285), new("Contabilidad", 198),
+        new("Derecho", 165), new("Enfermería", 145), new("Otros", 134)
+    ];
+
+    private readonly List<FinancieroData> _financieroData =
+    [
+        new("Ene", 42000, 8000), new("Feb", 38500, 9500), new("Mar", 51000, 7200),
+        new("Abr", 46800, 11000), new("May", 49300, 10200), new("Ago", 4850, 1230)
+    ];
+
+    private readonly List<AsistenciaData> _asistenciaData =
+    [
+        new("Ene", 88), new("Feb", 85), new("Mar", 90), new("Abr", 87),
+        new("May", 83), new("Jun", 89), new("Jul", 91), new("Ago", 87)
+    ];
+
+    // ─── OPCIONES DE GRÁFICOS ────────────────────────────────────────────────
+    private readonly ApexChartOptions<MatriculaData> _chartMatriculas = new()
+    {
+        Chart = new Chart { Height = 250, Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = [3] },
+        Fill = new Fill { Type = [FillType.Gradient], Gradient = new FillGradient { ShadeIntensity = 0.3, OpacityFrom = 0.6, OpacityTo = 0.1 } },
+        Xaxis = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } },
+        Yaxis = [new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } }],
+        Grid = new Grid { BorderColor = "#F3F4F6" }
+    };
+
+    private readonly ApexChartOptions<CarreraData> _chartCarreras = new()
+    {
+        Chart = new Chart { Height = 250 },
+        Colors = ["#6B21A8", "#F97316", "#06B6D4", "#10B981", "#F59E0B", "#EC4899"],
+        Legend = new Legend { Position = LegendPosition.Bottom, FontSize = "11px" },
+        PlotOptions = new PlotOptions { Pie = new PlotOptionsPie { Donut = new PlotOptionsDonut { Size = "65%" } } }
+    };
+
+    private readonly ApexChartOptions<FinancieroData> _chartFinanciero = new()
+    {
+        Chart = new Chart { Height = 250, Stacked = false, Toolbar = new Toolbar { Show = false } },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 6, ColumnWidth = "60%" } },
+        Xaxis = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } },
+        Yaxis = [new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } }],
+        Grid = new Grid { BorderColor = "#F3F4F6" }
+    };
+
+    private readonly ApexChartOptions<AsistenciaData> _chartAsistencia = new()
+    {
+        Chart = new Chart { Height = 250, Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = [3] },
+        Markers = new Markers { Size = [5] },
+        Yaxis = [new YAxis { Min = 60, Max = 100, Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } }],
+        Xaxis = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = ["#9CA3AF"] } } },
+        Grid = new Grid { BorderColor = "#F3F4F6" }
+    };
+}

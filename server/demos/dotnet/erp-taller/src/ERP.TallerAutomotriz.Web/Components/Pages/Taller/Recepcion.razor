@@ -1,0 +1,374 @@
+@page "/recepcion"
+@page "/recepcion/nueva"
+@attribute [Authorize]
+@inject IWorkshopService WorkshopSvc
+@inject ICustomerService CustomerSvc
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Nueva Recepción - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Recepción de Vehículo</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Crear una nueva Orden de Trabajo</MudText>
+    </div>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="@(() => Nav.NavigateTo("/ordenes"))">Volver a OTs</MudButton>
+</div>
+
+<MudPaper Class="pa-5" Elevation="0" Style="border-radius:12px;">
+    <MudStepper @ref="stepper" HeaderTextView="StepperHeaderTextView.All" NonLinear="false" Color="Color.Primary">
+
+        <MudStep Title="Cliente" Icon="@Icons.Material.Filled.Person">
+            <ChildContent>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="8">
+                        <MudAutocomplete T="ClienteListDto" @bind-Value="clienteSeleccionado"
+                                         @bind-Value:after="OnClienteCambiado"
+                                         Label="Buscar cliente *" Required="true"
+                                         SearchFunc="@BuscarClientes"
+                                         ToStringFunc="@(c => c == null ? "" : $"{c.Codigo} — {c.NombreRazonSocial}")"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         ResetValueOnEmptyText="false" CoerceText="true"
+                                         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                    </MudItem>
+                    <MudItem xs="12" md="4" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd" Href="/clientes" Target="_blank">
+                            Crear cliente nuevo
+                        </MudButton>
+                    </MudItem>
+
+                    @if (clienteSeleccionado != null)
+                    {
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-3" Elevation="0" Style="background:#F4F6FA;border-radius:8px;">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">CLIENTE SELECCIONADO</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-bold">@clienteSeleccionado.NombreRazonSocial</MudText>
+                                <MudText Typo="Typo.caption">@clienteSeleccionado.DocumentoIdentidad · @(clienteSeleccionado.TelefonoPrincipal ?? "Sin teléfono") · @(clienteSeleccionado.Email ?? "Sin email")</MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </ChildContent>
+        </MudStep>
+
+        <MudStep Title="Vehículo" Icon="@Icons.Material.Filled.DirectionsCar">
+            <ChildContent>
+                @if (clienteSeleccionado == null)
+                {
+                    <MudAlert Severity="Severity.Warning">Selecciona un cliente primero.</MudAlert>
+                }
+                else
+                {
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            @if (vehiculosCliente.Any())
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">VEHÍCULOS DEL CLIENTE</MudText>
+                                <div class="vehiculos-grid">
+                                    @foreach (var v in vehiculosCliente)
+                                    {
+                                        var sel = vehiculoSeleccionado?.Id == v.Id;
+                                        <MudPaper Class="@($"vehiculo-card {(sel ? "vehiculo-card--sel" : "")}")" Elevation="0"
+                                                  @onclick="() => SeleccionarVehiculo(v)">
+                                            <div class="d-flex align-center justify-space-between">
+                                                <div>
+                                                    <MudText Typo="Typo.body1" Class="fw-bold">@v.Placa</MudText>
+                                                    <MudText Typo="Typo.body2">@v.Marca @v.Modelo @v.Anio</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@v.KilometrajeActual.ToString("N0") km · @v.Combustible</MudText>
+                                                </div>
+                                                @if (sel)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                                                }
+                                            </div>
+                                        </MudPaper>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info">Este cliente no tiene vehículos. <MudLink Href="/vehiculos" Target="_blank">Registrar uno</MudLink>.</MudAlert>
+                            }
+                        </MudItem>
+
+                        @if (vehiculoSeleccionado != null)
+                        {
+                            <MudItem xs="12" sm="4">
+                                <MudNumericField @bind-Value="ot.KilometrajeIngreso" Label="Kilometraje al ingreso"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </ChildContent>
+        </MudStep>
+
+        <MudStep Title="Diagnóstico" Icon="@Icons.Material.Filled.MedicalServices">
+            <ChildContent>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="ot.FallasReportadasCliente"
+                                      Label="Fallas reportadas por el cliente (en sus palabras)"
+                                      Lines="4" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="ot.SintomasDiagnosticados"
+                                      Label="Síntomas detectados / Diagnóstico inicial"
+                                      Lines="4" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="ot.ObservacionesIngreso"
+                                      Label="Observaciones del ingreso (estado del vehículo, daños visibles, etc.)"
+                                      Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+            </ChildContent>
+        </MudStep>
+
+        <MudStep Title="Servicios" Icon="@Icons.Material.Filled.Build">
+            <ChildContent>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">SELECCIONAR SERVICIOS A REALIZAR</MudText>
+                        <div class="servicios-grid">
+                            @foreach (var s in servicios)
+                            {
+                                var sel = serviciosSeleccionados.Contains(s.Id);
+                                <MudPaper Class="@($"servicio-card {(sel ? "servicio-card--sel" : "")}")" Elevation="0"
+                                          @onclick="() => ToggleServicio(s.Id)">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@s.Codigo</MudText>
+                                            <MudText Typo="Typo.body2" Class="fw-medium">@s.Nombre</MudText>
+                                            <MudText Typo="Typo.caption">@s.TiempoEstimadoMinutos min · @(s.Categoria ?? "—")</MudText>
+                                        </div>
+                                        <div class="text-right">
+                                            <MudText Typo="Typo.body1" Class="fw-bold" Color="Color.Primary">S/. @s.PrecioEstandar.ToString("N0")</MudText>
+                                            @if (sel)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                            }
+                                        </div>
+                                    </div>
+                                </MudPaper>
+                            }
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background:#F4F6FA;border-radius:8px;">
+                            <div class="d-flex justify-space-between align-center">
+                                <MudText Typo="Typo.body2">@serviciosSeleccionados.Count servicio(s) seleccionado(s)</MudText>
+                                <MudText Typo="Typo.h6" Class="fw-bold">Subtotal: S/. @SubtotalServicios.ToString("N2")</MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </ChildContent>
+        </MudStep>
+
+        <MudStep Title="Asignación y entrega" Icon="@Icons.Material.Filled.AssignmentInd">
+            <ChildContent>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?" @bind-Value="ot.TecnicoPrincipalId" Label="Técnico principal"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                            <MudSelectItem T="int?" Value="null">Sin asignar</MudSelectItem>
+                            @foreach (var t in tecnicos)
+                            {
+                                <MudSelectItem T="int?" Value="t.Id">@t.NombreCompleto · @t.Nivel</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="PrioridadOT" @bind-Value="ot.Prioridad" Label="Prioridad"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="PrioridadOT.Baja">Baja</MudSelectItem>
+                            <MudSelectItem Value="PrioridadOT.Normal">Normal</MudSelectItem>
+                            <MudSelectItem Value="PrioridadOT.Alta">Alta</MudSelectItem>
+                            <MudSelectItem Value="PrioridadOT.Urgente">Urgente</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker @bind-Date="fechaEntrega" Label="Fecha de entrega estimada"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTimePicker @bind-Time="horaEntrega" Label="Hora estimada"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background:linear-gradient(135deg, #1F2C50 0%, #2BB59A 100%);color:#fff;border-radius:12px;">
+                            <MudText Typo="Typo.caption" Style="opacity:0.9;">RESUMEN</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-medium mt-1">@(clienteSeleccionado?.NombreRazonSocial ?? "—")</MudText>
+                            <MudText Typo="Typo.body2" Style="opacity:0.9;">@(vehiculoSeleccionado != null ? $"{vehiculoSeleccionado.Placa} · {vehiculoSeleccionado.Marca} {vehiculoSeleccionado.Modelo}" : "—")</MudText>
+                            <MudText Typo="Typo.body2" Style="opacity:0.85;" Class="mt-2">@serviciosSeleccionados.Count servicio(s) · Total estimado:</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">S/. @SubtotalServicios.ToString("N2")</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </ChildContent>
+        </MudStep>
+    </MudStepper>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+    }
+
+    <div class="d-flex justify-end gap-2 mt-4">
+        <MudButton OnClick="@(() => Nav.NavigateTo("/ordenes"))">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="GuardarOT" Disabled="@(guardando || !PuedeGuardar)">
+            @(guardando ? "Generando OT..." : "Generar Orden de Trabajo")
+        </MudButton>
+    </div>
+</MudPaper>
+
+<style>
+    .vehiculos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+    }
+    .vehiculo-card {
+        padding: 14px;
+        border: 2px solid var(--c-border);
+        border-radius: 10px;
+        cursor: pointer;
+        background: #fff !important;
+        transition: all 0.15s;
+    }
+    .vehiculo-card:hover {
+        border-color: var(--c-secondary);
+    }
+    .vehiculo-card--sel {
+        border-color: var(--c-secondary) !important;
+        background: rgba(43,181,154,0.05) !important;
+    }
+    .servicios-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 10px;
+        max-height: 380px;
+        overflow-y: auto;
+    }
+    .servicio-card {
+        padding: 12px 14px;
+        border: 1.5px solid var(--c-border);
+        border-radius: 10px;
+        cursor: pointer;
+        background: #fff !important;
+        transition: all 0.15s;
+    }
+    .servicio-card:hover { border-color: var(--c-primary); }
+    .servicio-card--sel {
+        border-color: var(--c-secondary) !important;
+        background: rgba(43,181,154,0.05) !important;
+    }
+</style>
+
+@code {
+    private MudStepper? stepper;
+
+    private List<ClienteListDto> todosClientes = new();
+    private List<VehiculoListDto> vehiculosCliente = new();
+    private List<ServicioListDto> servicios = new();
+    private List<TecnicoListDto> tecnicos = new();
+
+    private ClienteListDto? clienteSeleccionado;
+    private VehiculoListDto? vehiculoSeleccionado;
+    private HashSet<int> serviciosSeleccionados = new();
+    private OrdenTrabajoFormDto ot = new();
+    private DateTime? fechaEntrega = DateTime.Now.AddDays(1).Date;
+    private TimeSpan? horaEntrega = new TimeSpan(17, 0, 0);
+
+    private bool guardando;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        todosClientes = await CustomerSvc.ListarTodosClientesAsync();
+        servicios = (await WorkshopSvc.ListarServiciosAsync()).Where(s => s.Activo).ToList();
+        tecnicos = await WorkshopSvc.ListarTecnicosAsync();
+    }
+
+    private async Task OnClienteCambiado()
+    {
+        vehiculosCliente.Clear();
+        vehiculoSeleccionado = null;
+        if (clienteSeleccionado != null)
+        {
+            var vs = await CustomerSvc.ListarVehiculosAsync(null, clienteSeleccionado.Id, 1, 50);
+            vehiculosCliente = vs.Items.Where(v => v.Activo).ToList();
+            ot.ClienteId = clienteSeleccionado.Id;
+        }
+    }
+
+    private void SeleccionarVehiculo(VehiculoListDto v)
+    {
+        vehiculoSeleccionado = v;
+        ot.VehiculoId = v.Id;
+        ot.KilometrajeIngreso = v.KilometrajeActual;
+    }
+
+    private void ToggleServicio(int id)
+    {
+        if (!serviciosSeleccionados.Add(id)) serviciosSeleccionados.Remove(id);
+    }
+
+    private decimal SubtotalServicios =>
+        servicios.Where(s => serviciosSeleccionados.Contains(s.Id)).Sum(s => s.PrecioEstandar);
+
+    private bool PuedeGuardar => clienteSeleccionado != null && vehiculoSeleccionado != null;
+
+    private Task<IEnumerable<ClienteListDto>> BuscarClientes(string? value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(todosClientes.Take(15).AsEnumerable());
+        var v = value.ToLower();
+        return Task.FromResult(todosClientes.Where(c =>
+            c.NombreRazonSocial.ToLower().Contains(v) ||
+            c.Codigo.ToLower().Contains(v) ||
+            c.DocumentoIdentidad.Contains(v)).Take(15).AsEnumerable());
+    }
+
+    private async Task GuardarOT()
+    {
+        if (!PuedeGuardar)
+        {
+            error = "Debes seleccionar cliente y vehículo.";
+            return;
+        }
+
+        guardando = true; error = null;
+        try
+        {
+            // Combinar fecha + hora de entrega
+            if (fechaEntrega.HasValue)
+            {
+                var fecha = fechaEntrega.Value.Date;
+                if (horaEntrega.HasValue) fecha = fecha.Add(horaEntrega.Value);
+                ot.FechaEntregaEstimada = fecha;
+            }
+            ot.ServiciosIds = serviciosSeleccionados.ToList();
+
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+            var otId = await WorkshopSvc.CrearOrdenAsync(ot, usuario);
+
+            Snackbar.Add($"OT creada exitosamente", Severity.Success);
+            Nav.NavigateTo($"/ordenes/{otId}");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally { guardando = false; }
+    }
+}

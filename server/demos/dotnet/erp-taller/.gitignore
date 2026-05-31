@@ -1,0 +1,31 @@
+# .NET / Visual Studio
+bin/
+obj/
+out/
+publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Secrets / configs locales
+appsettings.*.local.json
+secrets.json
+
+# SQL backups
+*.bak
+*.bacpac
+
+# Misc
+*.DS_Store
+Thumbs.db

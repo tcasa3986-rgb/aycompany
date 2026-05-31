@@ -1,0 +1,73 @@
+@page "/evaluacion/encuestas"
+@using ERP.Application.Features.Evaluacion
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Encuestas y Feedback — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📝 Encuestas y Feedback</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Participa en las evaluaciones institucionales</MudText>
+    </div>
+</MudStack>
+
+<MudGrid>
+    @foreach (var e in _encuestas)
+    {
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-6" Style="@($"border-radius:16px; border-top: 6px solid {(e.Activa ? "#10B981" : "#9CA3AF")};")">
+                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" Style="font-weight:700;">@e.Titulo</MudText>
+                    <MudChip T="string" Color="@(e.Activa ? MudBlazor.Color.Success : MudBlazor.Color.Default)" Size="MudBlazor.Size.Small" Variant="Variant.Text">
+                        @(e.Activa ? "Activa" : "Cerrada")
+                    </MudChip>
+                </MudStack>
+                
+                <MudText Typo="Typo.body2" Class="my-4" Style="color:#4B5563;">@e.Descripcion</MudText>
+                
+                <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-6">
+                    <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Default" />
+                        <MudText Typo="Typo.caption">@e.TotalRespondidos respuestas</MudText>
+                    </MudStack>
+                    
+                    @if (e.Activa)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="@(() => Snackbar.Add("Cargando formulario...", Severity.Info))">Responder</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Default" Disabled="true">Ver Resultados</MudButton>
+                    }
+                </MudStack>
+
+                @if (e.Activa)
+                {
+                    <MudText Typo="Typo.caption" Style="color:#EF4444;" Class="d-block mt-2">Vence el: @e.FechaFin.ToString("dd/MM/yyyy")</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+<MudPaper Elevation="1" Class="pa-8 mt-8 d-flex align-center justify-center" Style="border-radius:16px; background:#EEF2F7; border:2px dashed #CBD5E1;">
+    <MudStack AlignItems="AlignItems.Center">
+        <MudIcon Icon="@Icons.Material.Filled.AddModerator" Style="font-size:3rem; color:#64748B;" />
+        <MudText Typo="Typo.h6" Style="color:#475569;">¿Eres administrador?</MudText>
+        <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary">Crear Nueva Encuesta</MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private List<EncuestaDto> _encuestas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _encuestas = await Mediator.Send(new GetEncuestasQuery());
+    }
+}

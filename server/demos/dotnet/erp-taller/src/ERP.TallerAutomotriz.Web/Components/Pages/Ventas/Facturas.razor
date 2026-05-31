@@ -1,0 +1,231 @@
+@page "/facturacion"
+@attribute [Authorize]
+@inject ISalesService SalesSvc
+@inject IWorkshopService WorkshopSvc
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogSvc
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Facturación - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Facturación</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Comprobantes emitidos y registro de pagos</MudText>
+    </div>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Build"
+                   OnClick="FacturarDesdeOT">Facturar desde OT</MudButton>
+    </div>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3 flex-wrap">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar por número, serie o cliente..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:380px;flex:1;" />
+        <MudSelect T="EstadoFactura?" @bind-Value="estadoFiltro" @bind-Value:after="CargarAsync"
+                   Label="Estado" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Clearable="true" Style="min-width:180px;">
+            <MudSelectItem T="EstadoFactura?" Value="null">Todos</MudSelectItem>
+            <MudSelectItem T="EstadoFactura?" Value="EstadoFactura.Emitida">Emitida</MudSelectItem>
+            <MudSelectItem T="EstadoFactura?" Value="EstadoFactura.PagadaParcial">Pagada parcial</MudSelectItem>
+            <MudSelectItem T="EstadoFactura?" Value="EstadoFactura.Pagada">Pagada</MudSelectItem>
+            <MudSelectItem T="EstadoFactura?" Value="EstadoFactura.Vencida">Vencida</MudSelectItem>
+            <MudSelectItem T="EstadoFactura?" Value="EstadoFactura.Anulada">Anulada</MudSelectItem>
+        </MudSelect>
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@total comprobante(s)</MudText>
+    </div>
+
+    <MudTable Items="@facturas" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Comprobante</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Vencimiento</MudTh>
+            <MudTh>Cliente</MudTh>
+            <MudTh>OT</MudTh>
+            <MudTh Style="text-align:right;">Total</MudTh>
+            <MudTh Style="text-align:right;">Pagado</MudTh>
+            <MudTh Style="text-align:right;">Saldo</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudText Typo="Typo.caption" Class="fw-bold">@context.Serie-@context.Numero</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Tipo</MudText>
+            </MudTd>
+            <MudTd>@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Color="@(context.Vencida ? Color.Error : Color.Default)">@context.FechaVencimiento.ToString("dd/MM/yyyy")</MudText>
+                @if (context.Vencida)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error" Class="d-block">Vencida</MudText>
+                }
+            </MudTd>
+            <MudTd>@context.Cliente</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.NumeroOT))
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.NumeroOT</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;"><MudText Typo="Typo.body2" Class="fw-bold">S/. @context.Total.ToString("N2")</MudText></MudTd>
+            <MudTd Style="text-align:right;">
+                <MudText Typo="Typo.body2" Color="Color.Success">S/. @context.MontoPagado.ToString("N2")</MudText>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.SaldoPendiente > 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Warning" Class="fw-medium">S/. @context.SaldoPendiente.ToString("N2")</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                }
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                <MudChip T="string" Size="Size.Small" Color="@EstadoColor(context.Estado)" Variant="Variant.Filled">@EstadoTexto(context.Estado)</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
+                               OnClick="() => VerDetalle(context.Id)" />
+                @if (context.SaldoPendiente > 0 && context.Estado != EstadoFactura.Anulada)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.PointOfSale" Size="Size.Small" Color="Color.Success"
+                                   OnClick="() => RegistrarPago(context)" Title="Registrar pago" />
+                }
+                @if (context.Estado != EstadoFactura.Pagada && context.Estado != EstadoFactura.PagadaParcial && context.Estado != EstadoFactura.Anulada)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error"
+                                   OnClick="() => Anular(context)" Title="Anular" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">No hay comprobantes</MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-center mt-4">
+            <MudPagination Color="Color.Primary" Count="totalPages" Selected="page" SelectedChanged="OnPageChanged" />
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private EstadoFactura? estadoFiltro;
+    private List<FacturaListDto> facturas = new();
+    private bool cargando = true;
+    private int page = 1;
+    private const int pageSize = 15;
+    private int total = 0;
+    private int totalPages = 0;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await SalesSvc.ListarFacturasAsync(buscar, estadoFiltro, page, pageSize);
+        facturas = resultado.Items;
+        total = resultado.Total;
+        totalPages = resultado.TotalPages;
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try
+        {
+            await Task.Delay(350, token);
+            page = 1;
+            await CargarAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task OnPageChanged(int p)
+    {
+        page = p;
+        await CargarAsync();
+    }
+
+    private void VerDetalle(int id) => Nav.NavigateTo($"/facturacion/{id}");
+
+    private async Task FacturarDesdeOT()
+    {
+        var ots = (await WorkshopSvc.ListarTodasOrdenesAsync())
+            .Where(o => o.Estado is EstadoOT.Listo or EstadoOT.Entregado).ToList();
+
+        var parametros = new DialogParameters { ["OTs"] = ots };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<FacturarOTDialog>("Facturar desde OT", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false, Data: int facturaId })
+        {
+            Snackbar.Add("Factura generada", Severity.Success);
+            Nav.NavigateTo($"/facturacion/{facturaId}");
+        }
+    }
+
+    private async Task RegistrarPago(FacturaListDto f)
+    {
+        var pago = new PagoFormDto { FacturaId = f.Id, Monto = f.SaldoPendiente };
+        var parametros = new DialogParameters { ["Pago"] = pago, ["SaldoMaximo"] = f.SaldoPendiente, ["Comprobante"] = $"{f.Serie}-{f.Numero}" };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<PagoFormDialog>("Registrar pago", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task Anular(FacturaListDto f)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Anular factura",
+            $"¿Anular el comprobante {f.Serie}-{f.Numero}? Esta acción no se puede revertir.",
+            yesText: "Sí, anular", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                var auth = await AuthState.GetAuthenticationStateAsync();
+                await SalesSvc.AnularFacturaAsync(f.Id, auth.User.Identity?.Name);
+                Snackbar.Add("Factura anulada", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private static Color EstadoColor(EstadoFactura e) => e switch
+    {
+        EstadoFactura.Borrador => Color.Default,
+        EstadoFactura.Emitida => Color.Info,
+        EstadoFactura.PagadaParcial => Color.Warning,
+        EstadoFactura.Pagada => Color.Success,
+        EstadoFactura.Vencida => Color.Error,
+        EstadoFactura.Anulada => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string EstadoTexto(EstadoFactura e) => e switch
+    {
+        EstadoFactura.PagadaParcial => "Pago parcial",
+        _ => e.ToString()
+    };
+}

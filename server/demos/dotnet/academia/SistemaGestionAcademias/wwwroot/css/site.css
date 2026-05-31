@@ -1,0 +1,204 @@
+/* =========================================
+   ESTRUCTURA PRINCIPAL Y FUENTES
+   ========================================= */
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  overflow-x: hidden; /* Evitar scroll horizontal por el menú */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa; /* Fondo gris suave profesional */
+  color: #212529;
+}
+
+/* =========================================
+   LAYOUT DEL DASHBOARD (SIDEBAR + CONTENIDO)
+   ========================================= */
+#wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+}
+
+/* --- BARRA LATERAL (SIDEBAR) --- */
+#sidebar-wrapper {
+    min-height: 100vh;
+    width: 260px; /* Ancho fijo del menú */
+    margin-left: -260px; /* Oculto por defecto en móviles */
+    transition: margin 0.25s ease-out;
+    background-color: #212529; /* Fondo Oscuro (Dark) */
+    color: #fff;
+    position: fixed; 
+    z-index: 1000;
+    height: 100%;
+    overflow-y: auto; /* Scroll si el menú es muy alto */
+}
+
+/* Encabezado del Menú (Logo) */
+#sidebar-wrapper .sidebar-heading {
+    padding: 1.5rem 1.25rem;
+    font-size: 1.2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background-color: #1a1e21;
+}
+
+#sidebar-wrapper .list-group {
+    width: 100%;
+}
+
+/* Enlaces del Menú */
+.list-group-item-dark {
+    background-color: #212529;
+    color: rgba(255,255,255,0.7);
+    border: none;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+    border-left: 4px solid transparent; /* Borde invisible para efecto hover */
+}
+
+.list-group-item-dark:hover, 
+.list-group-item-dark:focus {
+    background-color: #343a40;
+    color: #fff;
+    border-left: 4px solid #0d6efd; /* Línea azul al pasar el mouse */
+    padding-left: calc(1.5rem - 4px);
+    text-decoration: none;
+}
+
+.list-group-item-dark.active {
+    background-color: #0d6efd;
+    color: white;
+    border-left: 4px solid #0a58ca;
+}
+
+/* Submenús (Items anidados) */
+.sidebar-submenu {
+    background-color: #2c3034;
+    font-size: 0.95rem;
+}
+.sidebar-submenu a {
+    padding-left: 2.5rem; /* Indentación extra */
+}
+
+/* --- CONTENIDO DE LA PÁGINA (DERECHA) --- */
+#page-content-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    transition: margin 0.25s ease-out;
+}
+
+/* =========================================
+   COMPORTAMIENTO RESPONSIVO (Desktop vs Mobile)
+   ========================================= */
+
+/* En PC (Pantallas grandes > 768px) */
+@media (min-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: 0; /* Menú visible siempre */
+        position: sticky; /* Se queda quieto al hacer scroll */
+        top: 0;
+    }
+    
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    /* Clase para ocultar menú en PC si se presiona el botón */
+    body.sb-sidenav-toggled #sidebar-wrapper {
+        margin-left: -260px;
+    }
+}
+
+/* En Móvil (Pantallas pequeñas < 768px) */
+@media (max-width: 767px) {
+    /* Clase para mostrar menú en móvil al presionar botón */
+    body.sb-sidenav-toggled #sidebar-wrapper {
+        margin-left: 0; 
+        box-shadow: 0 0 50px rgba(0,0,0,0.5); /* Sombra para que resalte sobre el contenido */
+    }
+}
+
+/* =========================================
+   UTILIDADES Y COMPONENTES
+   ========================================= */
+
+/* Spinner de Carga (Loader) */
+#loader-wrapper {
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9); 
+    z-index: 9999;
+    display: none; /* Oculto por defecto, JS lo activa */
+    align-items: center; 
+    justify-content: center;
+    flex-direction: column;
+}
+.spinner-border { width: 3rem; height: 3rem; }
+
+/* Ajustes para Select2 (Buscadores) en Bootstrap 5 */
+.select2-container--bootstrap-5 .select2-selection { border-radius: 0.375rem; }
+.select2-container { z-index: 100; }
+
+/* =========================================
+   ESTILOS DE IMPRESIÓN (CTRL + P)
+   ========================================= */
+@media print {
+    /* 1. Ocultar todo lo que no es el documento */
+    #sidebar-wrapper, 
+    nav.navbar, 
+    .btn, 
+    footer,
+    .no-print,
+    .breadcrumb {
+        display: none !important;
+    }
+
+    /* 2. Ajustar el contenedor principal para usar toda la hoja */
+    #page-content-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        border: none !important;
+    }
+
+    #wrapper {
+        display: block !important; /* Romper el flexbox para imprimir */
+    }
+
+    body {
+        background-color: white !important;
+        color: black !important;
+        font-size: 12pt;
+    }
+
+    /* 3. Forzar impresión de colores de fondo (importante para tarjetas grises) */
+    .card-header, .bg-light, .badge {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 4. Evitar que las tablas o tarjetas se corten a la mitad de una hoja */
+    .card, .table {
+        page-break-inside: avoid;
+        border: 1px solid #ddd !important; /* Asegurar bordes visibles */
+        box-shadow: none !important; /* Quitar sombras 3D */
+    }
+
+    /* 5. Asegurar que los enlaces muestren texto limpio, no URLs */
+    a {
+        text-decoration: none !important;
+        color: #000 !important;
+    }
+}

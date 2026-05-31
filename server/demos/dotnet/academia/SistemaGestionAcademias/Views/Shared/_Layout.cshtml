@@ -1,0 +1,153 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SistemaGestionAcademias.Services.ConfiguracionService ConfigService
+@{
+    // Obtenemos la configuración global (Logo, Nombre, etc)
+    var config = await ConfigService.ObtenerConfiguracion();
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - @config.NombreEmpresa</title>
+    
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SistemaGestionAcademias.styles.css" asp-append-version="true" />
+</head>
+<body>
+    
+    <div id="loader-wrapper">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 fw-bold text-dark">Procesando...</p>
+        </div>
+    </div>
+
+    <div class="d-flex" id="wrapper">
+        
+        <div class="border-end" id="sidebar-wrapper">
+            <div class="sidebar-heading text-center py-4">
+                @if (!string.IsNullOrEmpty(config.LogoUrl))
+                {
+                    <img src="~/imagenes/@config.LogoUrl" class="mb-2 rounded shadow-sm bg-white p-1" style="max-height: 60px; max-width: 80%; object-fit: contain;" alt="Logo" />
+                    <div class="fw-bold text-white small mt-1">@config.NombreEmpresa</div>
+                }
+                else
+                {
+                    <i class="bi bi-mortarboard-fill text-primary display-6"></i>
+                    <div class="fw-bold text-white mt-2">@config.NombreEmpresa</div>
+                }
+            </div>
+            
+            <div class="list-group list-group-flush">
+                <a asp-controller="Home" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+
+                <a href="#menuAcademico" data-bs-toggle="collapse" class="list-group-item list-group-item-action list-group-item-dark dropdown-toggle">
+                    <i class="bi bi-people-fill me-2 text-warning"></i> Gestión Académica
+                </a>
+                <div class="collapse show" id="menuAcademico">
+                    <div class="sidebar-submenu">
+                        <a asp-controller="Alumnos" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                            <i class="bi bi-person-lines-fill me-2"></i> Alumnos
+                        </a>
+                        <a asp-controller="Inscripciones" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                            <i class="bi bi-journal-check me-2"></i> Matrículas
+                        </a>
+                    </div>
+                </div>
+
+                <div class="sidebar-heading mt-3 text-uppercase small text-secondary px-3" style="font-size: 0.75rem;">Finanzas</div>
+                <a asp-controller="Caja" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                    <i class="bi bi-cash-coin me-2 text-success"></i> Arqueo de Caja
+                </a>
+
+                <div class="sidebar-heading mt-3 text-uppercase small text-secondary px-3" style="font-size: 0.75rem;">Administración</div>
+                <a href="#menuConfig" data-bs-toggle="collapse" class="list-group-item list-group-item-action list-group-item-dark dropdown-toggle collapsed">
+                    <i class="bi bi-gear-fill me-2 text-info"></i> Configuración
+                </a>
+                <div class="collapse" id="menuConfig">
+                    <div class="sidebar-submenu">
+                        <a asp-controller="Actividades" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                            <i class="bi bi-calendar-week me-2"></i> Actividades
+                        </a>
+                        <a asp-controller="Instructores" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                            <i class="bi bi-person-video3 me-2"></i> Instructores
+                        </a>
+                        <a asp-controller="Categorias" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                            <i class="bi bi-tags me-2"></i> Categorías
+                        </a>
+                        <a asp-controller="Configuracion" asp-action="Index" class="list-group-item list-group-item-action list-group-item-dark">
+                            <i class="bi bi-gear-wide-connected me-2"></i> Ajustes Generales
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-auto p-3 text-center text-muted small border-top border-secondary">
+                    <p class="mb-0">&copy; @DateTime.Now.Year @config.NombreEmpresa</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="page-content-wrapper">
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-3">
+                <div class="container-fluid">
+                    <button class="btn btn-outline-dark" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                    <span class="ms-3 fw-bold text-secondary d-none d-md-block">@ViewData["Title"]</span>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
+                            <partial name="_LoginPartial" />
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid p-4">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Mostrar Loader al enviar formularios válidos
+            $('form').on('submit', function () {
+                if ($(this).valid()) { $('#loader-wrapper').css('display', 'flex'); }
+            });
+
+            // Manejo de Alertas SweetAlert desde el Controlador
+            var msgType = '@TempData["AlertTipo"]';
+            var msgText = '@Html.Raw(TempData["AlertMensaje"])';
+            
+            if (msgText !== '') {
+                Swal.fire({
+                    title: msgType === 'success' ? '¡Excelente!' : 'Atención',
+                    text: msgText,
+                    icon: msgType,
+                    confirmButtonColor: '#0d6efd',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

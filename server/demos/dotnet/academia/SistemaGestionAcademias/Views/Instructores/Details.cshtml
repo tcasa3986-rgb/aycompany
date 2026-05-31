@@ -1,0 +1,128 @@
+@model SistemaGestionAcademias.Models.Instructor
+
+@{
+    ViewData["Title"] = "Perfil Docente";
+    // Cálculos de carga laboral
+    var totalCursos = Model.Actividades?.Count ?? 0;
+    // Sumamos los alumnos de todas sus actividades
+    var totalAlumnosA_Cargo = Model.Actividades?.Sum(a => a.Inscripciones?.Count ?? 0) ?? 0;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success"><i class="bi bi-person-video3"></i> Perfil Profesional</h2>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar Perfil</a>
+            <a asp-action="Index" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <i class="bi bi-person-badge-fill display-1"></i>
+                    <h4 class="fw-bold mt-2">@Model.NombreCompleto</h4>
+                    <span class="badge bg-white text-success">@Model.Especialidad</span>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-envelope me-2 text-muted"></i> Correo</span>
+                            <small>@Model.Correo</small>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-telephone me-2 text-muted"></i> Teléfono</span>
+                            <small>@Model.Telefono</small>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-toggle-on me-2 text-muted"></i> Estado</span>
+                            @if(Model.Activo) { 
+                                <span class="badge bg-success">Activo</span> 
+                            } else { 
+                                <span class="badge bg-danger">Inactivo</span> 
+                            }
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="card bg-light border-0 text-center py-3">
+                        <h3 class="mb-0 fw-bold text-dark">@totalCursos</h3>
+                        <small class="text-muted text-uppercase">Cursos</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card bg-light border-0 text-center py-3">
+                        <h3 class="mb-0 fw-bold text-primary">@totalAlumnosA_Cargo</h3>
+                        <small class="text-muted text-uppercase">Alumnos Totales</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow border-0 h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 text-secondary"><i class="bi bi-easel-fill"></i> Cursos Asignados</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Actividades != null && Model.Actividades.Any())
+                    {
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Curso / Taller</th>
+                                    <th>Fechas</th>
+                                    <th class="text-center">Alumnos</th>
+                                    <th class="text-end pe-4">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var curso in Model.Actividades.OrderByDescending(a => a.FechaInicio))
+                                {
+                                    var alumnosCount = curso.Inscripciones?.Count ?? 0;
+                                    var porcentaje = (double)alumnosCount / curso.CupoMaximo * 100;
+                                    var colorBarra = porcentaje >= 100 ? "bg-danger" : "bg-success";
+
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold text-dark">@curso.Nombre</div>
+                                            <span class="badge bg-info text-dark" style="font-size: 0.7rem;">@curso.Categoria?.Nombre</span>
+                                        </td>
+                                        <td class="small text-muted">
+                                            <div>Inicia: @curso.FechaInicio.ToShortDateString()</div>
+                                            <div>Fin: @curso.FechaFin.ToShortDateString()</div>
+                                        </td>
+                                        <td class="text-center" style="width: 25%;">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <small class="me-2 fw-bold">@alumnosCount / @curso.CupoMaximo</small>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar @colorBarra" style="width: @porcentaje%"></div>
+                                            </div>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a asp-controller="Actividades" asp-action="Details" asp-route-id="@curso.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Ver Clase
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center p-5 text-muted">
+                            <i class="bi bi-calendar-x display-4 opacity-50"></i>
+                            <p class="mt-3">Este instructor no tiene cursos asignados actualmente.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

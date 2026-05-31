@@ -1,0 +1,208 @@
+@page "/facturacion/{Id:int}"
+@attribute [Authorize]
+@inject ISalesService SalesSvc
+@inject IDialogService DialogSvc
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Comprobante - AutoTaller ERP</PageTitle>
+
+@if (factura == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="page-header d-flex align-center justify-space-between mb-4">
+        <div class="d-flex align-center gap-3">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/facturacion"))" />
+            <div>
+                <MudText Typo="Typo.h4" Class="fw-bold">@factura.Tipo @factura.Serie-@factura.Numero</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Emitida el @factura.Fecha.ToString("dd 'de' MMMM 'de' yyyy")</MudText>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <MudChip T="string" Color="@EstadoColor(factura.Estado)" Variant="Variant.Filled" Size="Size.Large">@factura.Estado</MudChip>
+            @if (factura.SaldoPendiente > 0 && factura.Estado != EstadoFactura.Anulada)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.PointOfSale"
+                           OnClick="RegistrarPago">Registrar pago</MudButton>
+            }
+        </div>
+    </div>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4 mb-3" Elevation="0" Style="border-radius:12px;">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">CLIENTE</MudText>
+                        <MudText Typo="Typo.body1" Class="fw-bold">@factura.Cliente</MudText>
+                        <MudText Typo="Typo.caption">@factura.DocumentoCliente</MudText>
+                        @if (!string.IsNullOrEmpty(factura.DireccionCliente))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@factura.DireccionCliente</MudText>
+                        }
+                    </MudItem>
+                    <MudItem xs="12" sm="6" Class="text-right">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">FECHAS</MudText>
+                        <MudText Typo="Typo.body2">Emisión: @factura.Fecha.ToString("dd/MM/yyyy")</MudText>
+                        <MudText Typo="Typo.body2">Vencimiento: @factura.FechaVencimiento.ToString("dd/MM/yyyy")</MudText>
+                        @if (!string.IsNullOrEmpty(factura.NumeroOT))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">OT: @factura.NumeroOT</MudText>
+                        }
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-3">Detalle</MudText>
+                <MudTable Items="@factura.Detalles" Hover="true" Dense="true" Class="erp-table">
+                    <HeaderContent>
+                        <MudTh>Descripción</MudTh>
+                        <MudTh Style="text-align:center;">Cant.</MudTh>
+                        <MudTh Style="text-align:right;">P. Unit.</MudTh>
+                        <MudTh Style="text-align:right;">Desc.</MudTh>
+                        <MudTh Style="text-align:right;">Subtotal</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudText Typo="Typo.body2">@context.Descripcion</MudText>
+                            @if (!string.IsNullOrEmpty(context.CodigoItem))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.CodigoItem · @context.Tipo</MudText>
+                            }
+                        </MudTd>
+                        <MudTd Style="text-align:center;">@context.Cantidad.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:right;">S/. @context.PrecioUnitario.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:right;">S/. @context.Descuento.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:right;"><MudText Class="fw-medium">S/. @context.Subtotal.ToString("N2")</MudText></MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4 mb-3" Elevation="0" Style="border-radius:12px;">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-3">Resumen</MudText>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText>Subtotal</MudText>
+                    <MudText>S/. @factura.Subtotal.ToString("N2")</MudText>
+                </div>
+                @if (factura.Descuento > 0)
+                {
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText Color="Color.Error">Descuento</MudText>
+                        <MudText Color="Color.Error">- S/. @factura.Descuento.ToString("N2")</MudText>
+                    </div>
+                }
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText>Base imponible</MudText>
+                    <MudText>S/. @factura.BaseImponible.ToString("N2")</MudText>
+                </div>
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText>IGV (@factura.PorcentajeImpuesto.ToString("N0")%)</MudText>
+                    <MudText>S/. @factura.Impuesto.ToString("N2")</MudText>
+                </div>
+                <MudDivider Class="my-3" />
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Class="fw-bold">TOTAL</MudText>
+                    <MudText Class="fw-bold" Color="Color.Primary" Typo="Typo.h6">S/. @factura.Total.ToString("N2")</MudText>
+                </div>
+                <MudDivider Class="my-3" />
+                <div class="d-flex justify-space-between mb-2">
+                    <MudText Color="Color.Success">Pagado</MudText>
+                    <MudText Color="Color.Success">S/. @factura.MontoPagado.ToString("N2")</MudText>
+                </div>
+                <div class="d-flex justify-space-between">
+                    <MudText Class="fw-bold">Saldo pendiente</MudText>
+                    <MudText Class="fw-bold" Color="@(factura.SaldoPendiente > 0 ? Color.Warning : Color.Success)">S/. @factura.SaldoPendiente.ToString("N2")</MudText>
+                </div>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+                <MudText Typo="Typo.h6" Class="fw-bold mb-3">Pagos registrados</MudText>
+                @if (factura.Pagos.Any())
+                {
+                    @foreach (var p in factura.Pagos)
+                    {
+                        <div class="payment-item">
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Class="fw-medium">S/. @p.Monto.ToString("N2")</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@p.FormaPago</MudText>
+                                </div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Fecha.ToString("dd/MM/yyyy")</MudText>
+                            </div>
+                            @if (!string.IsNullOrEmpty(p.NumeroReferencia))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">Ref: @p.NumeroReferencia</MudText>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Sin pagos registrados</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<style>
+    .payment-item {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--c-border);
+    }
+    .payment-item:last-child { border-bottom: none; }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private FacturaDetalleDto? factura;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        factura = await SalesSvc.ObtenerFacturaAsync(Id);
+        if (factura == null)
+        {
+            Snackbar.Add("Factura no encontrada", Severity.Warning);
+            Nav.NavigateTo("/facturacion");
+        }
+    }
+
+    private async Task RegistrarPago()
+    {
+        if (factura == null) return;
+        var pago = new PagoFormDto { FacturaId = factura.Id, Monto = factura.SaldoPendiente };
+        var parametros = new DialogParameters
+        {
+            ["Pago"] = pago,
+            ["SaldoMaximo"] = factura.SaldoPendiente,
+            ["Comprobante"] = $"{factura.Serie}-{factura.Numero}"
+        };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<PagoFormDialog>("Registrar pago", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Pago registrado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private static Color EstadoColor(EstadoFactura e) => e switch
+    {
+        EstadoFactura.Borrador => Color.Default,
+        EstadoFactura.Emitida => Color.Info,
+        EstadoFactura.PagadaParcial => Color.Warning,
+        EstadoFactura.Pagada => Color.Success,
+        EstadoFactura.Vencida => Color.Error,
+        EstadoFactura.Anulada => Color.Default,
+        _ => Color.Default
+    };
+}

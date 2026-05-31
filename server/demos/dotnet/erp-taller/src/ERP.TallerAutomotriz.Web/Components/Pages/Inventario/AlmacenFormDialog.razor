@@ -1,0 +1,73 @@
+@inject IInventoryService InventorySvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Almacen.Codigo" Label="Código *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Almacen.Nombre" Label="Nombre *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Almacen.Direccion" Label="Dirección"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Almacen.Responsable" Label="Responsable"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="Almacen.EsPrincipal" Color="Color.Warning"
+                               Label="Marcar como almacén principal" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@Icons.Material.Filled.Save">@(guardando ? "Guardando..." : "Guardar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AlmacenFormDto Almacen { get; set; } = new();
+
+    private MudForm? form;
+    private bool guardando;
+    private string? error;
+
+    private async Task Guardar()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        guardando = true; error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+            if (Almacen.Id == 0)
+                await InventorySvc.CrearAlmacenAsync(Almacen, usuario);
+            else
+                await InventorySvc.ActualizarAlmacenAsync(Almacen, usuario);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { guardando = false; }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

@@ -1,0 +1,49 @@
+@inject ISalesService SalesSvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Abriendo: <strong>@Caja.Nombre</strong>
+        </MudText>
+
+        <MudNumericField @bind-Value="Apertura.MontoApertura" Label="Monto de apertura (S/.) *"
+                         Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" Class="mb-3" />
+        <MudTextField @bind-Value="Apertura.Observaciones" Label="Observaciones" Lines="2"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@Icons.Material.Filled.LockOpen">@(guardando ? "Abriendo..." : "Abrir caja")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AperturaCajaDto Apertura { get; set; } = new();
+    [Parameter] public CajaEstadoDto Caja { get; set; } = default!;
+
+    private bool guardando;
+    private string? error;
+
+    private async Task Guardar()
+    {
+        guardando = true; error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            await SalesSvc.AbrirCajaAsync(Apertura, auth.User.Identity?.Name);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { guardando = false; }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

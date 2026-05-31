@@ -1,0 +1,181 @@
+@page "/vehiculos"
+@attribute [Authorize]
+@inject ICustomerService CustomerSvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Vehículos - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Vehículos</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Parque vehicular registrado por cliente</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoVehiculo">Nuevo vehículo</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3 flex-wrap">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar por placa, marca, modelo, VIN o cliente..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:480px;flex:1;" />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@total vehículo(s)</MudText>
+    </div>
+
+    <MudTable Items="@vehiculos" Hover="true" Dense="false"
+              Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Placa</MudTh>
+            <MudTh>Marca / Modelo</MudTh>
+            <MudTh>Año</MudTh>
+            <MudTh>Color</MudTh>
+            <MudTh Style="text-align:right;">Kilometraje</MudTh>
+            <MudTh>Combustible</MudTh>
+            <MudTh>Cliente</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.DirectionsCar">@context.Placa</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Class="fw-medium">@context.Marca</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Modelo</MudText>
+            </MudTd>
+            <MudTd>@context.Anio</MudTd>
+            <MudTd>@(context.Color ?? "—")</MudTd>
+            <MudTd Style="text-align:right;">@context.KilometrajeActual.ToString("N0") km</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.Combustible</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.ClienteNombre</MudText>
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.Activo)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Activo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled">Inactivo</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarVehiculo(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarVehiculo(context)" Disabled="!context.Activo" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No hay vehículos. <MudLink OnClick="NuevoVehiculo">Registrar el primero</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-center mt-4">
+            <MudPagination Color="Color.Primary" Count="totalPages" Selected="page" SelectedChanged="OnPageChanged" />
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private List<VehiculoListDto> vehiculos = new();
+    private bool cargando = true;
+    private int page = 1;
+    private const int pageSize = 10;
+    private int total = 0;
+    private int totalPages = 0;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await CustomerSvc.ListarVehiculosAsync(buscar, null, page, pageSize);
+        vehiculos = resultado.Items;
+        total = resultado.Total;
+        totalPages = resultado.TotalPages;
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try
+        {
+            await Task.Delay(350, token);
+            page = 1;
+            await CargarAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task OnPageChanged(int p)
+    {
+        page = p;
+        await CargarAsync();
+    }
+
+    private async Task NuevoVehiculo()
+    {
+        var parametros = new DialogParameters { ["Vehiculo"] = new VehiculoFormDto() };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<VehiculoFormDialog>("Nuevo vehículo", parametros, opciones);
+        var resultado = await dialog.Result;
+        if (resultado is { Canceled: false })
+        {
+            Snackbar.Add("Vehículo registrado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarVehiculo(int id)
+    {
+        var dto = await CustomerSvc.ObtenerVehiculoAsync(id);
+        if (dto == null) return;
+        var parametros = new DialogParameters { ["Vehiculo"] = dto };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<VehiculoFormDialog>("Editar vehículo", parametros, opciones);
+        var resultado = await dialog.Result;
+        if (resultado is { Canceled: false })
+        {
+            Snackbar.Add("Vehículo actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EliminarVehiculo(VehiculoListDto v)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox(
+            "Confirmar",
+            $"¿Desactivar el vehículo de placa '{v.Placa}'?",
+            yesText: "Sí, desactivar", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                await CustomerSvc.EliminarVehiculoAsync(v.Id);
+                Snackbar.Add("Vehículo desactivado", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

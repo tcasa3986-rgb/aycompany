@@ -1,0 +1,131 @@
+@page "/portal/estudiante/boleta"
+@layout LoginLayout
+@using ERP.Application.Features.Portal
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Boleta de Notas — ERP Educativo</PageTitle>
+
+@if (_data == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="print-container pa-10" style="background:white; min-height:100vh; max-width:900px; margin:auto; border:1px solid #eee; font-family: 'Inter', sans-serif;">
+        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-8">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.School" Style="color:#10B981; font-size:3.5rem;" />
+                <div>
+                    <MudText Typo="Typo.h5" Style="font-weight:900; color:#0F2D5C;">ERP EDUCATIVO</MudText>
+                    <MudText Typo="Typo.caption">SISTEMA DE GESTIÓN ACADÉMICA INTEGRAL</MudText>
+                </div>
+            </MudStack>
+            <div style="text-align:right;">
+                <MudText Typo="Typo.h6" Style="font-weight:700;">BOLETA DE NOTAS</MudText>
+                <MudText Typo="Typo.body2">Periodo Académico: 2026-I</MudText>
+            </div>
+        </MudStack>
+
+        <MudPaper Elevation="0" Class="pa-4 mb-6" Style="background:#F1F5F9; border-radius:8px;">
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption" Style="color:#64748B;">ESTUDIANTE</MudText>
+                    <MudText Typo="Typo.body1" Style="font-weight:700;">@_data.EstudianteNombre</MudText>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudText Typo="Typo.caption" Style="color:#64748B;">CARRERA</MudText>
+                    <MudText Typo="Typo.body1">@_data.Carrera</MudText>
+                </MudItem>
+                <MudItem xs="3" Style="text-align:right;">
+                    <MudText Typo="Typo.caption" Style="color:#64748B;">CICLO</MudText>
+                    <MudText Typo="Typo.body1">@_data.Ciclo</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <table style="width:100%; border-collapse: collapse; margin-bottom: 40px;">
+            <thead style="background:#0F2D5C; color:white;">
+                <tr>
+                    <th style="padding:12px; text-align:left;">CÓDIGO</th>
+                    <th style="padding:12px; text-align:left;">CURSO / ASIGNATURA</th>
+                    <th style="padding:12px; text-align:center;">CRÉD.</th>
+                    <th style="padding:12px; text-align:center;">NOTA FINAL</th>
+                    <th style="padding:12px; text-align:center;">ESTADO</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var curso in _data.CursosActuales)
+                {
+                    <tr>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0;">C-@(curso.CursoNombre.GetHashCode().ToString("X").Substring(0,4))</td>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0; font-weight:600;">@curso.CursoNombre</td>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0; text-align:center;">4</td>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0; text-align:center;">
+                            <MudText Style="@($"font-weight:700; color:{(curso.PromedioActual >= 10.5m ? "#10B981" : "#EF4444")}")">
+                                @curso.PromedioActual.ToString("00.00")
+                            </MudText>
+                        </td>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0; text-align:center;">
+                            <span style="@($"font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px; color:white; background:{(curso.PromedioActual >= 10.5m ? "#10B981" : "#EF4444")}")">
+                                @(curso.PromedioActual >= 10.5m ? "APROBADO" : "DESAPROBADO")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.End">
+            <div style="width:250px; text-align:center;">
+                <div style="border-top:1px solid #000; margin-top:60px; padding-top:8px;">
+                    <MudText Typo="Typo.caption">Firma del Estudiante</MudText>
+                </div>
+            </div>
+            <MudPaper Elevation="0" Class="pa-4" Style="background:#F8FAFC; border:1px solid #E2E8F0; width:200px; text-align:center;">
+                <MudText Typo="Typo.caption">PROMEDIO SEMESTRAL</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight:900; color:#1A4B8C;">@(_data.CursosActuales.Average(c => c.PromedioActual).ToString("00.00"))</MudText>
+            </MudPaper>
+            <div style="width:250px; text-align:center;">
+                <div style="border-top:1px solid #000; margin-top:60px; padding-top:8px;">
+                    <MudText Typo="Typo.caption">Sello de Secretaría Académica</MudText>
+                </div>
+            </div>
+        </MudStack>
+
+        <div class="no-print mt-12 d-flex justify-center">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="Imprimir" Class="mx-2">Imprimir Boleta</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Default" Href="/portal/estudiante" Class="mx-2">Volver al Portal</MudButton>
+        </div>
+    </div>
+}
+
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        .print-container { border: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; }
+    }
+</style>
+
+@code {
+    private StudentDashboardDto? _data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var email = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(email))
+        {
+            _data = await Mediator.Send(new GetStudentDashboardQuery(email));
+        }
+    }
+
+    private void Imprimir() { /* window.print() simulado */ }
+}

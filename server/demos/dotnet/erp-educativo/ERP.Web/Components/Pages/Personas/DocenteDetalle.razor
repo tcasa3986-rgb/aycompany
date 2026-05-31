@@ -1,0 +1,114 @@
+@page "/personas/docentes/detalle/{Id:int}"
+@using ERP.Application.Features.Portal
+@using ERP.Application.Features.Personas.Docentes
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Ficha del Docente — ERP Educativo</PageTitle>
+
+@if (_data == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/personas/docentes"))" />
+            <MudAvatar Style="width:80px; height:80px; font-size:2.5rem; background:#0EA5E9; color:white;">@_data.DocenteNombre[0]</MudAvatar>
+            <div>
+                <MudText Typo="Typo.h5" Style="font-weight:800; color:#1E1B4B;">@_data.DocenteNombre</MudText>
+                <MudText Typo="Typo.body2" Style="color:#6B7280;">@_data.Especialidad — Carga Académica: @_data.SeccionesAsignadas.Count Clases</MudText>
+            </div>
+        </MudStack>
+        <MudStack Row Spacing="2">
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary">Editar Perfil</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="MudBlazor.Color.Info" Style="border-radius:16px;">
+        <!-- CARGA ACADÉMICA -->
+        <MudTabPage Text="Carga Académica" Icon="@Icons.Material.Filled.MenuBook">
+            <MudText Typo="Typo.h6" Class="mb-4">Secciones y Cursos Asignados</MudText>
+            <MudGrid>
+                @foreach (var sec in _data.SeccionesAsignadas)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="background:#F1F5F9; border-radius:12px; border-left:4px solid #0EA5E9;">
+                            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight:700;">@sec.CursoNombre</MudText>
+                                    <MudText Typo="Typo.body2">Sección: @sec.SeccionNombre</MudText>
+                                    <MudText Typo="Typo.caption" Style="color:#6B7280;">Horario: @sec.Horario</MudText>
+                                </div>
+                                <MudChip T="string" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small">@sec.AlumnosContados Alumnos</MudChip>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudTabPage>
+
+        <!-- EVALUACIONES -->
+        <MudTabPage Text="Desempeño" Icon="@Icons.Material.Filled.TrendingUp">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="0" Class="pa-6" Style="background:#F8FAFC; border-radius:12px;">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4">Indicadores de Gestión</MudText>
+                        <MudStack Spacing="3">
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Evaluaciones Pendientes</MudText>
+                                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Error" Style="font-weight:700;">@_data.EvaluacionesPendientes</MudText>
+                            </MudStack>
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Cumplimiento de Asistencia</MudText>
+                                <MudText Typo="Typo.body2">98%</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPage>
+
+        <!-- DATOS PROFESIONALES -->
+        <MudTabPage Text="Información" Icon="@Icons.Material.Filled.Badge">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudList T="string" Dense="true">
+                        <MudListItem Text="@($"Email: {_userEmail}")" Icon="@Icons.Material.Filled.Email" />
+                        <MudListItem Text="Teléfono: 912 345 678" Icon="@Icons.Material.Filled.Phone" />
+                        <MudListItem Text="Grado: Magíster" Icon="@Icons.Material.Filled.HistoryEdu" />
+                    </MudList>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudList T="string" Dense="true">
+                        <MudListItem Text="Tipo Contrato: Tiempo Completo" Icon="@Icons.Material.Filled.Work" />
+                        <MudListItem Text="Fecha Ingreso: 01/02/2022" Icon="@Icons.Material.Filled.CalendarToday" />
+                        <MudListItem Text="Oficina: Cubículo 204" Icon="@Icons.Material.Filled.DoorFront" />
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+        </MudTabPage>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private TeacherDashboardDto? _data;
+    private string _userEmail = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // En una app real, buscaríamos al docente por Id
+        var docente = await Mediator.Send(new GetDocenteByIdQuery { Id = Id });
+        if (docente != null)
+        {
+            _userEmail = docente.Email;
+            _data = await Mediator.Send(new GetTeacherDashboardQuery(_userEmail));
+        }
+    }
+}

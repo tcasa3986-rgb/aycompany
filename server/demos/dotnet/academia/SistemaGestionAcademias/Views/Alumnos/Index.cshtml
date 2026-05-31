@@ -1,0 +1,94 @@
+@model SistemaGestionAcademias.Helpers.PaginatedList<SistemaGestionAcademias.Models.Alumno>
+
+@{
+    ViewData["Title"] = "Directorio de Alumnos";
+}
+
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 text-primary fw-bold"><i class="bi bi-people-fill"></i> Directorio de Alumnos</h4>
+        <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+            <i class="bi bi-person-plus-fill"></i> Nuevo Alumno
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="p-3 bg-light border-bottom">
+            <form asp-action="Index" method="get">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="buscar" class="form-control border-start-0 ps-0" placeholder="Buscar por Nombre, Apellido o DNI..." value="@ViewData["BusquedaActual"]" />
+                    <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="bg-light text-secondary">
+                    <tr>
+                        <th class="ps-4">Estudiante</th>
+                        <th>Documento</th>
+                        <th>Contacto</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model) {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(item.FotoUrl))
+                                    {
+                                        <img src="~/imagenes/@item.FotoUrl" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-light d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
+                                            <i class="bi bi-person text-secondary"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <div class="fw-bold text-dark">@item.NombreCompleto</div>
+                                        <small class="text-muted"><i class="bi bi-cake2"></i> @item.FechaNacimiento.ToShortDateString()</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">@item.DocumentoIdentidad</span></td>
+                            <td class="small">
+                                <div><i class="bi bi-phone"></i> @item.Telefono</div>
+                                <div class="text-muted"><i class="bi bi-envelope"></i> @item.Correo</div>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="Ver Expediente"><i class="bi bi-eye"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card-footer bg-white py-3">
+        @{
+            var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+            var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+        }
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Página @Model.PageIndex de @Model.TotalPages</span>
+            <div>
+                <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-buscar="@ViewData["BusquedaActual"]" class="btn btn-sm btn-outline-secondary @prevDisabled">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+                <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-buscar="@ViewData["BusquedaActual"]" class="btn btn-sm btn-outline-secondary @nextDisabled">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

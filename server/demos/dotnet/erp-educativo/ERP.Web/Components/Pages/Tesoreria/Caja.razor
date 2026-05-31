@@ -1,0 +1,152 @@
+@page "/tesoreria/caja"
+@using ERP.Application.Features.Tesoreria.Caja
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Caja y Movimientos — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">💰 Caja y Movimientos</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Control de flujo de efectivo, ingresos y egresos</MudText>
+    </div>
+    <MudStack Row Spacing="2">
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.ArrowDownward" Color="MudBlazor.Color.Success"
+                   OnClick="@(() => AbrirDialog("Ingreso"))" Style="border-radius:8px;">Nuevo Ingreso</MudButton>
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.ArrowUpward" Color="MudBlazor.Color.Error"
+                   OnClick="@(() => AbrirDialog("Egreso"))" Style="border-radius:8px;">Nuevo Egreso</MudButton>
+    </MudStack>
+</MudStack>
+
+<MudGrid Class="mb-6">
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px; background: linear-gradient(135deg, #10B981, #059669); color: white;">
+            <MudText Typo="Typo.subtitle2">Total Ingresos</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">S/ @_totalIngresos.ToString("N2")</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px; background: linear-gradient(135deg, #EF4444, #B91C1C); color: white;">
+            <MudText Typo="Typo.subtitle2">Total Egresos</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">S/ @_totalEgresos.ToString("N2")</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="border-radius:16px; background: linear-gradient(135deg, #1E1B4B, #4C1D95); color: white;">
+            <MudText Typo="Typo.subtitle2">Saldo en Caja</MudText>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">S/ (_totalIngresos - _totalEgresos).ToString("N2")</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_movimientos" Dense="true" Hover="true" Loading="@_cargando">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Historial de Movimientos</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar concepto o referencia..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Concepto</MudTh>
+            <MudTh>Monto</MudTh>
+            <MudTh>Referencia</MudTh>
+            <MudTh>Cajero</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Fecha.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.Tipo == "Ingreso" ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
+                    @context.Tipo
+                </MudChip>
+            </MudTd>
+            <MudTd>@context.Concepto</MudTd>
+            <MudTd Style="@(context.Tipo == "Ingreso" ? "color:#10B981; font-weight:600;" : "color:#EF4444; font-weight:600;")">
+                @(context.Tipo == "Ingreso" ? "+" : "-") S/ @context.Monto.ToString("N2")
+            </MudTd>
+            <MudTd>@context.Referencia</MudTd>
+            <MudTd>@context.UsuarioCajero</MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Registrar @(_form.Tipo)</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Concepto" Label="Concepto / Motivo" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12"><MudNumericField @bind-Value="_form.Monto" Label="Monto" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="S/" Required="true" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Referencia" Label="Referencia (N° Doc, Observación)" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="@(_form.Tipo == "Ingreso" ? MudBlazor.Color.Success : MudBlazor.Color.Error)" OnClick="Guardar">Registrar @(_form.Tipo)</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<CajaMovimientoDto> _movimientos = new();
+    private RegistrarMovimientoCajaCommand _form = new();
+    private decimal _totalIngresos = 0, _totalEgresos = 0;
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _movimientos = await Mediator.Send(new GetCajaMovimientosQuery());
+        _totalIngresos = _movimientos.Where(x => x.Tipo == "Ingreso").Sum(x => x.Monto);
+        _totalEgresos = _movimientos.Where(x => x.Tipo == "Egreso").Sum(x => x.Monto);
+        _cargando = false;
+    }
+
+    private async Task AbrirDialog(string tipo)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        _form = new RegistrarMovimientoCajaCommand 
+        { 
+            Tipo = tipo,
+            UsuarioCajero = user.Identity?.Name ?? "Admin"
+        };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Concepto) || _form.Monto <= 0)
+        {
+            Snackbar.Add("Debe completar los campos obligatorios", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await Mediator.Send(_form);
+            Snackbar.Add("Movimiento registrado", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

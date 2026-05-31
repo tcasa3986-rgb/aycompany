@@ -1,0 +1,262 @@
+@page "/academico/horarios"
+@using ERP.Application.Features.Academico.Horarios
+@using ERP.Application.Features.Academico.Secciones
+@using ERP.Application.Features.Configuracion.Periodos
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Horarios — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📅 Horarios de Clases</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Programación semanal por sección académica</MudText>
+    </div>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;" Class="pa-4 mb-6">
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudSelect T="int?" Value="@_filtroPeriodo" ValueChanged="OnPeriodoFilterChanged" Label="Periodo Académico" Variant="Variant.Outlined" Dense="true">
+                @foreach (var p in _periodos)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)p.Id)">@p.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="8">
+            <MudSelect T="int?" Value="@_seccionSeleccionadaId" ValueChanged="OnSeccionChanged" Label="Seleccionar Sección" Variant="Variant.Outlined" Dense="true" Disabled="!_secciones.Any()">
+                @foreach (var s in _secciones)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Curso - @s.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_seccionSeleccionadaId.HasValue)
+{
+    <MudPaper Elevation="2" Style="border-radius:16px;">
+        <MudTable Items="@_horarios" Dense="true" Hover="true" Loading="@_cargando">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Programación Semanal</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+                           OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Agregar Bloque</MudButton>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Día de la Semana</MudTh>
+                <MudTh>Hora de Inicio</MudTh>
+                <MudTh>Hora de Fin</MudTh>
+                <MudTh>Aula</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudChip T="string" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Small">@context.NombreDia</MudChip>
+                </MudTd>
+                <MudTd>@context.HoraInicio.ToString(@"hh\:mm")</MudTd>
+                <MudTd>@context.HoraFin.ToString(@"hh\:mm")</MudTd>
+                <MudTd>@(_aulasMock.FirstOrDefault(a => a.Id == context.AulaId)?.Nombre ?? "Sin asignar")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>No hay horarios programados para esta sección.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Bloque de Horario</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="DayOfWeek" @bind-Value="_form.DiaSemana" Label="Día de la Semana" Variant="Variant.Outlined">
+                        <MudSelectItem Value="DayOfWeek.Monday">Lunes</MudSelectItem>
+                        <MudSelectItem Value="DayOfWeek.Tuesday">Martes</MudSelectItem>
+                        <MudSelectItem Value="DayOfWeek.Wednesday">Miércoles</MudSelectItem>
+                        <MudSelectItem Value="DayOfWeek.Thursday">Jueves</MudSelectItem>
+                        <MudSelectItem Value="DayOfWeek.Friday">Viernes</MudSelectItem>
+                        <MudSelectItem Value="DayOfWeek.Saturday">Sábado</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTimePicker @bind-Time="_horaInicio" Label="Hora Inicio" Variant="Variant.Outlined" Required="true" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTimePicker @bind-Time="_horaFin" Label="Hora Fin" Variant="Variant.Outlined" Required="true" AmPm="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="int?" @bind-Value="_form.AulaId" Label="Aula" Variant="Variant.Outlined" Clearable="true">
+                        @foreach (var aula in _aulasMock)
+                        {
+                            <MudSelectItem T="int?" Value="@aula.Id">@aula.Nombre (@aula.Capacidad alumnos)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = false;
+    private bool _dialogAbierto = false;
+    private int? _filtroPeriodo = null;
+    private int? _seccionSeleccionadaId = null;
+    
+    private TimeSpan? _horaInicio;
+    private TimeSpan? _horaFin;
+
+    private List<PeriodoAcademicoDto> _periodos = new();
+    private List<SeccionDto> _secciones = new();
+    private List<HorarioDto> _horarios = new();
+    
+    private UpsertHorarioCommand _form = new();
+
+    // Mock temporal para Aulas hasta que se implemente el catálogo de Aulas
+    private class AulaMock { public int Id { get; set; } public string Nombre { get; set; } = ""; public int Capacidad { get; set; } }
+    private List<AulaMock> _aulasMock = new()
+    {
+        new AulaMock { Id = 1, Nombre = "Pabellón A - 101", Capacidad = 40 },
+        new AulaMock { Id = 2, Nombre = "Pabellón A - 102", Capacidad = 35 },
+        new AulaMock { Id = 3, Nombre = "Lab. Computo 1", Capacidad = 25 },
+        new AulaMock { Id = 4, Nombre = "Auditorio Principal", Capacidad = 150 }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _periodos = await Mediator.Send(new GetPeriodosQuery());
+        
+        var periodoActual = _periodos.FirstOrDefault(p => p.EsActual);
+        if (periodoActual != null)
+        {
+            _filtroPeriodo = periodoActual.Id;
+            await CargarSecciones();
+        }
+    }
+
+    async Task OnPeriodoFilterChanged(int? value)
+    {
+        _filtroPeriodo = value;
+        _seccionSeleccionadaId = null;
+        _horarios.Clear();
+        await CargarSecciones();
+    }
+
+    async Task CargarSecciones()
+    {
+        if (_filtroPeriodo.HasValue)
+        {
+            _secciones = await Mediator.Send(new GetSeccionesQuery { PeriodoAcademicoId = _filtroPeriodo.Value });
+        }
+        else
+        {
+            _secciones.Clear();
+        }
+    }
+
+    async Task OnSeccionChanged(int? value)
+    {
+        _seccionSeleccionadaId = value;
+        if (_seccionSeleccionadaId.HasValue)
+        {
+            await CargarHorarios();
+        }
+    }
+
+    async Task CargarHorarios()
+    {
+        if (_seccionSeleccionadaId.HasValue)
+        {
+            _cargando = true;
+            _horarios = await Mediator.Send(new GetHorariosQuery { SeccionId = _seccionSeleccionadaId.Value });
+            _cargando = false;
+        }
+    }
+
+    void AbrirDialog(HorarioDto? h)
+    {
+        if (h == null)
+        {
+            _horaInicio = new TimeSpan(8, 0, 0);
+            _horaFin = new TimeSpan(10, 0, 0);
+            _form = new UpsertHorarioCommand 
+            { 
+                SeccionId = _seccionSeleccionadaId!.Value,
+                DiaSemana = DayOfWeek.Monday
+            };
+        }
+        else
+        {
+            _horaInicio = h.HoraInicio;
+            _horaFin = h.HoraFin;
+            _form = new UpsertHorarioCommand
+            {
+                Id = h.Id,
+                SeccionId = h.SeccionId,
+                DiaSemana = h.DiaSemana,
+                AulaId = h.AulaId
+            };
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (!_horaInicio.HasValue || !_horaFin.HasValue)
+        {
+            Snackbar.Add("Debe ingresar horas válidas", Severity.Warning);
+            return;
+        }
+
+        _form.HoraInicio = _horaInicio.Value;
+        _form.HoraFin = _horaFin.Value;
+
+        try
+        {
+            await Mediator.Send(_form);
+            Snackbar.Add("Horario guardado correctamente", Severity.Success);
+            _dialogAbierto = false;
+            await CargarHorarios();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este horario?", "Sí", "No");
+        if (ok == true)
+        {
+            try
+            {
+                await Mediator.Send(new DeleteHorarioCommand { Id = id });
+                Snackbar.Add("Eliminado", Severity.Success);
+                await CargarHorarios();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,140 @@
+@inject IInventoryService InventorySvc
+@inject AuthenticationStateProvider AuthState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Repuesto.CodigoInterno" Label="Código interno (auto)"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Repuesto.CodigoOEM" Label="Código OEM"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Repuesto.CodigoBarras" Label="Código de barras"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Repuesto.Descripcion" Label="Descripción *" Required="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="Repuesto.CategoriaId" Label="Categoría"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                        <MudSelectItem T="int?" Value="null">Sin categoría</MudSelectItem>
+                        @foreach (var cat in Categorias)
+                        {
+                            <MudSelectItem T="int?" Value="cat.Id">@cat.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudTextField @bind-Value="Repuesto.UnidadMedida" Label="UM"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudTextField @bind-Value="Repuesto.Ubicacion" Label="Ubicación (A-1-2)"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="Repuesto.StockMinimo" Label="Stock mínimo"
+                                     Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="Repuesto.StockMaximo" Label="Stock máximo"
+                                     Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="Repuesto.CostoPromedio" Label="Costo prom. (S/.) *"
+                                     Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="Repuesto.PrecioVenta" Label="Precio venta (S/.) *" Required="true"
+                                     Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="MetodoCosteo" @bind-Value="Repuesto.MetodoCosteo" Label="Método de costeo"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="MetodoCosteo.PromedioPonderado">Promedio ponderado</MudSelectItem>
+                        <MudSelectItem Value="MetodoCosteo.PEPS">PEPS (FIFO)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center gap-3 flex-wrap">
+                    <MudCheckBox T="bool" @bind-Value="Repuesto.ManejaLote" Label="Lote" Color="Color.Primary" />
+                    <MudCheckBox T="bool" @bind-Value="Repuesto.ManejaSerie" Label="Serie" Color="Color.Primary" />
+                    <MudCheckBox T="bool" @bind-Value="Repuesto.TieneGarantia" Label="Garantía" Color="Color.Primary" />
+                </MudItem>
+
+                @if (Repuesto.TieneGarantia)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="Repuesto.MesesGarantia" Label="Meses de garantía"
+                                         Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Repuesto.DescripcionLarga" Label="Descripción extendida" Lines="2"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">@error</MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Guardar" Disabled="@guardando"
+                   StartIcon="@Icons.Material.Filled.Save">@(guardando ? "Guardando..." : "Guardar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public RepuestoFormDto Repuesto { get; set; } = new();
+    [Parameter] public List<CategoriaRepuestoDto> Categorias { get; set; } = new();
+
+    private MudForm? form;
+    private bool guardando;
+    private string? error;
+
+    private async Task Guardar()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        guardando = true;
+        error = null;
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+            if (Repuesto.Id == 0)
+                await InventorySvc.CrearRepuestoAsync(Repuesto, usuario);
+            else
+                await InventorySvc.ActualizarRepuestoAsync(Repuesto, usuario);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Cancelar() => MudDialog.Cancel();
+}

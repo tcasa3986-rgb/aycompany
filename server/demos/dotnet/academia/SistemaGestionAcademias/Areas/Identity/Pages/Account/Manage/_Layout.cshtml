@@ -1,0 +1,42 @@
+@{
+    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout !=  null)
+    {
+        Layout = parentLayout.ToString();
+    }
+    else
+    {
+        // Forzamos el uso del Layout Principal de "Mi Academia"
+        Layout = "/Views/Shared/_Layout.cshtml";
+    }
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-person-circle"></i> Mi Perfil de Usuario</h4>
+            </div>
+            <div class="card-body bg-light p-4">
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="list-group shadow-sm">
+                            <partial name="_ManageNav" />
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-9">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                @RenderBody()
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

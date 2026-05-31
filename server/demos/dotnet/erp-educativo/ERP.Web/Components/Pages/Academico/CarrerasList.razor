@@ -1,0 +1,124 @@
+@page "/academico/carreras"
+@using ERP.Application.Features.Academico.Carreras
+@using ERP.Application.Features.Academico.Facultades
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Carreras — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">🎓 Carreras Profesionales</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Administración de carreras y programas académicos</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nueva Carrera</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_carreras" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="new Func<CarreraDto,bool>(c => string.IsNullOrWhiteSpace(_search) || c.Nombre.Contains(_search,StringComparison.OrdinalIgnoreCase) || c.Facultad.Contains(_search,StringComparison.OrdinalIgnoreCase))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Listado de Carreras</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh><MudTh>Carrera</MudTh><MudTh>Facultad</MudTh><MudTh>Nivel</MudTh><MudTh>Modalidad</MudTh><MudTh>Créditos</MudTh><MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Codigo</MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Nombre</MudText></MudTd>
+            <MudTd>@context.Facultad</MudTd>
+            <MudTd><MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Secondary">@context.NivelEducativo.ToString()</MudChip></MudTd>
+            <MudTd>@context.Modalidad.ToString()</MudTd>
+            <MudTd>@context.TotalCreditos</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nueva") Carrera</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Codigo" Label="Código" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField @bind-Value="_form.Nombre" Label="Nombre" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="int" @bind-Value="_form.FacultadId" Label="Facultad" Variant="Variant.Outlined">
+                        @foreach (var f in _facultades)
+                        {
+                            <MudSelectItem Value="@f.Id">@f.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="NivelEducativo" @bind-Value="_form.NivelEducativo" Label="Nivel Educativo" Variant="Variant.Outlined">
+                        @foreach (NivelEducativo v in Enum.GetValues(typeof(NivelEducativo)))
+                        { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Modalidad" @bind-Value="_form.Modalidad" Label="Modalidad" Variant="Variant.Outlined">
+                        @foreach (Modalidad v in Enum.GetValues(typeof(Modalidad)))
+                        { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.DuracionSemestres" Label="Duración (semestres)" Variant="Variant.Outlined" Min="1" Max="20" /></MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.TotalCreditos" Label="Total Créditos" Variant="Variant.Outlined" Min="1" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<CarreraDto> _carreras = new();
+    private List<FacultadDto> _facultades = new();
+    private UpsertCarreraCommand _form = new();
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _carreras = await Mediator.Send(new GetCarrerasQuery());
+        _facultades = await Mediator.Send(new GetFacultadesQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(CarreraDto? c)
+    {
+        _form = c == null ? new() : new UpsertCarreraCommand { Id = c.Id, Codigo = c.Codigo, Nombre = c.Nombre, FacultadId = c.FacultadId, NivelEducativo = c.NivelEducativo, Modalidad = c.Modalidad, DuracionSemestres = c.DuracionSemestres, TotalCreditos = c.TotalCreditos };
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        try { await Mediator.Send(_form); Snackbar.Add("Guardado correctamente", Severity.Success); _dialogAbierto = false; await Cargar(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar esta carrera?", "Sí", "No");
+        if (ok == true) { await Mediator.Send(new DeleteCarreraCommand { Id = id }); Snackbar.Add("Eliminado", Severity.Success); await Cargar(); }
+    }
+}

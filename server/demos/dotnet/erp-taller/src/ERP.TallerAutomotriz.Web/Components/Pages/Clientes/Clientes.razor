@@ -1,0 +1,208 @@
+@page "/clientes"
+@attribute [Authorize]
+@inject ICustomerService CustomerSvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Clientes - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Clientes</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión completa del CRM — personas y empresas</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevoCliente">Nuevo cliente</MudButton>
+</div>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3">
+        <MudTextField T="string" @bind-Value="buscar" @bind-Value:after="OnBuscarChanged" Immediate="true"
+                      Placeholder="Buscar por nombre, documento, email o teléfono..."
+                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:480px;" />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@total cliente(s)</MudText>
+    </div>
+
+    <MudTable Items="@clientes" Hover="true" Striped="false" Bordered="false" Dense="false"
+              Loading="@cargando" LoadingProgressColor="Color.Primary"
+              Class="erp-table">
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Nombre / Razón social</MudTh>
+            <MudTh>Documento</MudTh>
+            <MudTh>Contacto</MudTh>
+            <MudTh Style="text-align:center;">Vehículos</MudTh>
+            <MudTh Style="text-align:right;">Saldo</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudText Typo="Typo.body2" Class="fw-medium">@context.Codigo</MudText>
+            </MudTd>
+            <MudTd>
+                @if (context.Tipo == TipoCliente.Empresa)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Business">Empresa</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Person">Persona</MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.NombreRazonSocial</MudText>
+            </MudTd>
+            <MudTd>@context.DocumentoIdentidad</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Email))
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">@context.Email</MudText>
+                }
+                @if (!string.IsNullOrEmpty(context.TelefonoPrincipal))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.TelefonoPrincipal</MudText>
+                }
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                <MudChip T="string" Size="Size.Small" Color="@(context.CantidadVehiculos > 0 ? Color.Primary : Color.Default)" Variant="Variant.Filled">@context.CantidadVehiculos</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.SaldoPendiente > 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Error" Class="fw-medium">S/. @context.SaldoPendiente.ToString("N2")</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">S/. 0.00</MudText>
+                }
+            </MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.Activo)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Activo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled">Inactivo</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarCliente(context.Id)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarCliente(context)" Disabled="!context.Activo" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">
+                No se encontraron clientes. <MudLink OnClick="NuevoCliente">Crear el primero</MudLink>
+            </MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-center mt-4">
+            <MudPagination Color="Color.Primary" Count="totalPages" Selected="page"
+                           SelectedChanged="OnPageChanged" />
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private string? buscar;
+    private List<ClienteListDto> clientes = new();
+    private bool cargando = true;
+    private int page = 1;
+    private const int pageSize = 10;
+    private int total = 0;
+    private int totalPages = 0;
+    private CancellationTokenSource? _debounceCts;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await CustomerSvc.ListarClientesAsync(buscar, page, pageSize);
+        clientes = resultado.Items;
+        total = resultado.Total;
+        totalPages = resultado.TotalPages;
+        cargando = false;
+    }
+
+    private async Task OnBuscarChanged()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        try
+        {
+            await Task.Delay(350, token);
+            page = 1;
+            await CargarAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task OnPageChanged(int p)
+    {
+        page = p;
+        await CargarAsync();
+    }
+
+    private async Task NuevoCliente()
+    {
+        var parametros = new DialogParameters { ["Cliente"] = new ClienteFormDto() };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<ClienteFormDialog>("Nuevo cliente", parametros, opciones);
+        var resultado = await dialog.Result;
+        if (resultado is { Canceled: false })
+        {
+            Snackbar.Add("Cliente creado correctamente", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarCliente(int id)
+    {
+        var dto = await CustomerSvc.ObtenerClienteAsync(id);
+        if (dto == null) return;
+        var parametros = new DialogParameters { ["Cliente"] = dto };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<ClienteFormDialog>("Editar cliente", parametros, opciones);
+        var resultado = await dialog.Result;
+        if (resultado is { Canceled: false })
+        {
+            Snackbar.Add("Cliente actualizado", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EliminarCliente(ClienteListDto cliente)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox(
+            "Confirmar",
+            $"¿Desactivar al cliente '{cliente.NombreRazonSocial}'? Esta acción puede revertirse desde la base de datos.",
+            yesText: "Sí, desactivar", cancelText: "Cancelar");
+
+        if (confirmar == true)
+        {
+            try
+            {
+                await CustomerSvc.EliminarClienteAsync(cliente.Id);
+                Snackbar.Add("Cliente desactivado", Severity.Info);
+                await CargarAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

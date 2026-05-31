@@ -1,0 +1,117 @@
+@page "/perfil"
+@using ERP.Infrastructure.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<PageTitle>Mi Perfil — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Class="mb-6">
+    <MudAvatar Style="width:100px; height:100px; font-size:3rem; background: linear-gradient(135deg, #0F2D5C, #10B981); color:white; border:4px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        @(_user?.Nombres?[0].ToString().ToUpper() ?? "U")
+    </MudAvatar>
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight:800; color:#1E1B4B;">@_user?.Nombres @_user?.Apellidos</MudText>
+        <MudText Typo="Typo.body1" Style="color:#6B7280;">@_user?.Email</MudText>
+        <MudStack Row Spacing="2" Class="mt-2">
+            @foreach (var role in _roles)
+            {
+                <MudChip T="string" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" Variant="Variant.Filled">@role</MudChip>
+            }
+        </MudStack>
+    </div>
+</MudStack>
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Elevation="2" Class="pa-8" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-6">Información Personal</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_form.Nombres" Label="Nombres" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_form.Apellidos" Label="Apellidos" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_form.Email" Label="Correo Electrónico" Variant="Variant.Outlined" Disabled="true" />
+                </MudItem>
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="ActualizarPerfil">Guardar Cambios</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Elevation="2" Class="pa-8" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-6">Seguridad</MudText>
+            <MudStack Spacing="4">
+                <MudTextField @bind-Value="_pass.Current" Label="Contraseña Actual" InputType="InputType.Password" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_pass.New" Label="Nueva Contraseña" InputType="InputType.Password" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_pass.Confirm" Label="Confirmar Contraseña" InputType="InputType.Password" Variant="Variant.Outlined" />
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Warning" FullWidth="true" OnClick="CambiarPassword">Cambiar Contraseña</MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private ApplicationUser? _user;
+    private List<string> _roles = new();
+    private ProfileForm _form = new();
+    private PasswordForm _pass = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var principal = authState.User;
+        _user = await UserManager.GetUserAsync(principal);
+        
+        if (_user != null)
+        {
+            _roles = (await UserManager.GetRolesAsync(_user)).ToList();
+            _form.Nombres = _user.Nombres;
+            _form.Apellidos = _user.Apellidos;
+            _form.Email = _user.Email ?? "";
+        }
+    }
+
+    private async Task ActualizarPerfil()
+    {
+        if (_user == null) return;
+        _user.Nombres = _form.Nombres;
+        _user.Apellidos = _form.Apellidos;
+        var result = await UserManager.UpdateAsync(_user);
+        if (result.Succeeded) Snackbar.Add("Perfil actualizado", Severity.Success);
+        else Snackbar.Add("Error al actualizar", Severity.Error);
+    }
+
+    private async Task CambiarPassword()
+    {
+        if (_user == null) return;
+        if (_pass.New != _pass.Confirm)
+        {
+            Snackbar.Add("Las contraseñas no coinciden", Severity.Warning);
+            return;
+        }
+        var result = await UserManager.ChangePasswordAsync(_user, _pass.Current, _pass.New);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Contraseña cambiada exitosamente", Severity.Success);
+            _pass = new();
+        }
+        else
+        {
+            Snackbar.Add(string.Join(", ", result.Errors.Select(e => e.Description)), Severity.Error);
+        }
+    }
+
+    public class ProfileForm { public string Nombres { get; set; } = ""; public string Apellidos { get; set; } = ""; public string Email { get; set; } = ""; }
+    public class PasswordForm { public string Current { get; set; } = ""; public string New { get; set; } = ""; public string Confirm { get; set; } = ""; }
+}

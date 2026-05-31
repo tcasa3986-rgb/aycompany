@@ -1,0 +1,188 @@
+@page "/personas/personal"
+@using ERP.Application.Features.Personas.Personal
+@using ERP.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Personal Administrativo — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">💼 Personal Administrativo</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Gestión de personal administrativo y de servicio</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Personal</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_personal" Dense="true" Hover="true" Loading="@_cargando"
+              Filter="@(new Func<PersonalDto,bool>(p => string.IsNullOrWhiteSpace(_search) || p.NombreCompleto.Contains(_search, StringComparison.OrdinalIgnoreCase) || p.DNI.Contains(_search) || (p.Cargo ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase)))">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lista de Personal</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Buscar por nombre, DNI o cargo..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Cargo / Área</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Fecha Ingreso</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption" Style="color:#6B7280;">@context.Codigo</MudText></MudTd>
+            <MudTd>
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Style="background:linear-gradient(135deg,#10B981,#1E1B4B); font-size:0.75rem; width:32px; height:32px;">
+                        @(context.Nombres.Length > 0 ? context.Nombres[0].ToString().ToUpper() : "P")
+                    </MudAvatar>
+                    <div>
+                        <MudText Style="font-weight:600; font-size:0.875rem;">@context.NombreCompleto</MudText>
+                        <MudText Typo="Typo.caption" Style="color:#9CA3AF;">@context.Email</MudText>
+                    </div>
+                </MudStack>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.Cargo</MudText>
+                <MudText Typo="Typo.caption" Style="color:#6B7280;">@context.Area</MudText>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@GetTipoColor(context.TipoPersonal)">
+                    @context.TipoPersonal.ToString()
+                </MudChip>
+            </MudTd>
+            <MudTd>@context.FechaIngreso.ToShortDateString()</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Personal</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Codigo" Label="Código" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.DNI" Label="DNI" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="TipoSexo" @bind-Value="_form.Sexo" Label="Sexo" Variant="Variant.Outlined">
+                        @foreach (TipoSexo v in Enum.GetValues(typeof(TipoSexo))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Nombres" Label="Nombres" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.ApellidoPaterno" Label="Apellido Paterno" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.ApellidoMaterno" Label="Apellido Materno" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Email" Label="Correo" InputType="InputType.Email" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_form.Telefono" Label="Teléfono" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Cargo" Label="Cargo" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Area" Label="Área" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="TipoPersonal" @bind-Value="_form.TipoPersonal" Label="Tipo de Personal" Variant="Variant.Outlined">
+                        @foreach (TipoPersonal v in Enum.GetValues(typeof(TipoPersonal))) { <MudSelectItem Value="@v">@v.ToString()</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_form.Sueldo" Label="Sueldo" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentText="S/" /></MudItem>
+                <MudItem xs="12" sm="6"><MudDatePicker @bind-Date="_fechaIngreso" Label="Fecha de Ingreso" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private string _search = "";
+    private List<PersonalDto> _personal = new();
+    private UpsertPersonalCommand _form = new();
+    private DateTime? _fechaIngreso = DateTime.Now;
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _personal = await Mediator.Send(new GetPersonalQuery());
+        _cargando = false;
+    }
+
+    void AbrirDialog(PersonalDto? p)
+    {
+        if (p == null)
+        {
+            _form = new();
+            _fechaIngreso = DateTime.Now;
+        }
+        else
+        {
+            _form = new UpsertPersonalCommand
+            {
+                Id = p.Id,
+                Codigo = p.Codigo,
+                Nombres = p.Nombres,
+                ApellidoPaterno = p.ApellidoPaterno,
+                ApellidoMaterno = p.ApellidoMaterno,
+                DNI = p.DNI,
+                Sexo = p.Sexo,
+                Cargo = p.Cargo,
+                Area = p.Area,
+                TipoPersonal = p.TipoPersonal,
+                Email = p.Email,
+                Telefono = p.Telefono,
+                Sueldo = p.Sueldo,
+                FechaIngreso = p.FechaIngreso
+            };
+            _fechaIngreso = p.FechaIngreso;
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        try
+        {
+            _form.FechaIngreso = _fechaIngreso ?? DateTime.Now;
+            await Mediator.Send(_form);
+            Snackbar.Add("Guardado correctamente", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este registro de personal?", "Sí", "No");
+        if (ok == true)
+        {
+            await Mediator.Send(new DeletePersonalCommand { Id = id });
+            Snackbar.Add("Eliminado", Severity.Success);
+            await Cargar();
+        }
+    }
+
+    private MudBlazor.Color GetTipoColor(TipoPersonal tipo) => tipo switch
+    {
+        TipoPersonal.Administrativo => MudBlazor.Color.Info,
+        TipoPersonal.Directivo => MudBlazor.Color.Primary,
+        TipoPersonal.Servicio => MudBlazor.Color.Default,
+        _ => MudBlazor.Color.Default
+    };
+}

@@ -1,0 +1,205 @@
+@page "/evaluacion/evaluaciones"
+@using ERP.Application.Features.Evaluacion.Asistencia
+@using ERP.Application.Features.Evaluacion.Evaluaciones
+@using ERP.Domain.Enums
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4" Style="font-weight: 700;">Gestión de Evaluaciones</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4" Style="border-radius:12px;">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudSelect T="int" Label="Seleccionar Sección" @bind-Value="_seccionSeleccionada" Variant="Variant.Outlined" SelectedValuesChanged="OnSeccionChanged">
+                <MudSelectItem Value="0" Disabled="true">Seleccione una clase...</MudSelectItem>
+                @foreach (var sec in _secciones)
+                {
+                    <MudSelectItem Value="@sec.Id">@($"{sec.CursoNombre} - {sec.Nombre} ({sec.PeriodoNombre})")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_seccionSeleccionada > 0)
+{
+    <MudPaper Elevation="2" Class="pa-4" Style="border-radius:12px;">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <div>
+                <MudText Typo="Typo.h6">Rúbrica de Evaluaciones</MudText>
+                @{ var pesoTotal = _evaluaciones.Sum(e => e.PesoPromedio); }
+                <MudText Typo="Typo.body2" Color="@(pesoTotal == 100 ? Color.Success : Color.Warning)">
+                    Peso Total Configurado: <strong>@pesoTotal.ToString("0.##")%</strong> 
+                    @(pesoTotal != 100 ? "(Se recomienda que sume 100%)" : "")
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => AbrirDialogo()">Nueva Evaluación</MudButton>
+        </div>
+
+        <MudTable Items="@_evaluaciones" Dense="true" Hover="true" Loading="@_cargando">
+            <HeaderContent>
+                <MudTh>Nombre de Evaluación</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Peso (%)</MudTh>
+                <MudTh>Fecha Programada</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Nombre</strong></MudTd>
+                <MudTd>@context.Tipo.ToString()</MudTd>
+                <MudTd>@context.PesoPromedio.ToString("0.##")%</MudTd>
+                <MudTd>@context.FechaProgramada.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>
+                    @if(context.NotasRegistradas > 0)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="MudBlazor.Size.Small">Calificado (@context.NotasRegistradas)</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default" Size="MudBlazor.Size.Small">Pendiente</MudChip>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="MudBlazor.Size.Small" OnClick="() => AbrirDialogo(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="MudBlazor.Size.Small" OnClick="() => EliminarEvaluacion(context)" Disabled="@(context.NotasRegistradas > 0)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>No hay evaluaciones configuradas para esta clase.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+<MudDialog @bind-Visible="_dialogAbierto" MaxWidth="MaxWidth.Sm" FullWidth="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_form.Id == 0 ? "Nueva Evaluación" : "Editar Evaluación")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_form.Nombre" Label="Nombre de Evaluación (ej. Parcial 1)" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="TipoEvaluacion" Label="Tipo" @bind-Value="_form.Tipo" Variant="Variant.Outlined">
+                    @foreach (TipoEvaluacion tipo in Enum.GetValues(typeof(TipoEvaluacion)))
+                    {
+                        <MudSelectItem Value="tipo">@tipo.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Fecha Programada" @bind-Date="_form.FechaProgramada" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_form.PesoPromedio" Label="Peso Promedio (%)" Variant="Variant.Outlined" Min="0" Max="100" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_form.NotaMaxima" Label="Nota Máxima" Variant="Variant.Outlined" Min="0" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _dialogAbierto = false">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="GuardarEvaluacion">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<SeccionDto> _secciones = new();
+    private int _seccionSeleccionada = 0;
+    
+    private List<EvaluacionDto> _evaluaciones = new();
+    private bool _cargando = false;
+
+    private bool _dialogAbierto = false;
+    private UpsertEvaluacionCommand _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Reutilizamos el query de secciones de asistencia (ya que necesitamos listar las clases del docente)
+        _secciones = await Mediator.Send(new GetSeccionesActivasQuery());
+    }
+
+    private async Task OnSeccionChanged()
+    {
+        await CargarEvaluaciones();
+    }
+
+    private async Task CargarEvaluaciones()
+    {
+        if (_seccionSeleccionada == 0) return;
+        _cargando = true;
+        _evaluaciones = await Mediator.Send(new GetEvaluacionesPorSeccionQuery { SeccionId = _seccionSeleccionada });
+        _cargando = false;
+    }
+
+    private void AbrirDialogo(EvaluacionDto? dto = null)
+    {
+        if (dto == null)
+        {
+            _form = new UpsertEvaluacionCommand 
+            { 
+                SeccionId = _seccionSeleccionada,
+                FechaProgramada = DateTime.Today,
+                NotaMaxima = 20
+            };
+        }
+        else
+        {
+            _form = new UpsertEvaluacionCommand
+            {
+                Id = dto.Id,
+                SeccionId = dto.SeccionId,
+                Nombre = dto.Nombre,
+                Tipo = dto.Tipo,
+                PesoPromedio = dto.PesoPromedio,
+                FechaProgramada = dto.FechaProgramada,
+                NotaMaxima = dto.NotaMaxima
+            };
+        }
+        _dialogAbierto = true;
+    }
+
+    private async Task GuardarEvaluacion()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Nombre))
+        {
+            Snackbar.Add("El nombre es requerido.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await Mediator.Send(_form);
+            Snackbar.Add("Evaluación guardada exitosamente.", Severity.Success);
+            _dialogAbierto = false;
+            await CargarEvaluaciones();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EliminarEvaluacion(EvaluacionDto dto)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", $"¿Eliminar evaluación '{dto.Nombre}'?", "Sí", "No");
+        if (ok == true)
+        {
+            try
+            {
+                await Mediator.Send(new DeleteEvaluacionCommand { Id = dto.Id });
+                Snackbar.Add("Evaluación eliminada.", Severity.Success);
+                await CargarEvaluaciones();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+}

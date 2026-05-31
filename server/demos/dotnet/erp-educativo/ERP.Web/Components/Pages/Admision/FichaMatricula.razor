@@ -1,0 +1,119 @@
+@page "/admision/matriculas/ficha/{Id:int}"
+@layout LoginLayout
+@using ERP.Application.Features.Admision
+@using ERP.Application.Features.Admision.Matriculas
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+
+<PageTitle>Ficha de Matrícula — ERP Educativo</PageTitle>
+
+@if (_matricula == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="print-container pa-10" style="background:white; min-height:100vh; max-width:900px; margin:auto; border:1px solid #ddd;">
+        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-8">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.School" Style="color:#10B981; font-size:3rem;" />
+                <div>
+                    <MudText Typo="Typo.h5" Style="font-weight:900; color:#0F2D5C;">ERP EDUCATIVO</MudText>
+                    <MudText Typo="Typo.caption">CONSTANCIA DE MATRÍCULA OFICIAL</MudText>
+                </div>
+            </MudStack>
+            <div style="text-align:right;">
+                <MudText Typo="Typo.h6" Style="font-weight:700;">FICHA DE MATRÍCULA</MudText>
+                <MudText Typo="Typo.h5" Color="MudBlazor.Color.Primary">@_matricula.NumeroMatricula</MudText>
+            </div>
+        </MudStack>
+
+        <MudPaper Elevation="0" Class="pa-6 mb-8" Style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px;">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Style="color:#64748B;">ESTUDIANTE</MudText>
+                    <MudText Typo="Typo.body1" Style="font-weight:700;">@_matricula.EstudianteNombre</MudText>
+                    <MudText Typo="Typo.body2">Código: @_matricula.EstudianteCodigo</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" Style="text-align:right;">
+                    <MudText Typo="Typo.caption" Style="color:#64748B;">CARRERA / ESPECIALIDAD</MudText>
+                    <MudText Typo="Typo.body1" Style="font-weight:700;">@_matricula.CarreraNombre</MudText>
+                    <MudText Typo="Typo.body2">Ciclo: @_matricula.Ciclo | Periodo: 2026-I</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudText Typo="Typo.h6" Class="mb-4">Cursos Registrados</MudText>
+        <table style="width:100%; border-collapse: collapse; margin-bottom: 40px;">
+            <thead style="background:#F1F5F9;">
+                <tr>
+                    <th style="padding:12px; text-align:left; border-bottom:2px solid #CBD5E1;">Curso</th>
+                    <th style="padding:12px; text-align:left; border-bottom:2px solid #CBD5E1;">Sección</th>
+                    <th style="padding:12px; text-align:center; border-bottom:2px solid #CBD5E1;">Créditos</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var curso in _matricula.Cursos)
+                {
+                    <tr>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0;">@curso.Nombre</td>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0;">@curso.Seccion</td>
+                        <td style="padding:12px; border-bottom:1px solid #E2E8F0; text-align:center;">4.0</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr style="font-weight:700;">
+                    <td colspan="2" style="padding:12px; text-align:right;">TOTAL CRÉDITOS</td>
+                    <td style="padding:12px; text-align:center;">@(_matricula.Cursos.Count * 4).0</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <MudGrid Class="mt-12">
+            <MudItem xs="4" Style="text-align:center;">
+                <div style="border-top:1px solid #000; margin-top:40px; padding-top:8px;">
+                    <MudText Typo="Typo.caption">Firma Estudiante</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="4" Style="text-align:center;">
+                <div style="border-top:1px solid #000; margin-top:400x; padding-top:8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.QrCode2" Style="font-size:4rem; color:#94A3B8;" />
+                    <MudText Typo="Typo.caption" Class="d-block">Validación Digital</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="4" Style="text-align:center;">
+                <div style="border-top:1px solid #000; margin-top:40px; padding-top:8px;">
+                    <MudText Typo="Typo.caption">Sello Institucional</MudText>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <div class="no-print mt-12 d-flex justify-center">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="Imprimir" Class="mx-2">Imprimir Ficha</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Default" Href="/admision/matriculas" Class="mx-2">Volver</MudButton>
+        </div>
+    </div>
+}
+
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        .print-container { border: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; }
+    }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private MatriculaDto? _matricula;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _matricula = await Mediator.Send(new GetMatriculaByIdQuery { Id = Id });
+    }
+
+    private void Imprimir() { /* window.print() */ }
+}

@@ -1,0 +1,147 @@
+@page "/personas/estudiantes/detalle/{Id:int}"
+@using ERP.Application.Features.Portal
+@using ERP.Application.Features.Personas.Estudiantes
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<PageTitle>Ficha del Estudiante — ERP Educativo</PageTitle>
+
+@if (_data == null)
+{
+    <MudProgressLinear Color="MudBlazor.Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/personas/estudiantes"))" />
+            <MudAvatar Style="width:80px; height:80px; font-size:2.5rem; background:#1A4B8C; color:white;">@_data.EstudianteNombre[0]</MudAvatar>
+            <div>
+                <MudText Typo="Typo.h5" Style="font-weight:800; color:#1E1B4B;">@_data.EstudianteNombre</MudText>
+                <MudText Typo="Typo.body2" Style="color:#6B7280;">@_data.Carrera — @_data.Ciclo° Ciclo</MudText>
+            </div>
+        </MudStack>
+        <MudStack Row Spacing="2">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" Color="MudBlazor.Color.Default">Imprimir Ficha</MudButton>
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary">Editar Datos</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="MudBlazor.Color.Primary" Style="border-radius:16px;">
+        <!-- RESUMEN ACADÉMICO -->
+        <MudTabPage Text="Académico" Icon="@Icons.Material.Filled.School">
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudText Typo="Typo.h6" Class="mb-4">Calificaciones Actuales</MudText>
+                    <MudTable Items="@_data.CursosActuales" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Curso</MudTh>
+                            <MudTh Style="text-align:center;">Asistencia</MudTh>
+                            <MudTh Style="text-align:right;">Promedio</MudTh>
+                            <MudTh>Estado</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.CursoNombre</MudTd>
+                            <MudTd Style="text-align:center;">
+                                <MudProgressCircular Value="@((double)context.PorcentajeAsistencia)" Color="@(context.PorcentajeAsistencia >= 70 ? MudBlazor.Color.Success : MudBlazor.Color.Error)" Size="MudBlazor.Size.Small" ShowValue="true" />
+                            </MudTd>
+                            <MudTd Style="text-align:right; font-weight:700;">@context.PromedioActual.ToString("0.00")</MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.PromedioActual >= 10.5m ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
+                                    @(context.PromedioActual >= 10.5m ? "Aprobado" : "Riesgo")
+                                </MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="0" Class="pa-4" Style="background:#F8FAFC; border-radius:12px;">
+                        <MudText Typo="Typo.subtitle2" Class="mb-4">Indicadores</MudText>
+                        <MudStack Spacing="3">
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Promedio General</MudText>
+                                <MudText Typo="Typo.body2" Style="font-weight:700;">@_data.CursosActuales.Average(c => c.PromedioActual).ToString("0.00")</MudText>
+                            </MudStack>
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Cursos Aprobados</MudText>
+                                <MudText Typo="Typo.body2">@_data.CursosActuales.Count(c => c.PromedioActual >= 10.5m) / @_data.CursosActuales.Count</MudText>
+                            </MudStack>
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Asistencia Global</MudText>
+                                <MudText Typo="Typo.body2">@_data.CursosActuales.Average(c => c.PorcentajeAsistencia).ToString("0")%</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPage>
+
+        <!-- SITUACIÓN FINANCIERA -->
+        <MudTabPage Text="Financiero" Icon="@Icons.Material.Filled.Payments">
+            <MudText Typo="Typo.h6" Class="mb-4">Estado de Cuenta</MudText>
+            <MudTable Items="@_data.DeudasPendientes" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>N° Documento</MudTh>
+                    <MudTh>Concepto</MudTh>
+                    <MudTh>Vencimiento</MudTh>
+                    <MudTh Style="text-align:right;">Monto</MudTh>
+                    <MudTh>Estado</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.NumeroDeuda</MudTd>
+                    <MudTd>@context.ConceptoNombre</MudTd>
+                    <MudTd>@context.FechaVencimiento.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd Style="text-align:right; font-weight:600;">S/ @context.MontoTotal.ToString("N2")</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="MudBlazor.Size.Small" Color="@(context.Estado == Domain.Enums.EstadoPago.Vencido ? MudBlazor.Color.Error : MudBlazor.Color.Warning)">
+                            @context.Estado.ToString()
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPage>
+
+        <!-- DATOS PERSONALES -->
+        <MudTabPage Text="Personal" Icon="@Icons.Material.Filled.Info">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudList T="string" Dense="true">
+                        <MudListItem Text="@($"Email: {_userEmail}")" Icon="@Icons.Material.Filled.Email" />
+                        <MudListItem Text="Teléfono: 987 654 321" Icon="@Icons.Material.Filled.Phone" />
+                        <MudListItem Text="DNI: 761234XX" Icon="@Icons.Material.Filled.Badge" />
+                    </MudList>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudList T="string" Dense="true">
+                        <MudListItem Text="Dirección: Av. El Sol 456, Cusco" Icon="@Icons.Material.Filled.LocationOn" />
+                        <MudListItem Text="Fecha Nacimiento: 15/04/2004" Icon="@Icons.Material.Filled.Cake" />
+                        <MudListItem Text="Seguro: SIS" Icon="@Icons.Material.Filled.HealthAndSafety" />
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+        </MudTabPage>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private StudentDashboardDto? _data;
+    private string _userEmail = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // En una app real, buscaríamos al estudiante por Id
+        // Aquí usaremos una simulación basada en el query de dashboard
+        // Primero obtenemos el estudiante para sacar su email
+        var estudiante = await Mediator.Send(new GetEstudianteByIdQuery { Id = Id });
+        if (estudiante != null)
+        {
+            _userEmail = estudiante.Email;
+            _data = await Mediator.Send(new GetStudentDashboardQuery(_userEmail));
+        }
+    }
+}

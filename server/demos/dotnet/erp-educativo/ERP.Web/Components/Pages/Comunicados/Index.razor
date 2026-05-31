@@ -1,0 +1,194 @@
+@page "/comunicados"
+@using ERP.Application.Features.Comunicaciones
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Comunicados — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📢 Comunicados e Información</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Panel de anuncios oficiales de la institución</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Comunicado</MudButton>
+</MudStack>
+
+<MudGrid>
+    @if (_cargando)
+    {
+        @for (int i = 0; i < 3; i++)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" />
+                <MudSkeleton Width="60%" />
+                <MudSkeleton Width="100%" />
+            </MudItem>
+        }
+    }
+    else if (!_comunicados.Any())
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Info">No hay comunicados publicados actualmente.</MudAlert>
+        </MudItem>
+    }
+    else
+    {
+        @foreach (var c in _comunicados)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="2" Style="border-radius:16px; position:relative; overflow:hidden; height: 100%;">
+                    @if (c.Destacado)
+                    {
+                        <div style="position:absolute; top:12px; right:12px; z-index:10;">
+                            <MudChip T="string" Color="MudBlazor.Color.Warning" Size="MudBlazor.Size.Small" Icon="@Icons.Material.Filled.Star">Destacado</MudChip>
+                        </div>
+                    }
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
+                                <MudIcon Icon="@Icons.Material.Filled.Campaign" />
+                            </MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight:700; line-height: 1.2;">@c.Titulo</MudText>
+                            <MudText Typo="Typo.caption" Style="color:#6B7280;">@c.FechaPublicacion.ToString("dd MMM, yyyy") • @c.TipoDestinatario</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Style="color:#374151; white-space: pre-wrap;">
+                            @if (c.Contenido.Length > 200)
+                            {
+                                @(c.Contenido.Substring(0, 197) + "...")
+                            }
+                            else
+                            {
+                                @c.Contenido
+                            }
+                        </MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary" OnClick="@(() => VerMas(c))">Ver Más</MudButton>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(c))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(c.Id))" />
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    }
+</MudGrid>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Comunicado</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Titulo" Label="Título" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_form.TipoDestinatario" Label="Destinatarios" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Todos")">Todos</MudSelectItem>
+                        <MudSelectItem Value="@("Estudiantes")">Estudiantes</MudSelectItem>
+                        <MudSelectItem Value="@("Docentes")">Docentes</MudSelectItem>
+                        <MudSelectItem Value="@("Administrativos")">Administrativos</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudCheckBox @bind-Value="_form.Destacado" Label="Marcar como Destacado" Color="MudBlazor.Color.Warning" />
+                </MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_form.Contenido" Label="Contenido" Variant="Variant.Outlined" Lines="8" Required="true" /></MudItem>
+                <MudItem xs="12" sm="6"><MudDatePicker @bind-Date="_expiracion" Label="Fecha de Expiración (Opcional)" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Publicar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private List<ComunicadoDto> _comunicados = new();
+    private UpsertComunicadoCommand _form = new();
+    private DateTime? _expiracion;
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+
+    async Task Cargar()
+    {
+        _cargando = true;
+        _comunicados = await Mediator.Send(new GetComunicadosQuery());
+        _cargando = false;
+    }
+
+    private void AbrirDialog(ComunicadoDto? c)
+    {
+        if (c == null)
+        {
+            _form = new();
+            _expiracion = null;
+        }
+        else
+        {
+            _form = new UpsertComunicadoCommand
+            {
+                Id = c.Id,
+                Titulo = c.Titulo,
+                Contenido = c.Contenido,
+                TipoDestinatario = c.TipoDestinatario,
+                FechaPublicacion = c.FechaPublicacion,
+                FechaExpiracion = c.FechaExpiracion,
+                Destacado = c.Destacado
+            };
+            _expiracion = c.FechaExpiracion;
+        }
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(_form.Titulo) || string.IsNullOrWhiteSpace(_form.Contenido))
+        {
+            Snackbar.Add("Título y Contenido son obligatorios", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _form.FechaExpiracion = _expiracion;
+            await Mediator.Send(_form);
+            Snackbar.Add("Comunicado publicado", Severity.Success);
+            _dialogAbierto = false;
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este comunicado?", "Sí", "No");
+        if (ok == true)
+        {
+            await Mediator.Send(new DeleteComunicadoCommand { Id = id });
+            Snackbar.Add("Eliminado", Severity.Success);
+            await Cargar();
+        }
+    }
+
+    private async Task VerMas(ComunicadoDto c)
+    {
+        await DialogService.ShowMessageBoxAsync(c.Titulo, c.Contenido, "Cerrar");
+    }
+}

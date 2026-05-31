@@ -1,0 +1,48 @@
+@inject NavigationManager Nav
+
+<div class="erp-nav-brand">
+    <div class="erp-nav-logo">
+        <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Large" Style="color:#F4A93C;" />
+    </div>
+    <MudText Typo="Typo.subtitle2" Class="erp-nav-title">AUTOTALLER</MudText>
+    <MudText Typo="Typo.caption" Class="erp-nav-subtitle">ERP</MudText>
+</div>
+
+<MudNavMenu Class="erp-nav-menu" Bordered="false">
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+    <MudNavLink Href="/recepcion" Icon="@Icons.Material.Filled.AssignmentTurnedIn">Recepción</MudNavLink>
+    <MudNavLink Href="/ordenes" Icon="@Icons.Material.Filled.Build">Órdenes de Trabajo</MudNavLink>
+    <MudNavLink Href="/agenda" Icon="@Icons.Material.Filled.CalendarMonth">Agenda y Citas</MudNavLink>
+    <MudNavLink Href="/servicios" Icon="@Icons.Material.Filled.MiscellaneousServices">Catálogo Servicios</MudNavLink>
+    <MudNavGroup Title="Clientes" Icon="@Icons.Material.Filled.People" Expanded="false">
+        <MudNavLink Href="/clientes" Icon="@Icons.Material.Filled.PersonOutline">Clientes</MudNavLink>
+        <MudNavLink Href="/vehiculos" Icon="@Icons.Material.Filled.DirectionsCar">Vehículos</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="Inventario" Icon="@Icons.Material.Filled.Inventory" Expanded="false">
+        <MudNavLink Href="/inventario/repuestos" Icon="@Icons.Material.Filled.Category">Repuestos</MudNavLink>
+        <MudNavLink Href="/inventario/movimientos" Icon="@Icons.Material.Filled.SwapHoriz">Movimientos</MudNavLink>
+        <MudNavLink Href="/inventario/almacenes" Icon="@Icons.Material.Filled.Warehouse">Almacenes</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="Compras" Icon="@Icons.Material.Filled.ShoppingCart" Expanded="false">
+        <MudNavLink Href="/proveedores" Icon="@Icons.Material.Filled.Business">Proveedores</MudNavLink>
+        <MudNavLink Href="/compras/ordenes" Icon="@Icons.Material.Filled.Receipt">Órdenes de Compra</MudNavLink>
+        <MudNavLink Href="/compras/cuentas-pagar" Icon="@Icons.Material.Filled.Payments">Cuentas por Pagar</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="Facturación" Icon="@Icons.Material.Filled.Receipt" Expanded="false">
+        <MudNavLink Href="/facturacion" Icon="@Icons.Material.Filled.RequestQuote">Facturas</MudNavLink>
+        <MudNavLink Href="/facturacion/cotizaciones" Icon="@Icons.Material.Filled.Description">Cotizaciones</MudNavLink>
+        <MudNavLink Href="/facturacion/caja" Icon="@Icons.Material.Filled.PointOfSale">Caja</MudNavLink>
+        <MudNavLink Href="/facturacion/cuentas-cobrar" Icon="@Icons.Material.Filled.AccountBalance">Cuentas por Cobrar</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.Engineering" Expanded="false">
+        <MudNavLink Href="/personal/tecnicos" Icon="@Icons.Material.Filled.Engineering">Técnicos</MudNavLink>
+        <MudNavLink Href="/personal/asistencia" Icon="@Icons.Material.Filled.Schedule">Asistencia</MudNavLink>
+        <MudNavLink Href="/personal/comisiones" Icon="@Icons.Material.Filled.AttachMoney">Comisiones</MudNavLink>
+    </MudNavGroup>
+    <MudNavLink Href="/reportes" Icon="@Icons.Material.Filled.BarChart">Reportes y KPIs</MudNavLink>
+    <MudNavGroup Title="Configuración" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+        <MudNavLink Href="/configuracion/empresa" Icon="@Icons.Material.Filled.Business">Empresa</MudNavLink>
+        <MudNavLink Href="/configuracion/usuarios" Icon="@Icons.Material.Filled.AdminPanelSettings">Usuarios y Roles</MudNavLink>
+        <MudNavLink Href="/configuracion/parametros" Icon="@Icons.Material.Filled.Tune">Parámetros</MudNavLink>
+    </MudNavGroup>
+</MudNavMenu>

@@ -1,0 +1,578 @@
+/* ============================================================
+   AutoTaller ERP — Estilos globales
+   Paleta inspirada en el diseño: azul marino, naranja y teal.
+   ============================================================ */
+:root {
+    --c-primary: #1F2C50;
+    --c-primary-dark: #16213E;
+    --c-secondary: #2BB59A;
+    --c-accent: #F4A93C;
+    --c-info: #3FA9F5;
+    --c-error: #E15A5A;
+    --c-bg: #F4F6FA;
+    --c-surface: #FFFFFF;
+    --c-text: #1F2C50;
+    --c-text-soft: #5D6B82;
+    --c-border: #E3E7EE;
+    --shadow-card: 0 2px 14px rgba(31, 44, 80, 0.06);
+    --radius: 12px;
+}
+
+html, body {
+    margin: 0;
+    background: var(--c-bg);
+    font-family: 'Roboto', Helvetica, Arial, sans-serif;
+    color: var(--c-text);
+    min-height: 100vh;
+}
+
+a { text-decoration: none; }
+
+/* ===== App bar superior ===== */
+.erp-appbar {
+    background: #FFFFFF !important;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.erp-appbar-tabs .erp-tab {
+    height: 70px;
+    border-radius: 0 !important;
+    padding: 0 24px !important;
+    border-bottom: 3px solid transparent !important;
+    color: var(--c-text-soft) !important;
+    text-transform: uppercase !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.4px;
+    font-size: 0.85rem;
+}
+
+.erp-appbar-tabs .erp-tab--active {
+    color: var(--c-primary) !important;
+    border-bottom-color: var(--c-accent) !important;
+    background: linear-gradient(180deg, transparent 0%, rgba(244,169,60,0.08) 100%);
+}
+
+.erp-search .mud-input-outlined-border {
+    border-radius: 24px !important;
+}
+
+/* ===== Drawer (sidebar) ===== */
+.erp-drawer {
+    background: linear-gradient(180deg, var(--c-primary) 0%, var(--c-primary-dark) 100%) !important;
+    border: none !important;
+}
+
+.erp-drawer .mud-nav-link {
+    color: rgba(255,255,255,0.78) !important;
+    border-radius: 0 !important;
+    padding-left: 24px !important;
+    height: 48px !important;
+    font-weight: 500 !important;
+}
+
+.erp-drawer .mud-nav-link:hover {
+    background: rgba(255,255,255,0.06) !important;
+    color: #fff !important;
+}
+
+.erp-drawer .mud-nav-link.active {
+    background: rgba(244,169,60,0.18) !important;
+    color: #fff !important;
+    border-left: 4px solid var(--c-accent) !important;
+    padding-left: 20px !important;
+}
+
+.erp-drawer .mud-nav-link .mud-icon-root {
+    color: rgba(255,255,255,0.85) !important;
+}
+
+.erp-drawer .mud-nav-group .mud-nav-link {
+    font-size: 0.92rem;
+}
+
+.erp-drawer .mud-nav-group-header {
+    color: rgba(255,255,255,0.85) !important;
+}
+
+.erp-nav-brand {
+    padding: 18px 16px 10px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 12px;
+}
+
+.erp-nav-logo {
+    width: 64px;
+    height: 64px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    border: 2px solid var(--c-accent);
+}
+
+.erp-nav-title {
+    color: #fff !important;
+    letter-spacing: 2px;
+    font-weight: 700 !important;
+}
+
+.erp-nav-subtitle {
+    color: var(--c-accent) !important;
+    letter-spacing: 4px;
+    font-weight: 600 !important;
+}
+
+/* ===== Main content ===== */
+.erp-main {
+    background: var(--c-bg);
+}
+
+.erp-content {
+    padding: 28px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.page-header h4 {
+    color: var(--c-primary);
+}
+
+/* ===== KPI Cards ===== */
+.kpi-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 22px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--c-border);
+}
+
+.kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 24px rgba(31,44,80,0.1);
+}
+
+.kpi-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.kpi-card--primary .kpi-card-icon { background: linear-gradient(135deg, #1F2C50, #3a5089); }
+.kpi-card--success .kpi-card-icon { background: linear-gradient(135deg, #2BB59A, #3fd6b8); }
+.kpi-card--info .kpi-card-icon    { background: linear-gradient(135deg, #3FA9F5, #6cc1ff); }
+.kpi-card--warning .kpi-card-icon { background: linear-gradient(135deg, #F4A93C, #ffc56b); }
+.kpi-card--error .kpi-card-icon   { background: linear-gradient(135deg, #E15A5A, #ff8585); }
+
+.kpi-card-body { flex: 1; min-width: 0; }
+.kpi-card-title {
+    color: var(--c-text-soft) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+}
+.kpi-card-value {
+    color: var(--c-primary) !important;
+    font-weight: 700 !important;
+    margin: 2px 0;
+    line-height: 1.2;
+}
+.kpi-card-sub {
+    color: var(--c-text-soft) !important;
+    font-size: 0.78rem !important;
+}
+
+/* ===== KPI Circular (anillos) ===== */
+.kpi-circular {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 22px;
+    text-align: center;
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-card);
+}
+
+.kpi-circular-ring {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    margin: 0 auto;
+}
+
+.kpi-circular-ring svg {
+    width: 100%;
+    height: 100%;
+    transition: stroke-dashoffset 0.6s ease;
+}
+
+.kpi-circular-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== Lista de OTs con barras ===== */
+.ot-progress-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.ot-row {
+    display: grid;
+    grid-template-columns: 1.4fr 2.5fr 1fr;
+    align-items: center;
+    gap: 16px;
+}
+
+.ot-row-left .mud-typography-caption { line-height: 1.2; }
+.ot-row-bar { padding: 0 8px; }
+.ot-row-right { text-align: right; }
+
+.ot-progress {
+    background: #E3E7EE !important;
+}
+
+@media (max-width: 768px) {
+    .ot-row { grid-template-columns: 1fr; gap: 6px; }
+    .ot-row-bar { padding: 0; }
+    .ot-row-right { text-align: left; }
+}
+
+/* ===== Mini calendario ===== */
+.mini-cal {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    color: var(--c-text);
+    font-size: 0.85rem;
+}
+
+.mini-cal th {
+    color: var(--c-secondary);
+    font-weight: 600;
+    padding: 6px 0;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.mini-cal td {
+    padding: 8px 0;
+    color: var(--c-text-soft);
+}
+
+.mini-cal td.is-today {
+    background: var(--c-secondary);
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 700;
+}
+
+/* ===== Mini mountain card (gráfico ilustrativo) ===== */
+.mini-mountain svg {
+    border-radius: 8px;
+}
+
+/* ===== Bar chart ===== */
+.bar-chart {
+    width: 100%;
+    overflow: hidden;
+}
+
+/* ===== Página de Login ===== */
+.auth-layout {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1F2C50 0%, #16213E 50%, #2BB59A 100%);
+    padding: 24px;
+}
+
+.login-page {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card-wrapper {
+    width: 100%;
+    max-width: 460px;
+}
+
+.login-brand {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 28px;
+}
+
+.brand-circle {
+    width: 88px;
+    height: 88px;
+    background: rgba(244,169,60,0.95);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    box-shadow: 0 12px 40px rgba(244,169,60,0.4);
+}
+
+.login-brand h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+}
+
+.login-brand h1 span {
+    font-weight: 700;
+    color: var(--c-accent);
+}
+
+.login-brand p {
+    color: rgba(255,255,255,0.75);
+    margin-top: 6px;
+    font-size: 0.9rem;
+}
+
+.login-card {
+    background: #fff;
+    padding: 36px 32px;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+}
+
+.login-title {
+    margin: 0 0 4px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--c-text);
+}
+
+.login-subtitle {
+    margin: 0 0 22px;
+    color: var(--c-text-soft);
+    font-size: 0.92rem;
+}
+
+.alert-error {
+    background: #fdecea;
+    color: #b1382c;
+    border: 1px solid #f5c6c0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.login-form .form-group { margin-bottom: 16px; }
+
+.login-form label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--c-text);
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.login-form .form-control {
+    width: 100%;
+    height: 46px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--c-border);
+    border-radius: 10px;
+    font-size: 1rem;
+    color: var(--c-text);
+    background: #fff;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+}
+
+.login-form .form-control:focus {
+    outline: none;
+    border-color: var(--c-secondary);
+    box-shadow: 0 0 0 3px rgba(43, 181, 154, 0.18);
+}
+
+.login-form .form-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.login-form .form-check-input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--c-primary);
+    cursor: pointer;
+}
+
+.login-form .form-check-label {
+    color: var(--c-text-soft);
+    font-size: 0.92rem;
+    cursor: pointer;
+    margin: 0;
+}
+
+.login-divider {
+    border: none;
+    border-top: 1px solid var(--c-border);
+    margin: 22px 0 14px;
+}
+
+.login-hint {
+    text-align: center;
+    color: var(--c-text-soft);
+    font-size: 0.82rem;
+    margin: 0;
+}
+
+.login-hint strong {
+    color: var(--c-primary);
+}
+
+.login-btn-submit {
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-secondary) 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.6px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    margin-top: 4px;
+}
+
+.login-btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(31, 44, 80, 0.3);
+}
+
+.login-btn-submit:active {
+    transform: translateY(0);
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 18px;
+    color: rgba(255,255,255,0.65) !important;
+}
+
+/* ===== Kanban de OTs ===== */
+.ot-kanban {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(220px, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+.ot-kanban-col {
+    background: #F4F6FA;
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ot-kanban-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 10px;
+    border-bottom: 2px solid var(--c-border);
+    margin-bottom: 10px;
+}
+
+.ot-kanban-body {
+    flex: 1;
+}
+
+.ot-kanban-card {
+    background: #fff !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-left: 3px solid var(--c-primary) !important;
+}
+
+.ot-kanban-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(31,44,80,0.12) !important;
+}
+
+.ot-kanban-empty {
+    text-align: center;
+    padding: 24px 8px;
+    color: var(--c-text-soft);
+    border: 1.5px dashed var(--c-border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.4);
+}
+
+@media (max-width: 1100px) {
+    .ot-kanban {
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .ot-kanban {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+    }
+}
+
+/* ===== Tablas ERP ===== */
+.erp-table .mud-table-head {
+    background: #F8FAFD;
+}
+
+.erp-table .mud-table-head .mud-table-cell {
+    font-weight: 600 !important;
+    color: var(--c-text) !important;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.6px;
+    border-bottom: 2px solid var(--c-border) !important;
+}
+
+.erp-table .mud-table-row:hover {
+    background: rgba(31, 44, 80, 0.03) !important;
+}
+
+.erp-table .mud-table-cell {
+    border-bottom: 1px solid var(--c-border) !important;
+}
+
+/* ===== Utilidades ===== */
+.fw-bold   { font-weight: 700 !important; }
+.fw-medium { font-weight: 500 !important; }
+.gap-2 { gap: 0.5rem; }
+.dashboard-totals > div { padding: 8px 16px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+    .erp-content { padding: 16px; }
+    .erp-appbar-tabs { display: none !important; }
+}

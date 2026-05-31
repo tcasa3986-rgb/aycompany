@@ -1,0 +1,222 @@
+@model SistemaGestionAcademias.Models.Actividad
+@inject SistemaGestionAcademias.Services.ConfiguracionService ConfigService
+@{
+    ViewData["Title"] = "Ficha del Taller";
+    var config = await ConfigService.ObtenerConfiguracion();
+    
+    // Cálculos estadísticos de ocupación
+    var inscritos = Model.Inscripciones?.Count ?? 0;
+    var porcentaje = Model.CupoMaximo > 0 ? (double)inscritos / Model.CupoMaximo * 100 : 0;
+
+    // --- LÓGICA DE CÁLCULO DE HORAS (CORREGIDA Y EXACTA) ---
+    var totalHorasMostrar = Model.TotalHoras;
+    
+    // Si la BD tiene 0 (registro antiguo), calculamos nosotros
+    if (totalHorasMostrar == 0 && Model.HoraInicio.HasValue && Model.HoraFin.HasValue && !string.IsNullOrEmpty(Model.DiasSemana))
+    {
+        try 
+        {
+            // 1. Duración de una sesión (ej: 2 horas)
+            var horasPorDia = (Model.HoraFin.Value - Model.HoraInicio.Value).TotalHours;
+            
+            // 2. Frecuencia semanal (ej: 3 días)
+            var cantidadDiasSemana = Model.DiasSemana.Split(',').Length;
+            
+            // 3. Duración del curso en días (CORRECCIÓN: +1 para incluir el día final)
+            // Ejemplo: Del 1 al 28 de Febrero son 28 días, no 27.
+            var totalDiasDuracion = (Model.FechaFin - Model.FechaInicio).TotalDays + 1;
+            
+            // 4. Semanas aproximadas
+            var semanas = Math.Max(1, totalDiasDuracion / 7); 
+
+            // 5. Cálculo final redondeado
+            totalHorasMostrar = (int)Math.Round(horasPorDia * cantidadDiasSemana * semanas);
+        }
+        catch
+        {
+            totalHorasMostrar = 0;
+        }
+    }
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="badge bg-warning text-dark mb-2">@Model.Categoria?.Nombre</span>
+            <h2 class="fw-bold display-6 mb-0">@Model.Nombre</h2>
+        </div>
+        <div class="text-end">
+            <h3 class="text-success fw-bold mb-0">@config.MonedaSimbolo @Model.Costo.ToString("N2")</h3>
+            <small class="text-muted">Precio por alumno</small>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            
+            <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                @if (!string.IsNullOrEmpty(Model.ImagenUrl))
+                {
+                    <img src="~/imagenes/@Model.ImagenUrl" class="card-img-top" style="max-height: 350px; object-fit: cover;" alt="Portada del Curso">
+                }
+                else
+                {
+                    <div class="bg-light text-center py-5 text-muted">
+                        <i class="bi bi-image display-1"></i>
+                        <p>Sin imagen de portada</p>
+                    </div>
+                }
+                
+                <div class="card-body p-4">
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-file-text"></i> Descripción</h5>
+                    <p class="text-muted">
+                        @(string.IsNullOrEmpty(Model.Descripcion) ? "Sin descripción disponible." : Model.Descripcion)
+                    </p>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary"><i class="bi bi-list-check"></i> Sílabus / Temario</h6>
+                            <p class="small text-secondary" style="white-space: pre-line;">
+                                @(string.IsNullOrEmpty(Model.Silabus) ? "No especificado." : Model.Silabus)
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary"><i class="bi bi-trophy"></i> Objetivos y Beneficios</h6>
+                            <p class="small text-secondary" style="white-space: pre-line;">
+                                @(string.IsNullOrEmpty(Model.Objetivos) ? "No especificado." : Model.Objetivos)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Alumnos Matriculados</h6>
+                    <span class="badge bg-light text-dark">Total: @inscritos</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Inscripciones != null && Model.Inscripciones.Any())
+                    {
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="bg-light small">
+                                <tr>
+                                    <th class="ps-4">Alumno</th>
+                                    <th>Fecha</th>
+                                    <th>Estado Pago</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Inscripciones)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-bold">@item.Alumno.NombreCompleto</td>
+                                        <td>@item.FechaInscripcion.ToShortDateString()</td>
+                                        <td>
+                                            @if (item.Estado == "Pagado") { <span class="badge bg-success">Pagado</span> }
+                                            else if (item.Estado == "Becado") { <span class="badge bg-info text-dark">Becado</span> }
+                                            else { <span class="badge bg-warning text-dark">Pendiente</span> }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center p-4 text-muted">
+                            <i class="bi bi-people display-4 opacity-25"></i>
+                            <p class="mt-2">Aún no hay alumnos inscritos.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center">
+                    <div class="mb-2"><i class="bi bi-person-video3 display-4 text-warning"></i></div>
+                    <h6 class="text-muted small text-uppercase">Instructor Encargado</h6>
+                    <h5 class="fw-bold">@Model.Instructor?.Nombres @Model.Instructor?.Apellidos</h5>
+                    <p class="small text-muted mb-0">@Model.Instructor?.Especialidad</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h6 class="fw-bold text-secondary mb-3">Cronograma y Logística</h6>
+                    
+                    <div class="bg-light p-3 rounded mb-3 border">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-calendar-week text-primary fs-4 me-2"></i>
+                            <div>
+                                <small class="text-uppercase text-muted fw-bold d-block" style="font-size: 0.7rem;">Días de Clase</small>
+                                <span class="fw-bold text-dark">@(Model.DiasSemana ?? "Por definir")</span>
+                            </div>
+                        </div>
+                        
+                        @if(Model.HoraInicio.HasValue && Model.HoraFin.HasValue)
+                        {
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-clock text-primary fs-4 me-2"></i>
+                                <div>
+                                    <small class="text-uppercase text-muted fw-bold d-block" style="font-size: 0.7rem;">Horario</small>
+                                    <span class="fw-bold text-dark">
+                                        @DateTime.Today.Add(Model.HoraInicio.Value).ToString("hh:mm tt") - 
+                                        @DateTime.Today.Add(Model.HoraFin.Value).ToString("hh:mm tt")
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span><i class="bi bi-flag me-1"></i> Inicio:</span> 
+                            <strong>@Model.FechaInicio.ToShortDateString()</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span><i class="bi bi-flag-fill me-1"></i> Fin:</span> 
+                            <strong>@Model.FechaFin.ToShortDateString()</strong>
+                        </li>
+                        
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span><i class="bi bi-hourglass-split me-1"></i> Duración Total:</span>
+                            <strong class="text-dark">@totalHorasMostrar hrs.</strong>
+                        </li>
+
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span><i class="bi bi-people me-1"></i> Cupos:</span> 
+                            <strong>@Model.CupoMaximo Alumnos</strong>
+                        </li>
+                    </ul>
+                    
+                    <div class="mt-3">
+                        <label class="small text-muted mb-1">Ocupación (@inscritos / @Model.CupoMaximo)</label>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: @porcentaje.ToString("0")%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <a asp-controller="Asistencia" asp-action="Index" asp-route-actividadId="@Model.Id" class="btn btn-primary btn-lg fw-bold shadow-sm mb-2">
+                    <i class="bi bi-clipboard-check-fill"></i> Gestionar Asistencia
+                </a>
+
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning fw-bold">
+                    <i class="bi bi-pencil-square"></i> Editar Información
+                </a>
+                <a asp-action="ExportarExcel" asp-route-id="@Model.Id" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel"></i> Descargar Lista
+                </a>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,190 @@
+@model SistemaGestionAcademias.Models.Inscripcion
+@inject SistemaGestionAcademias.Services.ConfiguracionService ConfigService
+@{
+    ViewData["Title"] = "Editar Matrícula";
+    var config = await ConfigService.ObtenerConfiguracion();
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-9">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square"></i> Editar Matrícula</h4>
+            </div>
+            <div class="card-body bg-light p-4">
+                
+                <form asp-action="Edit" id="formMatricula">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <input type="hidden" id="hdnMontoOriginal" value="@Model.MontoOriginal.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="AlumnoId" class="form-label fw-bold">Alumno</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-person-search"></i></span>
+                                <select asp-for="AlumnoId" class="form-select" asp-items="ViewBag.AlumnoId" id="selectAlumno">
+                                    <option value="">-- Buscar Alumno --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ActividadId" class="form-label fw-bold">Taller / Actividad</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-collection-play"></i></span>
+                                <select asp-for="ActividadId" class="form-select" asp-items="ViewBag.ActividadId" id="selectActividad" onchange="actualizarPrecio()">
+                                    <option value="">-- Buscar Actividad --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-primary mb-4 shadow-sm">
+                        <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between">
+                            <span><i class="bi bi-currency-exchange"></i> Detalle del Pago</span>
+                        </div>
+                        <div class="card-body bg-white">
+                            <div class="row align-items-end">
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Costo del Taller</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light fw-bold">@config.MonedaSimbolo</span>
+                                        <input type="text" id="txtCostoBase" class="form-control fw-bold fs-5" readonly value="@Model.MontoOriginal.ToString("N2")" />
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label asp-for="DescuentoAplicado" class="form-label fw-bold text-primary">Promoción / Dscto</label>
+                                    <select asp-for="DescuentoAplicado" id="selectDescuento" class="form-select border-primary" onchange="calcularTotal()">
+                                        <option value="Ninguno">Ninguno (Precio Full)</option>
+                                        <option value="Hermanos">Descuento Hermanos (-10%)</option>
+                                        <option value="Referido">Alumno Referido (-5%)</option>
+                                        <option value="Beca">Beca Completa (100%)</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4 text-end">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Total a Pagar</label>
+                                    <h2 class="fw-bold text-success mb-0" id="lblTotal">@config.MonedaSimbolo @Model.MontoFinal.ToString("N2")</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label asp-for="FechaInscripcion" class="form-label fw-bold">Fecha de Registro</label>
+                            <input asp-for="FechaInscripcion" class="form-control" type="date" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Estado" class="form-label fw-bold">Estado del Pago</label>
+                            <select asp-for="Estado" class="form-select" id="selectEstado" onchange="toggleMetodoPago()">
+                                <option value="Pendiente">Pago Pendiente</option>
+                                <option value="Pagado">Pagado</option>
+                                <option value="Becado" disabled>Becado (Gratis)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label asp-for="MetodoPago" class="form-label fw-bold">Método de Pago</label>
+                            <select asp-for="MetodoPago" class="form-select border-success" id="selectMetodo" disabled>
+                                <option value="">-- Seleccionar --</option>
+                                <option value="Efectivo">💵 Efectivo</option>
+                                <option value="Yape/Plin">📱 Yape / Plin</option>
+                                <option value="Tarjeta">💳 Tarjeta Crédito/Débito</option>
+                                <option value="Transferencia">🏦 Transferencia Bancaria</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a asp-action="Index" class="btn btn-secondary me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary fw-bold px-4 btn-lg shadow">
+                            <i class="bi bi-save"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Variables globales
+        let costoBase = 0;
+        var simboloMoneda = '@config.MonedaSimbolo';
+
+        $(document).ready(function() {
+            // Inicializar Select2
+            $('#selectAlumno').select2({ theme: 'bootstrap-5', width: '100%' });
+            $('#selectActividad').select2({ theme: 'bootstrap-5', width: '100%' });
+
+            // 1. CARGAR PRECIO INICIAL (Corrección)
+            var valorOculto = document.getElementById("hdnMontoOriginal").value;
+            // Aseguramos que sea un número válido
+            if(valorOculto) {
+                costoBase = parseFloat(valorOculto);
+            }
+
+            // 2. Estado inicial de la interfaz
+            toggleMetodoPago();
+            calcularTotal(); // Recalcular visualmente para confirmar
+        });
+
+        function actualizarPrecio() {
+            var idActividad = document.getElementById("selectActividad").value;
+            if (idActividad) {
+                fetch('/Inscripciones/ObtenerInfoActividad?id=' + idActividad)
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data) {
+                            costoBase = data.costo;
+                            document.getElementById("txtCostoBase").value = costoBase.toFixed(2);
+                            calcularTotal(); 
+                        }
+                    });
+            } else {
+                costoBase = 0;
+                document.getElementById("txtCostoBase").value = "0.00";
+                calcularTotal();
+            }
+        }
+
+        function calcularTotal() {
+            var tipoDescuento = document.getElementById("selectDescuento").value;
+            var estadoSelect = document.getElementById("selectEstado");
+            var total = costoBase;
+
+            if (tipoDescuento === "Hermanos") {
+                total = total * 0.90;
+                estadoSelect.disabled = false;
+            } else if (tipoDescuento === "Referido") {
+                total = total * 0.95;
+                estadoSelect.disabled = false;
+            } else if (tipoDescuento === "Beca") {
+                total = 0;
+            }
+            document.getElementById("lblTotal").innerText = simboloMoneda + " " + total.toFixed(2);
+        }
+
+        function toggleMetodoPago() {
+            var estado = document.getElementById("selectEstado").value;
+            var metodo = document.getElementById("selectMetodo");
+
+            if (estado === "Pagado") {
+                metodo.disabled = false;
+                metodo.required = true;
+                metodo.classList.add("bg-white");
+            } else {
+                metodo.disabled = true;
+                // No borramos el valor para que al editar no se pierda si solo cambiamos fecha
+                metodo.classList.remove("bg-white");
+            }
+        }
+    </script>
+}

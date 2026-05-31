@@ -1,0 +1,194 @@
+@page "/tesoreria/pagos/nuevo"
+@using ERP.Application.Features.Tesoreria.Pagos
+@using ERP.Domain.Enums
+@using MediatR
+@using MudBlazor
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Registrar Pago — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">
+            💳 Registrar Pago
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">
+            Registra el pago de una deuda pendiente o vencida
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+               Color="MudBlazor.Color.Default" Href="/tesoreria/pagos">
+        Volver a Pagos
+    </MudButton>
+</MudStack>
+
+<MudGrid>
+    <!-- Formulario principal -->
+    <MudItem xs="12" md="7">
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Datos del Pago</MudText>
+
+            <!-- Selector de deuda -->
+            <MudSelect T="DeudaListDto" @bind-Value="_deudaSeleccionada"
+                       Label="Deuda a pagar" Variant="Variant.Outlined" Class="mb-4"
+                       ToStringFunc="@(d => d == null ? "" : $"{d.NumeroDeuda} — {d.Estudiante} | {d.Concepto}")"
+                       HelperText="Selecciona la deuda pendiente o vencida">
+                @foreach (var d in _deudasPendientes)
+                {
+                    <MudSelectItem Value="@d">
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@(d.Estado == EstadoPago.Vencido ? Icons.Material.Filled.Warning : Icons.Material.Filled.Payment)"
+                                     Color="@(d.Estado == EstadoPago.Vencido ? MudBlazor.Color.Error : MudBlazor.Color.Warning)"
+                                     Size="MudBlazor.Size.Small" />
+                            <span><strong>@d.NumeroDeuda</strong> — @d.Estudiante</span>
+                            <MudSpacer />
+                            <span style="color:#6B7280; font-size:0.85rem;">@d.Concepto &nbsp; S/ @((d.MontoOriginal + d.MontoMora).ToString("N2"))</span>
+                        </MudStack>
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_dto.MontoPagado" Label="Monto a Pagar (S/)"
+                                     Format="N2" Min="0.01M" Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start" AdornmentText="S/" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="TipoPago" @bind-Value="_dto.TipoPago" Label="Tipo de Pago" Variant="Variant.Outlined">
+                        @foreach (TipoPago tipo in Enum.GetValues(typeof(TipoPago)))
+                        {
+                            <MudSelectItem Value="@tipo">@tipo.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_dto.NumeroOperacion" Label="N° Operación / Voucher"
+                                  Variant="Variant.Outlined" HelperText="Requerido para transferencias/QR" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_dto.Banco" Label="Banco / Entidad"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_dto.Observaciones" Label="Observaciones"
+                                  Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Panel de resumen -->
+    <MudItem xs="12" md="5">
+        <MudPaper Elevation="2" Class="pa-6" Style="border-radius:16px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Resumen de la Deuda</MudText>
+
+            @if (_deudaSeleccionada != null)
+            {
+                <MudStack Spacing="3">
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Style="color:#6B7280;">Deuda N°</MudText>
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">@_deudaSeleccionada.NumeroDeuda</MudText>
+                    </MudStack>
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Style="color:#6B7280;">Estudiante</MudText>
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">@_deudaSeleccionada.Estudiante</MudText>
+                    </MudStack>
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Style="color:#6B7280;">Concepto</MudText>
+                        <MudText Typo="Typo.body2">@_deudaSeleccionada.Concepto</MudText>
+                    </MudStack>
+                    <MudDivider />
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Style="color:#6B7280;">Monto Original</MudText>
+                        <MudText Typo="Typo.body2">S/ @_deudaSeleccionada.MontoOriginal.ToString("N2")</MudText>
+                    </MudStack>
+                    @if (_deudaSeleccionada.MontoMora > 0)
+                    {
+                        <MudStack Row Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body2" Style="color:#EF4444;">Mora</MudText>
+                            <MudText Typo="Typo.body2" Style="color:#EF4444;">+ S/ @_deudaSeleccionada.MontoMora.ToString("N2")</MudText>
+                        </MudStack>
+                    }
+                    <MudDivider />
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body1" Style="font-weight:700;">Total a Pagar</MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight:700; color:#6B21A8;">
+                            S/ @((_deudaSeleccionada.MontoOriginal + _deudaSeleccionada.MontoMora).ToString("N2"))
+                        </MudText>
+                    </MudStack>
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Style="color:#6B7280;">Vencimiento</MudText>
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Color="@(_deudaSeleccionada.Estado == EstadoPago.Vencido ? MudBlazor.Color.Error : MudBlazor.Color.Warning)">
+                            @_deudaSeleccionada.FechaVencimiento.ToString("dd/MM/yyyy")
+                        </MudChip>
+                    </MudStack>
+                </MudStack>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Selecciona una deuda para ver el resumen.
+                </MudAlert>
+            }
+
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" FullWidth="true"
+                       Size="MudBlazor.Size.Large" OnClick="ConfirmarPago"
+                       Style="border-radius:10px; margin-top:24px;"
+                       Disabled="@(_procesando || _deudaSeleccionada == null)">
+                @if (_procesando)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Procesando...</MudText>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="me-2" />
+                    <MudText>Confirmar Pago</MudText>
+                }
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private bool _procesando = false;
+    private List<DeudaListDto> _deudasPendientes = new();
+    private DeudaListDto? _deudaSeleccionada;
+    private CreatePagoDto _dto = new() { TipoPago = TipoPago.Efectivo, MontoPagado = 0 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _deudasPendientes = await Mediator.Send(new GetDeudasPendientesQuery());
+    }
+
+    private async Task ConfirmarPago()
+    {
+        if (_deudaSeleccionada == null) return;
+        _procesando = true;
+        try
+        {
+            _dto.DeudaId = _deudaSeleccionada.Id;
+            if (_dto.MontoPagado <= 0)
+                _dto.MontoPagado = _deudaSeleccionada.MontoOriginal + _deudaSeleccionada.MontoMora;
+
+            await Mediator.Send(new CreatePagoCommand { Pago = _dto });
+            Snackbar.Add("✅ Pago registrado exitosamente", Severity.Success);
+            Navigation.NavigateTo("/tesoreria/pagos");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"❌ Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}

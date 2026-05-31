@@ -1,0 +1,261 @@
+@page "/"
+@attribute [Authorize]
+@inject IDashboardService DashboardSvc
+
+<PageTitle>Dashboard - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Dashboard Ejecutivo</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Vista general en tiempo real del taller — @DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy")</MudText>
+    </div>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Nav.NavigateTo("/recepcion/nueva"))">Nueva Recepción</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PointOfSale"
+                   OnClick="@(() => Nav.NavigateTo("/facturacion"))">Cobrar</MudButton>
+    </div>
+</div>
+
+@if (kpi == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <!-- KPI Cards Row -->
+    <MudGrid Spacing="3" Class="mb-3">
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Titulo="Vehículos en Taller" Valor="@kpi.VehiculosEnTaller.ToString()"
+                     Subtexto="@($"{kpi.OrdenesAbiertas} órdenes abiertas")"
+                     Icon="@Icons.Material.Filled.DirectionsCar" Color="primary" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Titulo="Ingresos del día" Valor="@($"S/. {kpi.IngresosHoy:N0}")"
+                     Subtexto="@($"Ticket prom. S/. {kpi.TicketPromedio:N0}")"
+                     Icon="@Icons.Material.Filled.AttachMoney" Color="success" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Titulo="Citas hoy" Valor="@kpi.CitasHoy.ToString()"
+                     Subtexto="@($"{kpi.TecnicosActivos} técnicos activos")"
+                     Icon="@Icons.Material.Filled.CalendarMonth" Color="info" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <KpiCard Titulo="Alertas críticas" Valor="@((kpi.RepuestosBajoStock + kpi.FacturasVencidas).ToString())"
+                     Subtexto="@($"{kpi.RepuestosBajoStock} stock bajo · {kpi.FacturasVencidas} fact. vencidas")"
+                     Icon="@Icons.Material.Filled.Warning" Color="warning" />
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3">
+        <!-- Columna izquierda: tabla de OTs y métricas -->
+        <MudItem xs="12" lg="8">
+            <MudPaper Class="pa-5" Elevation="0" Style="border-radius:12px;">
+                <div class="d-flex align-center justify-space-between mb-4">
+                    <MudText Typo="Typo.h6" Class="fw-bold">Órdenes recientes</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward"
+                               OnClick="@(() => Nav.NavigateTo("/ordenes"))">Ver todas</MudButton>
+                </div>
+                @if (ordenes != null && ordenes.Any())
+                {
+                    <div class="ot-progress-list">
+                        @foreach (var ot in ordenes)
+                        {
+                            var pct = EstadoToPct(ot.Estado);
+                            <div class="ot-row">
+                                <div class="ot-row-left">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ot.Numero</MudText>
+                                    <MudText Typo="Typo.body2" Class="fw-medium">@ot.Vehiculo · @ot.Placa</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ot.Cliente</MudText>
+                                </div>
+                                <div class="ot-row-bar">
+                                    <MudProgressLinear Color="@EstadoToColor(ot.Estado)" Value="@pct"
+                                                       Class="ot-progress" Style="height:10px;border-radius:6px;" />
+                                </div>
+                                <div class="ot-row-right">
+                                    <MudChip T="string" Size="Size.Small" Color="@EstadoToColor(ot.Estado)" Variant="Variant.Filled">@ot.Estado</MudChip>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        No hay órdenes registradas todavía. <MudLink Href="/recepcion/nueva">Crea la primera</MudLink>.
+                    </MudAlert>
+                }
+
+                <MudDivider Class="my-5" />
+
+                <div class="dashboard-totals d-flex justify-space-around text-center flex-wrap">
+                    <div>
+                        <MudText Typo="Typo.h4" Class="fw-bold" Style="color:#1F2C50">@kpi.OrdenesTerminadasHoy</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Terminadas hoy</MudText>
+                    </div>
+                    <MudDivider Vertical="true" FlexItem="true" />
+                    <div>
+                        <MudText Typo="Typo.h4" Class="fw-bold" Style="color:#1F2C50">S/. @kpi.IngresosHoy.ToString("N0")</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Ingresos del día</MudText>
+                    </div>
+                    <MudDivider Vertical="true" FlexItem="true" />
+                    <div>
+                        <MudText Typo="Typo.h4" Class="fw-bold" Style="color:#1F2C50">S/. @kpi.MontoFacturasVencidas.ToString("N0")</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Facturas vencidas</MudText>
+                    </div>
+                </div>
+            </MudPaper>
+
+            <!-- Tendencia + Calendario -->
+            <MudGrid Class="mt-3" Spacing="3">
+                <MudItem xs="12" md="5">
+                    <MudPaper Class="pa-5" Elevation="0" Style="border-radius:12px;height:100%;">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">DICIEMBRE</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold mb-2">S/. @kpi.IngresosHoy.ToString("N3")</MudText>
+                        <div class="mini-mountain mb-3">
+                            <svg viewBox="0 0 300 100" width="100%" height="80">
+                                <polygon points="0,100 60,40 110,75 170,25 230,60 300,30 300,100" fill="#F4A93C" opacity="0.7" />
+                                <polygon points="0,100 80,55 140,80 200,40 260,65 300,50 300,100" fill="#2BB59A" opacity="0.7" />
+                                <polygon points="0,100 50,70 110,90 180,60 260,80 300,70 300,100" fill="#1F2C50" opacity="0.6" />
+                            </svg>
+                        </div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Métricas operativas del mes en curso.
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="7">
+                    <MudPaper Class="pa-5" Elevation="0" Style="border-radius:12px;height:100%;">
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">@DateTime.Now.ToString("MMMM").ToUpper()</MudText>
+                            <div>
+                                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                            </div>
+                        </div>
+                        <MiniCalendario />
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudPaper Class="pa-5" Elevation="0" Style="border-radius:12px;">
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.h6" Class="fw-bold">Tendencia semanal de facturación</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Últimos 7 días</MudText>
+                        </div>
+                        @if (semana != null && semana.Any())
+                        {
+                            <BarChartTendencia Datos="semana" />
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+        <!-- Columna derecha: KPIs circulares + alertas -->
+        <MudItem xs="12" lg="4">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" lg="12">
+                    <KpiCircular Titulo="Tasa de retención" Porcentaje="@((int)kpi.TasaRetencion)" RingColor="#3FA9F5" />
+                </MudItem>
+                <MudItem xs="12" sm="6" lg="12">
+                    <KpiCircular Titulo="% OTs a tiempo" Porcentaje="75" RingColor="#2BB59A" />
+                </MudItem>
+                <MudItem xs="12" sm="12" lg="12">
+                    <KpiCircular Titulo="Satisfacción del cliente" Porcentaje="99" RingColor="#F4A93C" />
+                </MudItem>
+            </MudGrid>
+
+            <MudPaper Class="pa-4 mt-3" Elevation="0" Style="border-radius:12px;">
+                <div class="d-flex align-center justify-space-between mb-3">
+                    <MudText Typo="Typo.h6" Class="fw-bold">Alertas accionables</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">@(alertas?.Count ?? 0)</MudChip>
+                </div>
+                @if (alertas != null && alertas.Any())
+                {
+                    @foreach (var a in alertas.Take(6))
+                    {
+                        <MudAlert Severity="@(SeverityFromString(a.Severidad))" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                            <MudText Typo="Typo.body2" Class="fw-medium">@a.Titulo</MudText>
+                            <MudText Typo="Typo.caption">@a.Mensaje</MudText>
+                        </MudAlert>
+                    }
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">Todo en orden, sin alertas críticas.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
+    private DashboardKpiDto? kpi;
+    private List<TendenciaItemDto>? semana;
+    private List<TendenciaItemDto>? mes;
+    private List<AlertaDto>? alertas;
+    private List<OrdenTrabajoResumenDto>? ordenes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            var t1 = DashboardSvc.ObtenerKpisAsync();
+            var t2 = DashboardSvc.ObtenerTendenciaSemanalAsync();
+            var t3 = DashboardSvc.ObtenerTendenciaMensualAsync();
+            var t4 = DashboardSvc.ObtenerAlertasAsync();
+            var t5 = DashboardSvc.ObtenerOrdenesRecientesAsync(6);
+            await Task.WhenAll(t1, t2, t3, t4, t5);
+            kpi = t1.Result;
+            semana = t2.Result;
+            mes = t3.Result;
+            alertas = t4.Result;
+            ordenes = t5.Result;
+        }
+        catch
+        {
+            kpi = new DashboardKpiDto();
+            semana = new(); mes = new(); alertas = new(); ordenes = new();
+        }
+    }
+
+    private static int EstadoToPct(string estado) => estado switch
+    {
+        "Recibido" => 15,
+        "EnDiagnostico" => 30,
+        "EnReparacion" => 55,
+        "EnEsperaRepuesto" => 45,
+        "ControlCalidad" => 80,
+        "Listo" => 95,
+        "Entregado" => 100,
+        _ => 10
+    };
+
+    private static Color EstadoToColor(string estado) => estado switch
+    {
+        "Entregado" => Color.Success,
+        "Listo" => Color.Success,
+        "ControlCalidad" => Color.Info,
+        "EnReparacion" => Color.Primary,
+        "EnEsperaRepuesto" => Color.Warning,
+        "Cancelado" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Severity SeverityFromString(string s) => s switch
+    {
+        "error" => Severity.Error,
+        "warning" => Severity.Warning,
+        "success" => Severity.Success,
+        _ => Severity.Info
+    };
+}

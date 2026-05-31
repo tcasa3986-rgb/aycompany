@@ -1,0 +1,135 @@
+@model SistemaGestionAcademias.Models.Configuracion
+
+@{
+    ViewData["Title"] = "Configuración del Sistema";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10">
+        <form asp-action="Guardar" enctype="multipart/form-data">
+            <input type="hidden" asp-for="Id" />
+            
+            <div class="card shadow border-0">
+                <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-gear-wide-connected"></i> Configuración General</h4>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">
+                        <i class="bi bi-save-fill"></i> Guardar Cambios
+                    </button>
+                </div>
+                
+                <div class="card-body bg-light p-4">
+                    
+                    <div class="row">
+                        <div class="col-md-4 text-center border-end">
+                            <h6 class="fw-bold text-muted mb-3">Identidad Visual</h6>
+                            
+                            <div class="mb-3">
+                                <div class="p-3 bg-white border rounded d-inline-block shadow-sm">
+                                    @if (!string.IsNullOrEmpty(Model.LogoUrl))
+                                    {
+                                        <img id="previewLogo" src="~/imagenes/@Model.LogoUrl" style="max-width: 150px; max-height: 150px;" />
+                                    }
+                                    else
+                                    {
+                                        <img id="previewLogo" src="#" style="display:none; max-width: 150px;" />
+                                        <div id="placeholderLogo" class="text-muted py-4">
+                                            <i class="bi bi-image display-4"></i><br>Sin Logo
+                                        </div>
+                                    }
+                                </div>
+                                <div class="mt-2">
+                                    <label for="logoInput" class="btn btn-sm btn-outline-dark">
+                                        <i class="bi bi-upload"></i> Subir Logo
+                                    </label>
+                                    <input type="file" id="logoInput" name="logo" class="d-none" accept="image/*" onchange="previewImage(this)" />
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <h6 class="fw-bold text-muted mb-3">Regionalización</h6>
+                            
+                            <div class="mb-3 text-start">
+                                <label asp-for="MonedaSimbolo" class="form-label fw-bold">Símbolo de Moneda</label>
+                                <select asp-for="MonedaSimbolo" class="form-select border-success fw-bold text-success">
+                                    <option value="S/.">S/. (Soles)</option>
+                                    <option value="$">$ (Dólares USD)</option>
+                                    <option value="€">€ (Euros)</option>
+                                    <option value="MXN$">MXN$ (Pesos MX)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3 text-start">
+                                <label asp-for="ZonaHorariaId" class="form-label fw-bold">Zona Horaria</label>
+                                <select asp-for="ZonaHorariaId" asp-items="ViewBag.ZonasHorarias" class="form-select"></select>
+                                <small class="text-muted">Afecta a los reportes y registros de fecha.</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-8 ps-md-4">
+                            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-building"></i> Datos de la Institución</h6>
+
+                            <div class="mb-3">
+                                <label asp-for="NombreEmpresa" class="form-label fw-bold">Nombre de la Academia / Empresa</label>
+                                <input asp-for="NombreEmpresa" class="form-control form-control-lg" placeholder="Ej: Academia VITO" />
+                                <span asp-validation-for="NombreEmpresa" class="text-danger small"></span>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Telefono" class="form-label fw-bold">Teléfono de Contacto</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+                                        <input asp-for="Telefono" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="CorreoContacto" class="form-label fw-bold">Correo Institucional</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white"><i class="bi bi-envelope"></i></span>
+                                        <input asp-for="CorreoContacto" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Direccion" class="form-label fw-bold">Dirección Física</label>
+                                <textarea asp-for="Direccion" class="form-control" rows="2"></textarea>
+                            </div>
+                            
+                            <div class="alert alert-info d-flex align-items-center mt-4">
+                                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                                <div>
+                                    <strong>Nota:</strong> Estos datos aparecerán automáticamente en las constancias de matrícula, el menú lateral y los reportes financieros.
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Script para previsualizar el logo
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#previewLogo').attr('src', e.target.result).show();
+                    $('#placeholderLogo').hide();
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Activar buscador para la zona horaria (son muchas opciones)
+        $(document).ready(function() {
+            $('select').select2({ theme: 'bootstrap-5', width: '100%' });
+        });
+    </script>
+}

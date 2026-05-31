@@ -1,0 +1,310 @@
+@page "/agenda"
+@attribute [Authorize]
+@inject IWorkshopService WorkshopSvc
+@inject ICustomerService CustomerSvc
+@inject IDialogService DialogSvc
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Agenda - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Agenda y Citas</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Programación de citas del taller</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevaCita">Nueva cita</MudButton>
+</div>
+
+<MudPaper Class="pa-4 mb-3" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center justify-space-between mb-3">
+        <div class="d-flex align-center gap-2">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="SemanaAnterior" />
+            <MudText Typo="Typo.h6" Class="fw-medium">@TituloSemana()</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="SemanaSiguiente" />
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="IrAHoy" Class="ml-2">Hoy</MudButton>
+        </div>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@citas.Count cita(s) en la semana</MudText>
+    </div>
+
+    <div class="agenda-grid">
+        <div class="agenda-time-col"></div>
+        @for (int i = 0; i < 7; i++)
+        {
+            var dia = inicioSemana.AddDays(i);
+            var esHoy = dia.Date == DateTime.Today;
+            <div class="agenda-day-header @(esHoy ? "agenda-day-header--today" : "")">
+                <MudText Typo="Typo.caption">@dia.ToString("ddd").ToUpper()</MudText>
+                <MudText Typo="Typo.h6" Class="fw-bold">@dia.Day</MudText>
+            </div>
+        }
+
+        @for (int hora = 8; hora < 19; hora++)
+        {
+            <div class="agenda-time">@hora:00</div>
+            @for (int i = 0; i < 7; i++)
+            {
+                var dia = inicioSemana.AddDays(i);
+                var slotInicio = dia.Date.AddHours(hora);
+                var citasSlot = citas.Where(c => c.FechaHora >= slotInicio && c.FechaHora < slotInicio.AddHours(1)).ToList();
+                <div class="agenda-cell" @onclick="() => NuevaCitaSlot(slotInicio)">
+                    @foreach (var c in citasSlot)
+                    {
+                        <div class="agenda-cita @CitaClase(c.Estado)" @onclick:stopPropagation @onclick="() => EditarCita(c)">
+                            <MudText Typo="Typo.caption" Class="fw-bold">@c.FechaHora.ToString("HH:mm")</MudText>
+                            <MudText Typo="Typo.caption">@c.Cliente</MudText>
+                            @if (!string.IsNullOrEmpty(c.Vehiculo))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@c.Placa</MudText>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</MudPaper>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <MudText Typo="Typo.h6" Class="fw-bold mb-3">Próximas citas (lista)</MudText>
+    <MudTable Items="@citasOrdenadas" Hover="true" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Fecha y hora</MudTh>
+            <MudTh>Cliente</MudTh>
+            <MudTh>Vehículo</MudTh>
+            <MudTh>Servicio</MudTh>
+            <MudTh>Técnico</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudText Typo="Typo.body2" Class="fw-medium">@context.FechaHora.ToString("dd/MM HH:mm")</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.DuracionMinutos min</MudText>
+            </MudTd>
+            <MudTd>@context.Cliente</MudTd>
+            <MudTd>@(context.Vehiculo ?? "—") <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-inline">@(context.Placa)</MudText></MudTd>
+            <MudTd>@(context.Servicio ?? "—")</MudTd>
+            <MudTd>@(context.Tecnico ?? "—")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@EstadoColor(context.Estado)" Variant="Variant.Filled">@context.Estado</MudChip>
+                @if (context.OrdenTrabajoId.HasValue)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="ml-1">OT generada</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (!context.OrdenTrabajoId.HasValue && context.Estado != EstadoCita.Cancelada)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Color="Color.Success"
+                                   OnClick="() => ConvertirEnOT(context)" Title="Convertir en OT" />
+                }
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => EditarCita(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="() => EliminarCita(context)" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">No hay citas en la semana seleccionada</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+<style>
+    .agenda-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        background: var(--c-border);
+        gap: 1px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .agenda-time-col, .agenda-day-header, .agenda-time, .agenda-cell {
+        background: #fff;
+        padding: 8px;
+        min-height: 56px;
+    }
+    .agenda-day-header {
+        text-align: center;
+        background: #F8FAFD;
+        border-bottom: 2px solid var(--c-border);
+    }
+    .agenda-day-header--today {
+        background: rgba(43,181,154,0.1) !important;
+        color: var(--c-secondary);
+    }
+    .agenda-time {
+        background: #F8FAFD;
+        text-align: right;
+        font-size: 0.78rem;
+        color: var(--c-text-soft);
+        padding-right: 12px;
+    }
+    .agenda-cell {
+        cursor: pointer;
+        transition: background 0.15s;
+        position: relative;
+    }
+    .agenda-cell:hover {
+        background: #F4F6FA;
+    }
+    .agenda-cita {
+        background: var(--c-primary);
+        color: #fff;
+        border-radius: 6px;
+        padding: 4px 6px;
+        margin-bottom: 3px;
+        cursor: pointer;
+        line-height: 1.3;
+        border-left: 3px solid #fff;
+    }
+    .agenda-cita .mud-typography {
+        color: #fff !important;
+    }
+    .agenda-cita.cita--confirmada { background: var(--c-secondary); }
+    .agenda-cita.cita--atendida { background: #6c757d; opacity: 0.7; }
+    .agenda-cita.cita--cancelada { background: var(--c-error); opacity: 0.5; }
+</style>
+
+@code {
+    private DateTime inicioSemana;
+    private DateTime finSemana;
+    private List<CitaListDto> citas = new();
+
+    private List<CitaListDto> citasOrdenadas => citas.OrderBy(c => c.FechaHora).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        IrAHoyInternal();
+        await CargarCitasAsync();
+    }
+
+    private void IrAHoyInternal()
+    {
+        var hoy = DateTime.Today;
+        var diaSemana = (int)hoy.DayOfWeek; // 0 = domingo
+        inicioSemana = hoy.AddDays(-diaSemana);
+        finSemana = inicioSemana.AddDays(7);
+    }
+
+    private async Task CargarCitasAsync()
+    {
+        citas = await WorkshopSvc.ListarCitasAsync(inicioSemana, finSemana);
+    }
+
+    private async Task IrAHoy()
+    {
+        IrAHoyInternal();
+        await CargarCitasAsync();
+    }
+
+    private async Task SemanaAnterior()
+    {
+        inicioSemana = inicioSemana.AddDays(-7);
+        finSemana = finSemana.AddDays(-7);
+        await CargarCitasAsync();
+    }
+
+    private async Task SemanaSiguiente()
+    {
+        inicioSemana = inicioSemana.AddDays(7);
+        finSemana = finSemana.AddDays(7);
+        await CargarCitasAsync();
+    }
+
+    private string TituloSemana()
+    {
+        var fin = inicioSemana.AddDays(6);
+        return $"{inicioSemana:dd MMM} — {fin:dd MMM yyyy}";
+    }
+
+    private async Task NuevaCita() => await AbrirDialogoCita(new CitaFormDto());
+
+    private async Task NuevaCitaSlot(DateTime slot) => await AbrirDialogoCita(new CitaFormDto { FechaHora = slot });
+
+    private async Task EditarCita(CitaListDto c)
+    {
+        var dto = await WorkshopSvc.ObtenerCitaAsync(c.Id);
+        if (dto != null) await AbrirDialogoCita(dto);
+    }
+
+    private async Task AbrirDialogoCita(CitaFormDto dto)
+    {
+        var clientes = await CustomerSvc.ListarTodosClientesAsync();
+        var servicios = await WorkshopSvc.ListarServiciosAsync();
+        var tecnicos = await WorkshopSvc.ListarTecnicosAsync();
+
+        var parametros = new DialogParameters
+        {
+            ["Cita"] = dto,
+            ["Clientes"] = clientes,
+            ["Servicios"] = servicios,
+            ["Tecnicos"] = tecnicos
+        };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<CitaFormDialog>(dto.Id == 0 ? "Nueva cita" : "Editar cita", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add(dto.Id == 0 ? "Cita creada" : "Cita actualizada", Severity.Success);
+            await CargarCitasAsync();
+        }
+    }
+
+    private async Task ConvertirEnOT(CitaListDto c)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Convertir en OT",
+            $"¿Generar una Orden de Trabajo a partir de la cita de {c.Cliente}?",
+            yesText: "Sí, generar OT", cancelText: "Cancelar");
+        if (confirmar != true) return;
+
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var usuario = auth.User.Identity?.Name;
+            var otId = await WorkshopSvc.ConvertirCitaEnOTAsync(c.Id, usuario);
+            Snackbar.Add("OT generada correctamente", Severity.Success);
+            Nav.NavigateTo($"/ordenes/{otId}");
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task EliminarCita(CitaListDto c)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Confirmar",
+            $"¿Cancelar la cita de {c.Cliente} del {c.FechaHora:dd/MM HH:mm}?",
+            yesText: "Sí, cancelar", cancelText: "Volver");
+        if (confirmar == true)
+        {
+            try
+            {
+                await WorkshopSvc.EliminarCitaAsync(c.Id);
+                Snackbar.Add("Cita cancelada", Severity.Info);
+                await CargarCitasAsync();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private static Color EstadoColor(EstadoCita e) => e switch
+    {
+        EstadoCita.Pendiente => Color.Default,
+        EstadoCita.Confirmada => Color.Success,
+        EstadoCita.EnEspera => Color.Warning,
+        EstadoCita.Atendida => Color.Info,
+        EstadoCita.Cancelada => Color.Error,
+        EstadoCita.NoAsistio => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string CitaClase(EstadoCita e) => e switch
+    {
+        EstadoCita.Confirmada => "cita--confirmada",
+        EstadoCita.Atendida => "cita--atendida",
+        EstadoCita.Cancelada => "cita--cancelada",
+        _ => ""
+    };
+}

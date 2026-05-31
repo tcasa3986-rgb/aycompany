@@ -1,0 +1,39 @@
+@using MudBlazor
+
+<MudPaper Elevation="3" Style="@($"border-radius:16px; padding:20px; background:{ColorFondo}; color:white; position:relative; overflow:hidden;")">
+    <!-- Círculo decorativo de fondo -->
+    <div style="position:absolute; right:-20px; top:-20px; width:100px; height:100px;
+                border-radius:50%; background:rgba(255,255,255,0.1);"></div>
+    <div style="position:absolute; right:20px; bottom:-30px; width:80px; height:80px;
+                border-radius:50%; background:rgba(255,255,255,0.07);"></div>
+
+    <MudStack Spacing="1">
+        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.body2" Style="color:rgba(255,255,255,0.85); font-weight:600; font-size:0.78rem; letter-spacing:0.5px; text-transform:uppercase;">
+                @Titulo
+            </MudText>
+            <MudIcon Icon="@Icono" Style="color:rgba(255,255,255,0.7); font-size:1.8rem;" />
+        </MudStack>
+
+        <MudText Typo="Typo.h4" Style="color:white; font-weight:800; margin:4px 0;">
+            @Valor
+        </MudText>
+
+        <MudStack Row AlignItems="AlignItems.Center" Spacing="0">
+            <MudIcon Icon="@(TendenciaPositiva ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                     Style="@($"color:{(TendenciaPositiva ? "#D1FAE5" : "#FEE2E2")}; font-size:1rem;")" />
+            <MudText Style="@($"color:{(TendenciaPositiva ? "#D1FAE5" : "#FEE2E2")}; font-size:0.78rem; font-weight:600;")">
+                &nbsp;@Tendencia vs mes anterior
+            </MudText>
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public string Titulo { get; set; } = "";
+    [Parameter] public string Valor { get; set; } = "";
+    [Parameter] public string Icono { get; set; } = "";
+    [Parameter] public string ColorFondo { get; set; } = "linear-gradient(135deg,#6B21A8,#7C3AED)";
+    [Parameter] public string Tendencia { get; set; } = "";
+    [Parameter] public bool TendenciaPositiva { get; set; } = true;
+}

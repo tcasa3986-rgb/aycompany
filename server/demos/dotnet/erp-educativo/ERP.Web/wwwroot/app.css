@@ -1,0 +1,144 @@
+/* ═══════════════════════════════════════════════════════════
+   ERP EDUCATIVO — Global CSS
+   Paleta: Violeta #6B21A8 | Naranja #F97316 | Fondo #F3F4F8
+═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    background-color: #F3F4F8;
+    color: #1E1B4B;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ─── SCROLLBAR ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F3F4F8; }
+::-webkit-scrollbar-thumb { background: #C4B5FD; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #6B21A8; }
+
+/* ─── SIDEBAR NAV ───────────────────────────────────────── */
+.mud-nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    border-radius: 10px !important;
+    margin: 2px 10px !important;
+    transition: all 0.2s ease !important;
+}
+
+.mud-nav-link:hover {
+    background: rgba(249, 115, 22, 0.2) !important;
+    color: white !important;
+    transform: translateX(4px);
+}
+
+.nav-item-active {
+    background: linear-gradient(135deg, #F97316, #FB923C) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4) !important;
+}
+
+.mud-nav-group-title {
+    color: rgba(255,255,255,0.9) !important;
+    font-weight: 600 !important;
+}
+
+/* ─── CARDS Y PAPERS ────────────────────────────────────── */
+.mud-paper {
+    border-radius: 16px !important;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mud-paper:hover {
+    box-shadow: 0 8px 30px rgba(107, 33, 168, 0.12) !important;
+}
+
+/* ─── BOTONES ───────────────────────────────────────────── */
+.mud-button-filled {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+}
+
+.mud-button-filled.mud-button-filled-primary {
+    background: linear-gradient(135deg, #6B21A8, #7C3AED) !important;
+    box-shadow: 0 4px 15px rgba(107, 33, 168, 0.3) !important;
+}
+
+.mud-button-filled.mud-button-filled-primary:hover {
+    box-shadow: 0 6px 20px rgba(107, 33, 168, 0.45) !important;
+    transform: translateY(-1px);
+}
+
+/* ─── TABLAS ────────────────────────────────────────────── */
+.mud-table-head .mud-table-cell {
+    background: #F8F7FF !important;
+    color: #6B21A8 !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mud-table-row:hover > .mud-table-cell {
+    background: #FAF5FF !important;
+}
+
+/* ─── CHIPS ─────────────────────────────────────────────── */
+.mud-chip {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.72rem !important;
+}
+
+/* ─── INPUTS ────────────────────────────────────────────── */
+.mud-input-outlined .mud-input-outlined-border {
+    border-color: #DDD6FE !important;
+    border-radius: 10px !important;
+}
+
+.mud-input-outlined:hover .mud-input-outlined-border {
+    border-color: #6B21A8 !important;
+}
+
+/* ─── APPBAR ────────────────────────────────────────────── */
+.mud-appbar {
+    box-shadow: 0 2px 20px rgba(107, 33, 168, 0.3) !important;
+}
+
+/* ─── DRAWER ────────────────────────────────────────────── */
+.mud-drawer {
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ─── ALERTS ────────────────────────────────────────────── */
+.mud-alert {
+    border-radius: 12px !important;
+    border-left: 4px solid !important;
+}
+
+/* ─── ANIMACIONES ───────────────────────────────────────── */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.mud-paper, .mud-card {
+    animation: fadeInUp 0.3s ease forwards;
+}
+
+/* ─── BADGE ─────────────────────────────────────────────── */
+.mud-badge-content {
+    font-weight: 700 !important;
+    font-size: 0.65rem !important;
+}
+
+/* ─── TEXTO TRUNCADO ────────────────────────────────────── */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -1,0 +1,87 @@
+@model SistemaGestionAcademias.Models.CajaDiaria
+@inject SistemaGestionAcademias.Services.ConfiguracionService ConfigService
+@{
+    ViewData["Title"] = "Cierre de Caja";
+    var config = await ConfigService.ObtenerConfiguracion();
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-dark text-white py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-lock-fill"></i> Cierre de Caja del Día</h4>
+            </div>
+            <div class="card-body bg-white p-4">
+                
+                <div class="alert alert-info d-flex align-items-center mb-4 border-info">
+                    <i class="bi bi-calculator-fill fs-2 me-3 text-info"></i>
+                    <div>
+                        <div class="small text-uppercase fw-bold opacity-75">Cálculo del Sistema</div>
+                        <div>
+                            Deberías tener 
+                            <strong class="fs-4 text-dark">@config.MonedaSimbolo @Model.MontoFinalCalculado.ToString("N2")</strong>
+                            en efectivo físico.
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="ConfirmarCierre">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" id="hdnTeorico" value="@Model.MontoFinalCalculado.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary">Monto Real en Efectivo (Conteo Físico)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light fw-bold">@config.MonedaSimbolo</span>
+                            <input type="number" name="MontoFinalReal" id="txtReal" class="form-control fw-bold fs-3 text-center" step="0.01" required oninput="calcularDiferencia()" placeholder="0.00" autofocus/>
+                        </div>
+                        <div class="mt-2 text-center" id="lblResultado">
+                            <span class="text-muted small">Ingrese el monto contado para verificar cuadre.</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary">Observaciones del Cierre</label>
+                        <textarea name="Observaciones" class="form-control" rows="3" placeholder="Ej: Todo conforme, faltan céntimos por redondeo, billete falso, etc."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-dark btn-lg fw-bold shadow-sm">
+                            <i class="bi bi-check-circle-fill me-2"></i> CONFIRMAR CIERRE
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calcularDiferencia() {
+        // Obtenemos valores asegurando formato numérico
+        var valorTeorico = document.getElementById("hdnTeorico").value;
+        var valorReal = document.getElementById("txtReal").value;
+
+        if (!valorReal) {
+            document.getElementById("lblResultado").innerHTML = "<span class='text-muted small'>Ingrese el monto contado para verificar cuadre.</span>";
+            return;
+        }
+
+        var teorico = parseFloat(valorTeorico);
+        var real = parseFloat(valorReal);
+        var moneda = '@config.MonedaSimbolo';
+        var lbl = document.getElementById("lblResultado");
+
+        var diferencia = real - teorico;
+
+        // Tolerancia pequeña para errores de flotantes
+        if (Math.abs(diferencia) < 0.01) {
+            lbl.innerHTML = "<div class='alert alert-success py-2 mt-2 mb-0 fw-bold'><i class='bi bi-check-circle-fill'></i> ¡Cuadre Perfecto!</div>";
+        } else if (diferencia > 0) {
+            lbl.innerHTML = "<div class='alert alert-primary py-2 mt-2 mb-0 fw-bold'><i class='bi bi-plus-circle-fill'></i> Sobra dinero: " + moneda + " " + diferencia.toFixed(2) + "</div>";
+        } else {
+            lbl.innerHTML = "<div class='alert alert-danger py-2 mt-2 mb-0 fw-bold'><i class='bi bi-exclamation-triangle-fill'></i> Faltante: " + moneda + " " + Math.abs(diferencia).toFixed(2) + "</div>";
+        }
+    }
+</script>

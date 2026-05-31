@@ -1,0 +1,155 @@
+@model SistemaGestionAcademias.Models.Inscripcion
+@inject SistemaGestionAcademias.Services.ConfiguracionService ConfigService
+@{
+    ViewData["Title"] = "Constancia de Matrícula";
+    Layout = "~/Views/Shared/_Layout.cshtml"; 
+    var config = await ConfigService.ObtenerConfiguracion();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    <button onclick="window.print()" class="btn btn-primary fw-bold shadow-sm">
+        <i class="bi bi-printer-fill"></i> Imprimir / Guardar como PDF
+    </button>
+</div>
+
+<div class="card shadow-lg border-0" style="max-width: 850px; margin: 0 auto;">
+    <div class="card-body p-5">
+        
+        <div class="row mb-5 align-items-center border-bottom pb-4">
+            <div class="col-8">
+                <div class="d-flex align-items-center">
+                    @if (!string.IsNullOrEmpty(config.LogoUrl))
+                    {
+                        <img src="~/imagenes/@config.LogoUrl" style="max-height: 80px; max-width: 200px;" class="me-3" />
+                    }
+                    else
+                    {
+                        <i class="bi bi-mortarboard-fill display-4 text-secondary me-3"></i>
+                    }
+                    <div>
+                        <h3 class="fw-bold text-dark mb-0">@config.NombreEmpresa</h3>
+                        <div class="text-muted small">
+                            <div>@config.Direccion</div>
+                            <div>@config.CorreoContacto | @config.Telefono</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4 text-end">
+                <h5 class="text-uppercase text-secondary ls-1">Constancia</h5>
+                <h2 class="text-danger fw-bold">#@Model.Id.ToString("D6")</h2>
+                <div class="small text-muted">Fecha: @Model.FechaInscripcion.ToShortDateString()</div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded h-100 border">
+                    <h6 class="text-uppercase text-secondary small fw-bold mb-3">Datos del Alumno</h6>
+                    <h5 class="fw-bold mb-1">@Model.Alumno.NombreCompleto</h5>
+                    <p class="mb-0 text-muted"><i class="bi bi-card-heading"></i> DOC: @Model.Alumno.DocumentoIdentidad</p>
+                    <p class="mb-0 text-muted"><i class="bi bi-envelope"></i> @Model.Alumno.Correo</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 bg-light rounded h-100 border">
+                    <h6 class="text-uppercase text-secondary small fw-bold mb-3">Detalle Académico</h6>
+                    <h5 class="fw-bold text-primary mb-1">@Model.Actividad.Nombre</h5>
+                    <p class="mb-0"><span class="badge bg-white text-dark border">@Model.Actividad.Categoria.Nombre</span></p>
+                    <p class="mb-0 text-muted mt-2">
+                        <i class="bi bi-calendar-event"></i> Inicio: @Model.Actividad.FechaInicio.ToShortDateString()
+                    </p>
+                    <p class="mb-0 text-muted">
+                        <i class="bi bi-person-video3"></i> Instructor: @Model.Actividad.Instructor.Nombres @Model.Actividad.Instructor.Apellidos
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered align-middle">
+                <thead class="bg-secondary text-white">
+                    <tr>
+                        <th>Descripción</th>
+                        <th class="text-center">Método de Pago</th>
+                        <th class="text-end">Importe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Matrícula - @Model.Actividad.Nombre</strong>
+                            @if (!string.IsNullOrEmpty(Model.DescuentoAplicado) && Model.DescuentoAplicado != "Ninguno")
+                            {
+                                <div class="text-success small fst-italic">
+                                    <i class="bi bi-tag-fill"></i> Descuento aplicado: @Model.DescuentoAplicado
+                                </div>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (!string.IsNullOrEmpty(Model.MetodoPago))
+                            {
+                                <span class="text-uppercase">@Model.MetodoPago</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="text-muted text-decoration-line-through small">
+                                @config.MonedaSimbolo @Model.MontoOriginal.ToString("N2")
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="text-end fw-bold text-uppercase">Total Pagado</td>
+                        <td class="text-end bg-light fw-bold fs-5">
+                            @config.MonedaSimbolo @Model.MontoFinal.ToString("N2")
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mb-5 text-end">
+            <span class="text-muted me-2 small text-uppercase">Estado de la operación:</span>
+            @if (Model.Estado == "Pagado")
+            {
+                <span class="badge bg-success fs-6 px-3 py-2 border border-success text-white">PAGADO / CANCELADO</span>
+            }
+            else if (Model.Estado == "Becado")
+            {
+                <span class="badge bg-info fs-6 px-3 py-2 border border-info text-dark">BECADO (100%)</span>
+            }
+            else
+            {
+                <span class="badge bg-warning fs-6 px-3 py-2 border border-warning text-dark">PENDIENTE DE PAGO</span>
+            }
+        </div>
+
+        <div class="row mt-5 pt-5">
+            <div class="col-6 text-center">
+                <div class="border-top border-dark w-75 mx-auto pt-2">
+                    <p class="mb-0 fw-bold">@config.NombreEmpresa</p>
+                    <small class="text-muted">Administración</small>
+                </div>
+            </div>
+            <div class="col-6 text-center">
+                <div class="border-top border-dark w-75 mx-auto pt-2">
+                    <p class="mb-0 fw-bold">@Model.Alumno.NombreCompleto</p>
+                    <small class="text-muted">Conformidad del Alumno</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5 text-muted small">
+            <p>Documento generado el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+            <p>@config.Direccion - Tel: @config.Telefono</p>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,168 @@
+@page "/personal/comisiones"
+@attribute [Authorize]
+@inject IPersonnelService PersonnelSvc
+@inject IDialogService DialogSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>Comisiones - AutoTaller ERP</PageTitle>
+
+<div class="page-header d-flex align-center justify-space-between mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Class="fw-bold">Comisiones de Técnicos</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Comisiones generadas y pendientes de pago</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="NuevaComision">Registrar comisión</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-3">
+    <MudItem xs="12" sm="4">
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border-radius:12px;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">PENDIENTES</MudText>
+            <MudText Typo="Typo.h4" Class="fw-bold" Color="Color.Warning">S/. @comisiones.Where(c => !c.Pagada).Sum(c => c.MontoComision).ToString("N2")</MudText>
+            <MudText Typo="Typo.caption">@comisiones.Count(c => !c.Pagada) comisión(es)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border-radius:12px;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">PAGADAS</MudText>
+            <MudText Typo="Typo.h4" Class="fw-bold" Color="Color.Success">S/. @comisiones.Where(c => c.Pagada).Sum(c => c.MontoComision).ToString("N2")</MudText>
+            <MudText Typo="Typo.caption">@comisiones.Count(c => c.Pagada) comisión(es)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border-radius:12px;">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">TOTAL</MudText>
+            <MudText Typo="Typo.h4" Class="fw-bold" Color="Color.Primary">S/. @comisiones.Sum(c => c.MontoComision).ToString("N2")</MudText>
+            <MudText Typo="Typo.caption">@comisiones.Count comisión(es) en total</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4" Elevation="0" Style="border-radius:12px;">
+    <div class="d-flex align-center mb-4 gap-3 flex-wrap">
+        <MudSelect T="int?" @bind-Value="tecnicoFiltro" @bind-Value:after="CargarAsync"
+                   Label="Técnico" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="min-width:200px;">
+            <MudSelectItem T="int?" Value="null">Todos</MudSelectItem>
+            @foreach (var t in tecnicos)
+            {
+                <MudSelectItem T="int?" Value="t.Id">@t.NombreCompleto</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="bool?" @bind-Value="estadoFiltro" @bind-Value:after="CargarAsync"
+                   Label="Estado" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="min-width:160px;">
+            <MudSelectItem T="bool?" Value="null">Todos</MudSelectItem>
+            <MudSelectItem T="bool?" Value="false">Pendientes</MudSelectItem>
+            <MudSelectItem T="bool?" Value="true">Pagadas</MudSelectItem>
+        </MudSelect>
+        <MudDatePicker @bind-Date="desde" @bind-Date:after="CargarAsync" Label="Desde"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:160px;" />
+        <MudDatePicker @bind-Date="hasta" @bind-Date:after="CargarAsync" Label="Hasta"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:160px;" />
+        <MudSpacer />
+    </div>
+
+    <MudTable Items="@comisiones" Hover="true" Loading="@cargando" LoadingProgressColor="Color.Primary" Class="erp-table">
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Técnico</MudTh>
+            <MudTh>OT</MudTh>
+            <MudTh Style="text-align:right;">Base</MudTh>
+            <MudTh Style="text-align:right;">%</MudTh>
+            <MudTh Style="text-align:right;">Comisión</MudTh>
+            <MudTh Style="text-align:center;">Estado</MudTh>
+            <MudTh Style="text-align:right;">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd><MudText Typo="Typo.body2" Class="fw-medium">@context.Tecnico</MudText></MudTd>
+            <MudTd>@(context.NumeroOT ?? "—")</MudTd>
+            <MudTd Style="text-align:right;">S/. @context.MontoBase.ToString("N2")</MudTd>
+            <MudTd Style="text-align:right;">@context.Porcentaje.ToString("N2")%</MudTd>
+            <MudTd Style="text-align:right;"><MudText Typo="Typo.body2" Class="fw-bold" Color="Color.Primary">S/. @context.MontoComision.ToString("N2")</MudText></MudTd>
+            <MudTd Style="text-align:center;">
+                @if (context.Pagada)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle">Pagada</MudChip>
+                    @if (context.FechaPago.HasValue)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">@context.FechaPago.Value.ToString("dd/MM/yyyy")</MudText>
+                    }
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Pendiente</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (!context.Pagada)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.AttachMoney"
+                               OnClick="() => MarcarPagada(context)">Marcar pagada</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4 text-center" Color="Color.Secondary">No hay comisiones registradas</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private int? tecnicoFiltro;
+    private bool? estadoFiltro;
+    private DateTime? desde = DateTime.Today.AddDays(-30);
+    private DateTime? hasta = DateTime.Today;
+
+    private List<ComisionListDto> comisiones = new();
+    private List<TecnicoFullDto> tecnicos = new();
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tecnicos = await PersonnelSvc.ListarTecnicosAsync();
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        comisiones = await PersonnelSvc.ListarComisionesAsync(tecnicoFiltro, estadoFiltro, desde, hasta);
+        cargando = false;
+    }
+
+    private async Task NuevaComision()
+    {
+        var parametros = new DialogParameters
+        {
+            ["Comision"] = new ComisionFormDto(),
+            ["Tecnicos"] = tecnicos.Where(t => t.Activo).ToList()
+        };
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogSvc.ShowAsync<ComisionFormDialog>("Registrar comisión", parametros, opciones);
+        var r = await dialog.Result;
+        if (r is { Canceled: false })
+        {
+            Snackbar.Add("Comisión registrada", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task MarcarPagada(ComisionListDto c)
+    {
+        var confirmar = await DialogSvc.ShowMessageBox("Confirmar pago",
+            $"¿Marcar como pagada la comisión de S/. {c.MontoComision:N2} a {c.Tecnico}?",
+            yesText: "Sí, marcar pagada", cancelText: "Cancelar");
+        if (confirmar == true)
+        {
+            try
+            {
+                await PersonnelSvc.MarcarComisionPagadaAsync(c.Id);
+                Snackbar.Add("Comisión marcada como pagada", Severity.Success);
+                await CargarAsync();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+}

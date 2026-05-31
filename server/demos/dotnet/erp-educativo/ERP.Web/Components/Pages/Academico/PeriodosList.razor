@@ -1,0 +1,102 @@
+@page "/academico/periodos"
+@using ERP.Application.Features.Configuracion.Periodos
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Períodos Académicos — ERP Educativo</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h5" Style="color:#1E1B4B; font-weight:700;">📅 Períodos Académicos</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">Gestión de períodos y ciclos lectivos</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="MudBlazor.Color.Primary"
+               OnClick="@(() => AbrirDialog(null))" Style="border-radius:8px;">Nuevo Período</MudButton>
+</MudStack>
+
+<MudPaper Elevation="2" Style="border-radius:16px;">
+    <MudTable Items="@_periodos" Dense="true" Hover="true" Loading="@_cargando">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Períodos Registrados</MudText>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh><MudTh>Nombre</MudTh><MudTh>Año</MudTh><MudTh>Inicio</MudTh><MudTh>Fin</MudTh><MudTh>Actual</MudTh><MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Codigo</MudTd>
+            <MudTd><MudText Style="font-weight:600;">@context.Nombre</MudText></MudTd>
+            <MudTd>@context.AnioAcademico</MudTd>
+            <MudTd>@context.FechaInicio.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>@context.FechaFin.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                @if (context.EsActual)
+                {
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Actual</MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" OnClick="@(() => AbrirDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" OnClick="@(() => Eliminar(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@if (_dialogAbierto)
+{
+    <MudDialog @bind-Visible="_dialogAbierto" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_form.Id > 0 ? "Editar" : "Nuevo") Período Académico</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_form.Codigo" Label="Código" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField @bind-Value="_form.Nombre" Label="Nombre" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_form.AnioAcademico" Label="Año" Variant="Variant.Outlined" Min="2020" Max="2040" /></MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_inicio" Label="Fecha Inicio" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_fin" Label="Fecha Fin" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12"><MudCheckBox @bind-Value="_form.EsActual" Label="Es el período actual" /></MudItem>
+            </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _dialogAbierto = false)">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Guardar">Guardar</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _cargando = true, _dialogAbierto = false;
+    private List<PeriodoAcademicoDto> _periodos = new();
+    private UpsertPeriodoCommand _form = new();
+    private DateTime? _inicio = DateTime.Today, _fin = DateTime.Today.AddMonths(6);
+
+    protected override async Task OnInitializedAsync() { await Cargar(); }
+    async Task Cargar() { _cargando = true; _periodos = await Mediator.Send(new GetPeriodosQuery()); _cargando = false; }
+
+    void AbrirDialog(PeriodoAcademicoDto? p)
+    {
+        _form = p == null ? new() { AnioAcademico = DateTime.Today.Year } : new UpsertPeriodoCommand { Id = p.Id, Codigo = p.Codigo, Nombre = p.Nombre, AnioAcademico = p.AnioAcademico, FechaInicio = p.FechaInicio, FechaFin = p.FechaFin, EsActual = p.EsActual };
+        _inicio = _form.FechaInicio == default ? DateTime.Today : _form.FechaInicio;
+        _fin = _form.FechaFin == default ? DateTime.Today.AddMonths(6) : _form.FechaFin;
+        _dialogAbierto = true;
+    }
+
+    async Task Guardar()
+    {
+        _form.FechaInicio = _inicio ?? DateTime.Today;
+        _form.FechaFin = _fin ?? DateTime.Today.AddMonths(6);
+        try { await Mediator.Send(_form); Snackbar.Add("Guardado correctamente", Severity.Success); _dialogAbierto = false; await Cargar(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+    }
+
+    async Task Eliminar(int id)
+    {
+        bool? ok = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar este período?", "Sí", "No");
+        if (ok == true) { await Mediator.Send(new DeletePeriodoCommand { Id = id }); Snackbar.Add("Eliminado", Severity.Success); await Cargar(); }
+    }
+}
