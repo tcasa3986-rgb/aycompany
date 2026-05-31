@@ -19,6 +19,7 @@ const { iniciarLicenciaExpirationScheduler } = require('./services/licenciaExpir
 const { iniciarSeoReportScheduler } = require('./services/seoReportScheduler');
 const { iniciarBalanceMonitor } = require('./services/balanceMonitor');
 const { iniciarVentasReportScheduler } = require('./services/ventasReportScheduler');
+const { iniciarCarouselScheduler } = require('./services/carouselScheduler');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -132,6 +133,7 @@ app.use('/api/agente',      require('./routes/agenteRoutes'));
 app.use('/api/prospector',  require('./routes/prospectorRoutes'));
 app.use('/api/llamadas',    require('./routes/llamadasRoutes'));
 app.use('/api/seo',         require('./routes/seoRoutes'));
+app.use('/api/carousel',   require('./routes/carouselRoutes'));
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 app.use('/api',            require('./routes/socialRoutes'));
 
@@ -229,6 +231,7 @@ async function iniciar(intentos = 5) {
             try { iniciarSeoReportScheduler(); } catch(e) { console.warn('⚠️ seoReportScheduler:', e.message); }
             try { iniciarBalanceMonitor(); } catch(e) { console.warn('⚠️ balanceMonitor:', e.message); }
             try { iniciarVentasReportScheduler(); } catch(e) { console.warn('⚠️ ventasReport:', e.message); }
+            try { iniciarCarouselScheduler(); } catch(e) { console.warn('⚠️ carousel:', e.message); }
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);
