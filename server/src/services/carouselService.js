@@ -558,26 +558,57 @@ async function generarYPublicar(tipo = 'educativo', contexto = '') {
     const caption = `${contenido.portada?.titulo_linea1 || ''} ${contenido.portada?.titulo_acento || ''}\n\n${contenido.portada?.descripcion || ''}\n\n👉 Guarda este post y compártelo con quien lo necesite\n💬 Escríbenos para tu consultoría GRATIS\n\n${hashtags}`;
 
     let postId = null;
+    let publicadoEnIG = false;
+
+    // 5. Intentar publicar en Instagram
     try {
-        // 5. Publicar en Instagram (esperar 2s para que el servidor sirva las imágenes)
         await new Promise(r => setTimeout(r, 2000));
         postId = await publicarInstagram(archivos, caption);
+        publicadoEnIG = !!postId;
     } catch (e) {
-        console.error('[Carousel] Error publicando:', e.message);
-    } finally {
-        // 6. Limpiar archivos temporales después de 5 minutos
-        setTimeout(() => limpiarTemp(archivos), 5 * 60 * 1000);
+        console.warn('[Carousel] Instagram no disponible:', e.message);
     }
 
-    // Notificar por Telegram
+    // 6. Enviar imágenes por Telegram siempre (para revisar y publicar manualmente si IG falla)
     try {
-        const { enviarConBotones } = require('./telegramService');
+        const telegramToken  = process.env.PLATAFORMA_TELEGRAM_TOKEN;
+        const telegramChatId = process.env.PLATAFORMA_TELEGRAM_CHAT_ID;
         const tipoEmoji = tipo === 'educativo' ? '📚' : '🛒';
-        await enviarConBotones(
-            `${tipoEmoji} *Carrusel publicado en Instagram*\n\n📌 Tema: *${contenido.portada?.titulo_linea1} ${contenido.portada?.titulo_acento}*\n🖼 ${buffers.length} slides\n${postId ? `✅ Publicado` : '⚠️ Error al publicar — archivos generados'}`,
-            []
-        );
-    } catch {}
+
+        if (telegramToken && telegramChatId) {
+            // Enviar mensaje cabecera
+            const baseUrl = (process.env.RAILWAY_PUBLIC_URL || '').replace(/\/$/, '');
+            const estado  = publicadoEnIG ? '✅ *Publicado en Instagram automáticamente*' : '📲 *Listo para publicar — descarga y sube a Instagram*';
+            await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id:    telegramChatId,
+                    text:       `${tipoEmoji} *Carrusel AI Company CO*\n\n📌 *${contenido.portada?.titulo_linea1} ${contenido.portada?.titulo_acento}*\n🖼 ${buffers.length} slides\n\n${estado}\n\n📝 *Caption para Instagram:*\n${caption}`,
+                    parse_mode: 'Markdown'
+                })
+            });
+
+            // Enviar cada imagen por Telegram
+            for (let i = 0; i < archivos.length; i++) {
+                const formData = new FormData();
+                formData.append('chat_id', telegramChatId);
+                formData.append('photo', new Blob([buffers[i]], { type: 'image/png' }), `slide_${i+1}.png`);
+                formData.append('caption', `Slide ${i+1}/${archivos.length}`);
+                await fetch(`https://api.telegram.org/bot${telegramToken}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+                await new Promise(r => setTimeout(r, 300));
+            }
+            console.log(`[Carousel] ${buffers.length} slides enviados a Telegram`);
+        }
+    } catch (e) {
+        console.error('[Carousel] Error Telegram:', e.message);
+    }
+
+    // 7. Limpiar archivos temporales después de 10 minutos
+    setTimeout(() => limpiarTemp(archivos), 10 * 60 * 1000);
 
     return { contenido, slides: buffers.length, postId };
 }
