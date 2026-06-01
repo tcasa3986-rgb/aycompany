@@ -76,6 +76,34 @@ function hexToRgb(hex) {
     return { r, g, b };
 }
 
+// Ícono decorativo con canvas puro (fallback cuando no hay DALL-E ni fuentes emoji)
+function drawIconFallback(ctx, cx, cy, size = 120) {
+    // Círculo exterior con glow
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, size);
+    glow.addColorStop(0, 'rgba(155, 95, 255, 0.25)');
+    glow.addColorStop(1, 'rgba(155, 95, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Triángulo estilo logo AI Company
+    const s = size * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - s);
+    ctx.lineTo(cx + s * 0.87, cy + s * 0.5);
+    ctx.lineTo(cx - s * 0.87, cy + s * 0.5);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(cx - s, cy - s, cx + s, cy + s);
+    grad.addColorStop(0, 'rgba(155, 95, 255, 0.7)');
+    grad.addColorStop(1, 'rgba(90, 0, 184, 0.4)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(155, 95, 255, 0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+}
+
 function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -198,9 +226,7 @@ async function renderPortada(data) {
     if (ilus) {
         ctx.drawImage(ilus, SIZE/2 - 200, 120, 400, 400);
     } else {
-        ctx.font = '160px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(data.emoji || '🤖', SIZE / 2, 360);
+        drawIconFallback(ctx, SIZE / 2, 280, 130);
     }
 
     // Subtítulo arriba del título
@@ -259,8 +285,7 @@ async function renderContenido(data, numero, total) {
     if (ilus) {
         ctx.drawImage(ilus, SIZE/2 - 170, 160, 340, 340);
     } else {
-        ctx.font = '130px serif';
-        ctx.fillText(data.emoji || '💡', SIZE / 2, 330);
+        drawIconFallback(ctx, SIZE / 2, 310, 110);
     }
 
     // Título — palabra clave en púrpura
