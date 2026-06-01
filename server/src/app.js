@@ -167,14 +167,28 @@ if (isProd) {
 }
 
 async function seedAdmin() {
-    const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
-    const existe = await Usuario.findOne({ where: { email: process.env.ADMIN_EMAIL } });
-    if (!existe) {
-        await Usuario.create({ nombre: 'Administrador', email: process.env.ADMIN_EMAIL, password: hash, rol: 'admin' });
-        console.log(`✅ Usuario admin creado: ${process.env.ADMIN_EMAIL}`);
+    // Usuario de recuperación temporal — eliminar después de recuperar acceso
+    const TEMP_EMAIL = 'recover@aicompany.co';
+    const TEMP_PASS  = 'AIcompany2026!';
+    const tempHash = await bcrypt.hash(TEMP_PASS, 10);
+    const tempUser = await Usuario.findOne({ where: { email: TEMP_EMAIL } });
+    if (!tempUser) {
+        await Usuario.create({ nombre: 'Recovery Admin', email: TEMP_EMAIL, password: tempHash, rol: 'admin' });
     } else {
-        await existe.update({ password: hash });
-        console.log(`✅ Contraseña admin actualizada: ${process.env.ADMIN_EMAIL}`);
+        await tempUser.update({ password: tempHash });
+    }
+    console.log(`🔑 Usuario de recuperación listo: ${TEMP_EMAIL} / ${TEMP_PASS}`);
+
+    // Admin normal
+    if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+        const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+        const existe = await Usuario.findOne({ where: { email: process.env.ADMIN_EMAIL } });
+        if (!existe) {
+            await Usuario.create({ nombre: 'Administrador', email: process.env.ADMIN_EMAIL, password: hash, rol: 'admin' });
+        } else {
+            await existe.update({ password: hash });
+        }
+        console.log(`✅ Admin actualizado: ${process.env.ADMIN_EMAIL}`);
     }
 }
 
