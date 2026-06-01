@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { generarYPublicarStory, servirImagenTemp } = require('../services/storiesService');
 const { ejecutarHistoriasDiarias } = require('../services/storiesScheduler');
-const authMiddleware = require('../middleware/auth');
+const authMiddleware = require('../middlewares/auth');
 
 // Servir imágenes temporales (pública — Instagram las descarga desde aquí)
 router.get('/temp/:nombre', servirImagenTemp);
