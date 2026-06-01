@@ -19,11 +19,10 @@ async function generarIlustracion(descripcion) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
-                model:   'dall-e-3',
+                model:   'dall-e-2',
                 prompt:  `3D cartoon illustration, friendly businessman character, ${descripcion}, white background, clean minimalist tech company style, no text, no letters, professional, high quality, similar to modern SaaS illustration packs`,
                 n:       1,
-                size:    '1024x1024',
-                quality: 'standard'
+                size:    '1024x1024'
             })
         });
         const d = await r.json();
