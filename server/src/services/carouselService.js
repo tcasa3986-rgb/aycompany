@@ -75,32 +75,119 @@ function hexToRgb(hex) {
     return { r, g, b };
 }
 
-// Ícono decorativo con canvas puro (fallback cuando no hay DALL-E ni fuentes emoji)
-function drawIconFallback(ctx, cx, cy, size = 120) {
-    // Círculo exterior con glow
+// Glow base compartido
+function drawGlow(ctx, cx, cy, size) {
     const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, size);
-    glow.addColorStop(0, 'rgba(155, 95, 255, 0.25)');
+    glow.addColorStop(0, 'rgba(155, 95, 255, 0.3)');
     glow.addColorStop(1, 'rgba(155, 95, 255, 0)');
     ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(cx, cy, size, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, size, 0, Math.PI * 2); ctx.fill();
+}
 
-    // Triángulo estilo logo AI Company
-    const s = size * 0.55;
+// Íconos canvas por tipo — cada slide tiene uno distinto
+function drawIconReloj(ctx, cx, cy, s) {
+    drawGlow(ctx, cx, cy, s);
+    ctx.strokeStyle = 'rgba(155,95,255,0.9)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(cx, cy, s * 0.6, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - s * 0.35); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + s * 0.28, cy + s * 0.15); ctx.stroke();
+    // Marcas
+    for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        const r1 = s * 0.52, r2 = s * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+        ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+        ctx.stroke();
+    }
+}
+
+function drawIconCohete(ctx, cx, cy, s) {
+    drawGlow(ctx, cx, cy, s);
+    ctx.strokeStyle = 'rgba(155,95,255,0.9)'; ctx.lineWidth = 3.5;
+    // Cuerpo del cohete
     ctx.beginPath();
-    ctx.moveTo(cx, cy - s);
-    ctx.lineTo(cx + s * 0.87, cy + s * 0.5);
-    ctx.lineTo(cx - s * 0.87, cy + s * 0.5);
+    ctx.moveTo(cx, cy - s * 0.6);
+    ctx.bezierCurveTo(cx + s * 0.3, cy - s * 0.3, cx + s * 0.3, cy + s * 0.2, cx, cy + s * 0.4);
+    ctx.bezierCurveTo(cx - s * 0.3, cy + s * 0.2, cx - s * 0.3, cy - s * 0.3, cx, cy - s * 0.6);
+    ctx.fillStyle = 'rgba(90,0,184,0.35)'; ctx.fill(); ctx.stroke();
+    // Llama
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.15, cy + s * 0.4);
+    ctx.lineTo(cx, cy + s * 0.7);
+    ctx.lineTo(cx + s * 0.15, cy + s * 0.4);
+    ctx.strokeStyle = 'rgba(200,150,255,0.7)'; ctx.stroke();
+}
+
+function drawIconGrafica(ctx, cx, cy, s) {
+    drawGlow(ctx, cx, cy, s);
+    ctx.strokeStyle = 'rgba(155,95,255,0.9)'; ctx.lineWidth = 3.5;
+    const bars = [0.3, 0.55, 0.45, 0.75, 0.6, 0.9];
+    const bw = s * 0.18, gap = s * 0.08;
+    const totalW = bars.length * (bw + gap);
+    const startX = cx - totalW / 2;
+    const baseY = cy + s * 0.5;
+    bars.forEach((h, i) => {
+        const x = startX + i * (bw + gap);
+        const barH = h * s * 0.85;
+        roundRect(ctx, x, baseY - barH, bw, barH, 4);
+        ctx.fillStyle = `rgba(90,0,184,${0.3 + h * 0.4})`; ctx.fill();
+        ctx.strokeStyle = `rgba(155,95,255,${0.5 + h * 0.4})`; ctx.stroke();
+    });
+    // Línea base
+    ctx.beginPath(); ctx.moveTo(startX - 4, baseY); ctx.lineTo(startX + totalW + 4, baseY);
+    ctx.strokeStyle = 'rgba(155,95,255,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+}
+
+function drawIconRed(ctx, cx, cy, s) {
+    drawGlow(ctx, cx, cy, s);
+    const nodos = [
+        [cx, cy - s * 0.45],
+        [cx + s * 0.45, cy + s * 0.2],
+        [cx - s * 0.45, cy + s * 0.2],
+        [cx + s * 0.2, cy - s * 0.1],
+        [cx - s * 0.2, cy - s * 0.1],
+    ];
+    // Conexiones
+    ctx.strokeStyle = 'rgba(155,95,255,0.35)'; ctx.lineWidth = 2;
+    for (let i = 0; i < nodos.length; i++)
+        for (let j = i + 1; j < nodos.length; j++) {
+            ctx.beginPath(); ctx.moveTo(nodos[i][0], nodos[i][1]);
+            ctx.lineTo(nodos[j][0], nodos[j][1]); ctx.stroke();
+        }
+    // Nodos
+    nodos.forEach(([nx, ny], i) => {
+        ctx.beginPath(); ctx.arc(nx, ny, i === 0 ? s * 0.12 : s * 0.08, 0, Math.PI * 2);
+        ctx.fillStyle = i === 0 ? 'rgba(155,95,255,0.8)' : 'rgba(90,0,184,0.6)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(155,95,255,0.9)'; ctx.lineWidth = 2; ctx.stroke();
+    });
+}
+
+function drawIconEscudo(ctx, cx, cy, s) {
+    drawGlow(ctx, cx, cy, s);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - s * 0.6);
+    ctx.lineTo(cx + s * 0.45, cy - s * 0.3);
+    ctx.lineTo(cx + s * 0.45, cy + s * 0.1);
+    ctx.quadraticCurveTo(cx + s * 0.45, cy + s * 0.6, cx, cy + s * 0.65);
+    ctx.quadraticCurveTo(cx - s * 0.45, cy + s * 0.6, cx - s * 0.45, cy + s * 0.1);
+    ctx.lineTo(cx - s * 0.45, cy - s * 0.3);
     ctx.closePath();
-    const grad = ctx.createLinearGradient(cx - s, cy - s, cx + s, cy + s);
-    grad.addColorStop(0, 'rgba(155, 95, 255, 0.7)');
-    grad.addColorStop(1, 'rgba(90, 0, 184, 0.4)');
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(155, 95, 255, 0.9)';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
+    ctx.fillStyle = 'rgba(90,0,184,0.35)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(155,95,255,0.9)'; ctx.lineWidth = 3.5; ctx.stroke();
+    // Check
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.18, cy + s * 0.05);
+    ctx.lineTo(cx - s * 0.02, cy + s * 0.22);
+    ctx.lineTo(cx + s * 0.22, cy - s * 0.15);
+    ctx.strokeStyle = 'rgba(200,150,255,0.9)'; ctx.lineWidth = 4; ctx.stroke();
+}
+
+const ICONOS = [drawIconReloj, drawIconCohete, drawIconGrafica, drawIconRed, drawIconEscudo];
+
+function drawIconFallback(ctx, cx, cy, size = 120, index = 0) {
+    ICONOS[index % ICONOS.length](ctx, cx, cy, size);
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -220,12 +307,13 @@ async function renderPortada(data) {
     drawBackground(ctx, 'portada');
     await drawLogo(ctx);
 
-    // Ilustración DALL-E o emoji fallback
+    // Ilustración DALL-E o ícono canvas
+    ctx.textAlign = 'center';
     const ilus = data._ilustracion || await generarIlustracion(data.ilustracion_prompt || 'thinking about technology and AI');
     if (ilus) {
         ctx.drawImage(ilus, SIZE/2 - 200, 120, 400, 400);
     } else {
-        drawIconFallback(ctx, SIZE / 2, 280, 130);
+        drawIconFallback(ctx, SIZE / 2, 280, 130, 0);
     }
 
     // Subtítulo arriba del título
@@ -279,12 +367,12 @@ async function renderContenido(data, numero, total) {
     ctx.textAlign = 'center';
     ctx.fillText(badge, SIZE / 2, 137);
 
-    // Ilustración DALL-E o emoji fallback
+    // Ilustración DALL-E o ícono canvas (índice basado en número de slide)
     const ilus = data._ilustracion || await generarIlustracion(data.ilustracion_prompt || 'business concept illustration');
     if (ilus) {
         ctx.drawImage(ilus, SIZE/2 - 170, 160, 340, 340);
     } else {
-        drawIconFallback(ctx, SIZE / 2, 310, 110);
+        drawIconFallback(ctx, SIZE / 2, 310, 110, numero - 1);
     }
 
     // Título — palabra clave en púrpura
