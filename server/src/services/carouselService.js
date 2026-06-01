@@ -219,7 +219,7 @@ async function renderPortada(data) {
     gradTxt.addColorStop(1, C.purpleL);
     ctx.font = `bold 80px Orbitron`;
     ctx.fillStyle = gradTxt;
-    ctx.fillText(data.titulo_acento || '', SIZE / 2, 560 + lines1 * 82 + 20);
+    wrapText(ctx, data.titulo_acento || '', SIZE / 2, 560 + lines1 * 82 + 20, SIZE - 120, 88);
 
     // Descripción corta
     ctx.font = '30px SpaceGroteskRegular';
@@ -275,7 +275,7 @@ async function renderContenido(data, numero, total) {
         gradTxt.addColorStop(1, C.purpleL);
         ctx.font = `bold 62px Orbitron`;
         ctx.fillStyle = gradTxt;
-        ctx.fillText(data.acento, SIZE / 2, 440 + linesT * 72 + 10);
+        wrapText(ctx, data.acento, SIZE / 2, 440 + linesT * 72 + 10, SIZE - 160, 72);
     }
 
     // Descripción
