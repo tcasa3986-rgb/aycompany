@@ -219,12 +219,12 @@ async function renderPortada(data) {
     gradTxt.addColorStop(1, C.purpleL);
     ctx.font = `bold 80px Orbitron`;
     ctx.fillStyle = gradTxt;
-    wrapText(ctx, data.titulo_acento || '', SIZE / 2, 560 + lines1 * 82 + 20, SIZE - 120, 88);
+    const linesA = wrapText(ctx, data.titulo_acento || '', SIZE / 2, 560 + lines1 * 82 + 20, SIZE - 120, 88);
 
-    // Descripción corta
+    // Descripción corta — Y dinámico según líneas del acento
     ctx.font = '30px SpaceGroteskRegular';
     ctx.fillStyle = C.grayL;
-    wrapText(ctx, data.descripcion || '', SIZE / 2, 560 + lines1 * 82 + 110, SIZE - 160, 42);
+    wrapText(ctx, data.descripcion || '', SIZE / 2, 560 + lines1 * 82 + 20 + linesA * 88 + 24, SIZE - 160, 42);
 
     ctx.textAlign = 'left';
     drawFooter(ctx);
@@ -269,17 +269,18 @@ async function renderContenido(data, numero, total) {
     const linesT = wrapText(ctx, data.titulo || '', SIZE / 2, 440, SIZE - 140, 72);
 
     // Línea acento
+    let acentoLines = 0;
     if (data.acento) {
         const gradTxt = ctx.createLinearGradient(200, 0, SIZE - 200, 0);
         gradTxt.addColorStop(0, C.purpleXL);
         gradTxt.addColorStop(1, C.purpleL);
         ctx.font = `bold 62px Orbitron`;
         ctx.fillStyle = gradTxt;
-        wrapText(ctx, data.acento, SIZE / 2, 440 + linesT * 72 + 10, SIZE - 160, 72);
+        acentoLines = wrapText(ctx, data.acento, SIZE / 2, 440 + linesT * 72 + 10, SIZE - 160, 72);
     }
 
-    // Descripción
-    const descY = 440 + linesT * 72 + (data.acento ? 85 : 20);
+    // Descripción — Y dinámico según cuántas líneas ocupó el acento
+    const descY = 440 + linesT * 72 + (data.acento ? 10 + acentoLines * 72 + 24 : 20);
     ctx.font = '32px SpaceGroteskRegular';
     ctx.fillStyle = C.grayL;
     wrapText(ctx, data.descripcion || '', SIZE / 2, descY, SIZE - 160, 46);
