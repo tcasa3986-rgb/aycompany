@@ -167,11 +167,14 @@ if (isProd) {
 }
 
 async function seedAdmin() {
+    const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
     const existe = await Usuario.findOne({ where: { email: process.env.ADMIN_EMAIL } });
     if (!existe) {
-        const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
         await Usuario.create({ nombre: 'Administrador', email: process.env.ADMIN_EMAIL, password: hash, rol: 'admin' });
         console.log(`✅ Usuario admin creado: ${process.env.ADMIN_EMAIL}`);
+    } else {
+        await existe.update({ password: hash });
+        console.log(`✅ Contraseña admin actualizada: ${process.env.ADMIN_EMAIL}`);
     }
 }
 
