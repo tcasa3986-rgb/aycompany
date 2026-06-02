@@ -134,6 +134,19 @@ export default function UnirseVendedor() {
                             <input type="password" value={form.confirmar} onChange={e => setForm({...form,confirmar:e.target.value})} required placeholder="Repite tu contraseña" style={inp}/>
                         </Field>
 
+                        <Field label="Código de equipo (opcional)">
+                            <input
+                                value={codigoRef}
+                                onChange={e => setCodigoRef(e.target.value.toUpperCase())}
+                                placeholder="Ej: JUAN2024"
+                                style={{ ...inp, letterSpacing: '0.08em', fontWeight: 600 }}
+                                maxLength={20}
+                            />
+                            <span style={{ fontSize: '.72rem', color: '#94a3b8', marginTop: 3, display: 'block' }}>
+                                Si alguien te invitó, ingresa su código para unirte a su equipo
+                            </span>
+                        </Field>
+
                         <button type="submit" disabled={loading} style={{ marginTop: 8, width: '100%', padding: '13px', background: loading ? '#94a3b8' : '#4f46e5', color: '#fff', border: 'none', borderRadius: 10, fontSize: '1rem', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
                             {loading ? 'Creando cuenta...' : 'Crear cuenta gratis →'}
                         </button>
