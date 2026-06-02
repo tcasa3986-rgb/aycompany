@@ -10,5 +10,6 @@ router.put('/leads/:id',       auth, ctrl.actualizarLead);
 router.post('/reuniones',      auth, ctrl.agendarReunion);
 router.get('/clientes',        auth, ctrl.clientes);
 router.get('/mi-equipo',       auth, ctrl.miEquipo);
+router.post('/unirse-equipo',  auth, ctrl.unirseEquipo);
 
 module.exports = router;

@@ -356,6 +356,11 @@ export default function PortalVendedor() {
                             )}
                         </div>
 
+                        {/* Unirse a equipo */}
+                        {!equipo?.referido_por && (
+                            <UnirseEquipoPanel onUnido={() => api.get('/vendedor/mi-equipo').then(r => setEquipo(r.data.data))} />
+                        )}
+
                         {/* Tabla del equipo */}
                         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,.07)', overflow: 'hidden' }}>
                             <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: '.9rem', color: '#1e293b' }}>
@@ -567,3 +572,46 @@ const modalBox = { background: '#fff', borderRadius: 14, padding: 24, width: 440
 const inp      = { width: '100%', padding: '8px 11px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '.88rem', outline: 'none', boxSizing: 'border-box', background: '#fafafa' };
 const btnS     = bg => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px', background: bg, color: '#fff', border: 'none', borderRadius: 8, fontSize: '.85rem', fontWeight: 600, cursor: 'pointer' });
 function F({ label, children }) { return <div style={{ marginBottom: 12 }}><label style={{ display: 'block', fontSize: '.78rem', fontWeight: 600, color: '#374151', marginBottom: 4 }}>{label}</label>{children}</div>; }
+
+function UnirseEquipoPanel({ onUnido }) {
+    const [codigo,  setCodigo]  = useState('');
+    const [loading, setLoading] = useState(false);
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        if (!codigo.trim()) return;
+        setLoading(true);
+        try {
+            const r = await api.post('/vendedor/unirse-equipo', { codigo });
+            toast.success(r.data.msg);
+            onUnido();
+        } catch (err) {
+            toast.error(err.response?.data?.msg || 'Código inválido');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <div style={{ background: '#fff', borderRadius: 12, padding: '20px 22px', boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24, border: '1px dashed #e2e8f0' }}>
+            <div style={{ fontWeight: 700, fontSize: '.95rem', color: '#1e293b', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <UserPlus size={16} color="#6366f1"/> Unirte a un equipo
+            </div>
+            <p style={{ fontSize: '.82rem', color: '#64748b', marginBottom: 14 }}>
+                Si alguien te invitó y no ingresaste su código al registrarte, escríbelo aquí.
+            </p>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10 }}>
+                <input
+                    value={codigo}
+                    onChange={e => setCodigo(e.target.value.toUpperCase())}
+                    placeholder="Ej: JUAN2024"
+                    maxLength={20}
+                    style={{ ...inp, flex: 1, letterSpacing: '0.08em', fontWeight: 600 }}
+                />
+                <button type="submit" disabled={loading || !codigo.trim()} style={btnS(loading ? '#94a3b8' : '#6366f1')}>
+                    {loading ? 'Verificando...' : 'Unirme'}
+                </button>
+            </form>
+        </div>
+    );
+}

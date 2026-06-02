@@ -213,6 +213,24 @@ exports.miEquipo = async (req, res) => {
     } catch (e) { e500(res, e); }
 };
 
+// POST /api/vendedor/unirse-equipo
+exports.unirseEquipo = async (req, res) => {
+    try {
+        const { codigo } = req.body;
+        if (!codigo) return res.status(400).json({ ok: false, msg: 'Código requerido' });
+
+        const lider = await Usuario.findOne({ where: { codigo_referido: codigo.toUpperCase().trim(), rol: 'vendedor' } });
+        if (!lider) return res.status(404).json({ ok: false, msg: 'Código no encontrado' });
+        if (lider.id === req.user.id) return res.status(400).json({ ok: false, msg: 'No puedes unirte a tu propio equipo' });
+
+        const yo = await Usuario.findByPk(req.user.id);
+        if (yo.referido_por) return res.status(400).json({ ok: false, msg: 'Ya perteneces a un equipo' });
+
+        await yo.update({ referido_por: lider.id });
+        res.json({ ok: true, msg: `Te uniste al equipo de ${lider.nombre}` });
+    } catch (e) { e500(res, e); }
+};
+
 // GET /api/vendedor/clientes
 exports.clientes = async (req, res) => {
     try {
