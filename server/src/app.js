@@ -167,17 +167,17 @@ if (isProd) {
 }
 
 async function seedAdmin() {
-    // Usuario de recuperación temporal — eliminar después de recuperar acceso
-    const TEMP_EMAIL = 'recover@aicompany.co';
-    const TEMP_PASS  = 'AIcompany2026!';
-    const tempHash = await bcrypt.hash(TEMP_PASS, 10);
-    const tempUser = await Usuario.findOne({ where: { email: TEMP_EMAIL } });
-    if (!tempUser) {
-        await Usuario.create({ nombre: 'Recovery Admin', email: TEMP_EMAIL, password: tempHash, rol: 'admin' });
-    } else {
-        await tempUser.update({ password: tempHash });
+    // Limpieza: el antiguo usuario de recuperación con clave fija en el código
+    // era una puerta trasera. Se elimina si todavía existe en la BD.
+    // Nunca debe tumbar el arranque: si no se puede borrar (FK), se deja inutilizable.
+    try {
+        const borrados = await Usuario.destroy({ where: { email: 'recover@aicompany.co' } });
+        if (borrados) console.log('🧹 Usuario de recuperación eliminado');
+    } catch (e) {
+        const u = await Usuario.findOne({ where: { email: 'recover@aicompany.co' } });
+        if (u) await u.update({ activo: false, rol: 'vendedor', password: await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 10) });
+        console.warn('⚠️  Usuario de recuperación no se pudo borrar; quedó desactivado:', e.message);
     }
-    console.log(`🔑 Usuario de recuperación listo: ${TEMP_EMAIL} / ${TEMP_PASS}`);
 
     // Admin normal
     if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
