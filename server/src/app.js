@@ -21,6 +21,7 @@ const { iniciarBalanceMonitor } = require('./services/balanceMonitor');
 const { iniciarVentasReportScheduler } = require('./services/ventasReportScheduler');
 const { iniciarCarouselScheduler } = require('./services/carouselScheduler');
 const { iniciarStoriesScheduler }  = require('./services/storiesScheduler');
+const { iniciarAlertasCobro }      = require('./services/alertasCobroScheduler');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -109,6 +110,7 @@ app.use('/api/auth',      require('./routes/authRoutes'));
 app.use('/api/clientes',  require('./routes/clientesRoutes'));
 app.use('/api/productos', require('./routes/productosRoutes'));
 app.use('/api/licencias', require('./routes/licenciasRoutes'));
+app.use('/api/costos',    require('./routes/costosRoutes'));
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/facturas',   require('./routes/facturasRoutes'));
@@ -195,11 +197,93 @@ async function seedAdmin() {
 const PORT = process.env.PORT || 5000;
 
 // Agrega una columna si no existe; ignora el error si ya existe
+let migracionesFallidas = [];
+
 async function addCol(table, col, opts) {
     try {
         await sequelize.getQueryInterface().addColumn(table, col, opts);
         console.log(`  + columna agregada: ${table}.${col}`);
-    } catch (_) { /* ya existe — ok */ }
+    } catch (e) {
+        // "ya existe" es lo esperado; cualquier otro error hay que verlo, porque
+        // una columna faltante rompe la validación de licencias en silencio.
+        if (/duplicate column|already exists/i.test(e.message)) return;
+        console.error(`MIGRACION FALLIDA ${table}.${col}: ${e.message}`);
+        migracionesFallidas.push(`${table}.${col}: ${e.message}`);
+    }
+}
+
+// Ajustes que deben correr SIEMPRE, haya funcionado o no sequelize.sync.
+async function migracionesLicencias() {
+    const { DataTypes } = require('sequelize');
+    // Se crean aqui (antes de sync) para que sequelize.sync({alter}) no tenga
+    // que hacer DDL pesado con el servicio aun sin escuchar.
+    await addCol('licencias', 'dia_corte',      { type: DataTypes.INTEGER,        allowNull: true });
+    await addCol('licencias', 'dias_gracia',    { type: DataTypes.INTEGER,        defaultValue: 0 });
+    await addCol('licencias', 'bloquear',       { type: DataTypes.BOOLEAN,        defaultValue: true });
+    await addCol('licencias', 'precio_mensual', { type: DataTypes.DECIMAL(10, 2), allowNull: true });
+    await addCol('licencias', 'notas',          { type: DataTypes.TEXT,           allowNull: true });
+    await addCol('pagos', 'referencia_externa', { type: DataTypes.STRING(120),    allowNull: true });
+
+    // ENUM de metodo_pago: solo se reescribe si de verdad le faltan valores
+    // (el ALTER copia la tabla y demora el arranque).
+    try {
+        const [filas] = await sequelize.query("SHOW COLUMNS FROM pagos LIKE 'metodo_pago'");
+        const col = filas && filas[0];
+        if (col && !/mercadopago/i.test(col.Type)) {
+            console.log('  ~ ampliando ENUM pagos.metodo_pago...');
+            await sequelize.query("ALTER TABLE pagos MODIFY metodo_pago ENUM('efectivo','transferencia','tarjeta','nequi','mercadopago','otro') NOT NULL DEFAULT 'efectivo'");
+        }
+    } catch (e) {
+        console.error('ENUM metodo_pago:', e.message);
+        migracionesFallidas.push('pagos.metodo_pago: ' + e.message);
+    }
+
+    // UNIQUE que hace idempotente el webhook de MercadoPago.
+    try {
+        const [idx] = await sequelize.query("SHOW INDEX FROM pagos WHERE Key_name = 'pagos_referencia_externa_unique'");
+        if (!idx.length) await sequelize.query('ALTER TABLE pagos ADD UNIQUE INDEX pagos_referencia_externa_unique (referencia_externa)');
+    } catch (e) {
+        console.error('indice referencia_externa:', e.message);
+        migracionesFallidas.push('pagos.referencia_externa UNIQUE: ' + e.message);
+    }
+
+    // Pagos viejos de MercadoPago: se les rellena la referencia desde las notas
+    // para que una reentrega de un webhook antiguo no los duplique.
+    try {
+        await sequelize.query("UPDATE pagos SET referencia_externa = CONCAT('mp_pay_', TRIM(SUBSTRING_INDEX(notas, '#', -1))) WHERE referencia_externa IS NULL AND notas LIKE 'MP pago%#%'");
+        await sequelize.query("UPDATE pagos SET referencia_externa = CONCAT('mp_sub_', TRIM(SUBSTRING_INDEX(notas, '#', -1))) WHERE referencia_externa IS NULL AND notas LIKE 'MP suscrip%#%'");
+    } catch (e) { console.error('backfill referencia_externa:', e.message); }
+
+    // Filas viejas: NULL en dias_gracia/bloquear se interpretaria como "bloquea
+    // sin tolerancia". Se dejan explicitas para que nadie dependa del default.
+    try {
+        await sequelize.query('UPDATE licencias SET dias_gracia = 0 WHERE dias_gracia IS NULL');
+        await sequelize.query('UPDATE licencias SET bloquear = 1 WHERE bloquear IS NULL');
+    } catch (e) {
+        console.error('backfill licencias:', e.message);
+        migracionesFallidas.push('backfill licencias: ' + e.message);
+    }
+}
+
+// Verifica que las columnas criticas existan de verdad antes de servir trafico.
+async function verificarEsquema() {
+    const requeridas = {
+        licencias: ['dia_corte', 'dias_gracia', 'bloquear', 'precio_mensual'],
+        pagos:     ['referencia_externa']
+    };
+    const faltantes = [];
+    for (const [tabla, cols] of Object.entries(requeridas)) {
+        const desc = await sequelize.getQueryInterface().describeTable(tabla).catch(() => ({}));
+        for (const c of cols) if (!(c in desc)) faltantes.push(`${tabla}.${c}`);
+    }
+    try {
+        const [idx] = await sequelize.query("SHOW INDEX FROM pagos WHERE Key_name = 'pagos_referencia_externa_unique'");
+        if (!idx.length) faltantes.push('pagos.referencia_externa UNIQUE (webhook podria duplicar pagos)');
+    } catch (e) { faltantes.push('no se pudo verificar el indice UNIQUE: ' + e.message); }
+
+    if (faltantes.length) console.error(`FALTA EN EL ESQUEMA: ${faltantes.join(', ')}`);
+    else console.log('Esquema de licencias verificado');
+    return faltantes;
 }
 
 async function syncSchema() {
@@ -226,6 +310,13 @@ async function syncSchema() {
         await addCol('productos', 'categoria',      { type: DataTypes.STRING(60),  defaultValue: 'Sistema' });
         await addCol('productos', 'visible_vendedor', { type: DataTypes.BOOLEAN,   defaultValue: true });
         await addCol('productos', 'imagen_url',     { type: DataTypes.STRING(300), allowNull: true });
+        // licencias — ciclo de cobro (día de corte / tolerancia / nunca bloquear)
+        await addCol('licencias', 'dia_corte',      { type: DataTypes.INTEGER,       allowNull: true });
+        await addCol('licencias', 'dias_gracia',    { type: DataTypes.INTEGER,       defaultValue: 0 });
+        await addCol('licencias', 'bloquear',       { type: DataTypes.BOOLEAN,       defaultValue: true });
+        await addCol('licencias', 'precio_mensual', { type: DataTypes.DECIMAL(10, 2), allowNull: true });
+        await addCol('licencias', 'notas',          { type: DataTypes.TEXT,          allowNull: true });
+        await addCol('pagos', 'referencia_externa', { type: DataTypes.STRING(120), allowNull: true });
         console.log('✅ Migraciones manuales completadas');
     }
 }
@@ -235,7 +326,16 @@ async function iniciar(intentos = 5) {
         try {
             await sequelize.authenticate();
             console.log(`✅ BD conectada (intento ${i})`);
-            await syncSchema();
+            migracionesFallidas = [];
+            await migracionesLicencias();   // primero: deja el esquema listo
+            await syncSchema();             // despues: sync ya no tiene DDL pesado que hacer
+            const faltantes = await verificarEsquema();
+            if (migracionesFallidas.length || faltantes.length) {
+                const problemas = migracionesFallidas.concat(faltantes.map(f => 'falta ' + f));
+                require('./services/telegramService')
+                    .enviar('*mi-plataforma arranco con el esquema incompleto*\n' + problemas.join('\n'))
+                    .catch(() => {});
+            }
             await seedAdmin();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
             initDemos().catch(e => console.error('⚠️  initDemos falló (no crítico):', e.message));
@@ -252,6 +352,7 @@ async function iniciar(intentos = 5) {
             try { iniciarVentasReportScheduler(); } catch(e) { console.warn('⚠️ ventasReport:', e.message); }
             try { iniciarCarouselScheduler(); } catch(e) { console.warn('⚠️ carousel:', e.message); }
             try { iniciarStoriesScheduler();  } catch(e) { console.warn('⚠️ stories:', e.message); }
+            try { iniciarAlertasCobro();      } catch(e) { console.warn('⚠️ alertasCobro:', e.message); }
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);

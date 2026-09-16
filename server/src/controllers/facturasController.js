@@ -44,8 +44,18 @@ async function enviarFacturaEmail(factura, cliente) {
 }
 
 exports.generarFactura = async ({ pago_id, cliente_id, concepto, monto, metodo_pago, fecha }) => {
-    const numero  = await generarNumero();
-    const factura = await Factura.create({ numero, pago_id, cliente_id, concepto, monto, metodo_pago, fecha });
+    // Dos facturas simultaneas pueden leer el mismo ultimo numero. Se reintenta
+    // ante choque de numero en vez de dejar el pago sin factura.
+    let factura = null;
+    for (let intento = 1; intento <= 5 && !factura; intento++) {
+        const numero = await generarNumero();
+        try {
+            factura = await Factura.create({ numero, pago_id, cliente_id, concepto, monto, metodo_pago, fecha });
+        } catch (e) {
+            if (e.name === 'SequelizeUniqueConstraintError' && intento < 5) continue;
+            throw e;
+        }
+    }
 
     // Enviar PDF por email en background (no bloquea la respuesta)
     Cliente.findByPk(cliente_id, { attributes: ['nombre', 'email', 'telefono'] })

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Clientes  from './pages/Clientes';
 import Productos from './pages/Productos';
 import Licencias from './pages/Licencias';
+import CostosServidor from './pages/CostosServidor';
 import Pagos          from './pages/Pagos';
 import PagarLicencia  from './pages/PagarLicencia';
 import PortalCliente  from './pages/PortalCliente';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="clientes"   element={<Clientes />} />
           <Route path="productos"  element={<Productos />} />
           <Route path="licencias"  element={<Licencias />} />
+          <Route path="costos"     element={<CostosServidor />} />
           <Route path="pagos"      element={<Pagos />} />
           <Route path="facturas"   element={<Facturas />} />
           <Route path="marketing"  element={<Marketing />} />

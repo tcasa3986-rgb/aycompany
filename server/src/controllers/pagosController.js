@@ -3,6 +3,8 @@ const { generarFactura } = require('./facturasController');
 const { MercadoPagoConfig, Preference, Payment, PreApproval } = require('mercadopago');
 const { notificarRenovacion } = require('../services/licenciaNotificaciones');
 const { crearFactura: crearFacturaSiigo } = require('../services/siigoService');
+const { registrarPagoLicencia, PagoDuplicado } = require('../services/licenciaPagoService');
+const { estadoLicencia, precioLicencia } = require('../utils/licenciaCiclo');
 
 const include = [
     { model: Cliente,  as: 'cliente',  attributes: ['id', 'nombre'] },
@@ -19,39 +21,12 @@ exports.listar = async (req, res) => {
 };
 
 exports.crear = async (req, res) => {
-    const pago = await Pago.create(req.body);
-    const { licencia_id, meses = 1 } = req.body;
-    const lic = await Licencia.findByPk(licencia_id);
-    if (lic) {
-        const base = new Date(lic.fecha_vencimiento) > new Date() ? new Date(lic.fecha_vencimiento) : new Date();
-        base.setMonth(base.getMonth() + parseInt(meses));
-        await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true });
-    }
-    const lic2 = await Licencia.findByPk(licencia_id, {
-        include: [
-            { model: Producto, as: 'producto', attributes: ['nombre'] },
-            { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] }
-        ]
-    });
-    await generarFactura({
-        pago_id:     pago.id,
-        cliente_id:  pago.cliente_id,
-        concepto:    `Renovación ${lic2?.producto?.nombre || 'Sistema'} — ${req.body.meses || 1} mes(es)`,
-        monto:       pago.monto,
-        metodo_pago: pago.metodo_pago,
-        fecha:       pago.fecha_pago
-    });
-    if (lic2?.cliente?.email) {
-        notificarRenovacion({
-            clienteEmail:         lic2.cliente.email,
-            clienteNombre:        lic2.cliente.nombre,
-            productoNombre:       lic2.producto?.nombre || 'Sistema',
-            nuevaFechaVencimiento: lic?.fecha_vencimiento,
-            monto:                pago.monto
-        });
-    }
-
-    res.json({ ok: true, data: pago, msg: 'Pago registrado y licencia renovada' });
+    try {
+        const { licencia_id } = req.body;
+        if (!licencia_id) return res.status(400).json({ ok: false, msg: 'licencia_id es obligatorio' });
+        const r = await registrarPagoLicencia(licencia_id, { ...req.body, origen: 'manual' });
+        res.json({ ok: true, data: r.pago, msg: `Pago registrado y licencia renovada hasta ${r.fecha_vencimiento}` });
+    } catch (e) { res.status(400).json({ ok: false, msg: e.message }); }
 };
 
 exports.eliminar = async (req, res) => {
@@ -67,24 +42,26 @@ exports.mpInfoLicencia = async (req, res) => {
         const lic = await Licencia.findOne({
             where: { license_key },
             include: [
-                { model: Cliente,  as: 'cliente',  attributes: ['nombre'] },
+                { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] },
                 { model: Producto, as: 'producto', attributes: ['nombre', 'precio_mensual'] }
             ]
         });
         if (!lic) return res.status(404).json({ ok: false, msg: 'Licencia no encontrada' });
 
-        const ahora = new Date();
-        const vence = new Date(lic.fecha_vencimiento);
-        const dias  = Math.ceil((vence - ahora) / 86400000);
-
+        const c = estadoLicencia(lic);
         res.json({
             ok: true,
             cliente:           lic.cliente.nombre,
+            email:             lic.cliente.email || '',
             producto:          lic.producto.nombre,
-            precio:            lic.producto.precio_mensual,
-            fecha_vencimiento: lic.fecha_vencimiento,
-            dias_restantes:    dias,
-            activo:            lic.activo
+            precio:            precioLicencia(lic),
+            fecha_vencimiento: c.fecha_vencimiento,
+            fecha_bloqueo:     c.fecha_bloqueo,
+            dias_restantes:    c.dias_restantes,
+            dias_mora:         c.dias_mora,
+            estado:            c.estado,
+            activo:            c.valida,
+            suscripcion_activa: lic.suscripcion_activa
         });
     } catch (err) {
         res.status(500).json({ ok: false, msg: err.message });
@@ -108,7 +85,7 @@ exports.mpCrearPago = async (req, res) => {
         const baseUrl   = process.env.BASE_URL || `https://mi-plataforma-production.up.railway.app`;
         const descuentos = { 3: 5, 6: 10, 12: 15 };
         const pct        = descuentos[meses] || 0;
-        const total      = Math.round(Number(lic.producto.precio_mensual) * meses * (1 - pct / 100));
+        const total      = Math.round(precioLicencia(lic) * meses * (1 - pct / 100));
         const titulo    = meses === 1
             ? `Renovación ${lic.producto.nombre} — ${lic.cliente.nombre}`
             : `Renovación ${lic.producto.nombre} ${meses} meses — ${lic.cliente.nombre}`;
@@ -140,107 +117,80 @@ exports.mpCrearPago = async (req, res) => {
     }
 };
 
+// Trae el pago de una suscripcion. Para 'subscription_authorized_payment' el id
+// que manda MP es de authorized_payments, no de /v1/payments: hay que pedirlo por
+// su propio endpoint o el cobro recurrente se pierde en silencio.
+async function obtenerPagoAutorizado(id) {
+    const r = await fetch(`https://api.mercadopago.com/authorized_payments/${id}`, {
+        headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
+    });
+    if (!r.ok) throw new Error(`authorized_payments ${id}: HTTP ${r.status}`);
+    const ap = await r.json();
+    // El pago real viene anidado; se normaliza a la forma de /v1/payments.
+    const pay = ap.payment || {};
+    return {
+        id:                 pay.id || ap.id,
+        status:             pay.status || ap.status,
+        transaction_amount: pay.transaction_amount ?? ap.transaction_amount,
+        external_reference: ap.external_reference || pay.external_reference,
+        preapproval_id:     ap.preapproval_id
+    };
+}
+
+// MercadoPago reintenta mientras no reciba 2xx. Por eso NO se responde 200 antes
+// de procesar: si la BD falla, un 500 hace que MP reenvie y el pago no se pierde.
 exports.mpWebhook = async (req, res) => {
-    res.sendStatus(200);
     const { type, data } = req.body;
-    if (!data?.id) return;
+    if (!data?.id) return res.sendStatus(200);
 
     try {
         // ── Pago único ────────────────────────────────────────────
         if (type === 'payment') {
             const paymentApi = new Payment(mpClient());
             const pago = await paymentApi.get({ id: data.id });
-            if (pago.status !== 'approved') return;
+            if (pago.status !== 'approved') return res.sendStatus(200);
 
             // external_reference puede ser "license_key|meses" o solo "license_key" (pagos antiguos)
             const [licenseKey, mesesStr] = (pago.external_reference || '').split('|');
             const numMeses = Math.min(Math.max(parseInt(mesesStr) || 1, 1), 24);
 
             const lic = await Licencia.findOne({ where: { license_key: licenseKey } });
-            if (!lic) return;
+            if (!lic) { console.warn(`Webhook MP: licencia ${licenseKey} no existe`); return res.sendStatus(200); }
 
-            const base = new Date(lic.fecha_vencimiento) > new Date() ? new Date(lic.fecha_vencimiento) : new Date();
-            base.setMonth(base.getMonth() + numMeses);
-            await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true });
-
-            const licConProd = await Licencia.findByPk(lic.id, {
-                include: [
-                    { model: Producto, as: 'producto', attributes: ['nombre'] },
-                    { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] }
-                ]
-            });
-            const nuevoPago = await Pago.create({
-                licencia_id: lic.id, cliente_id: lic.cliente_id,
-                monto: pago.transaction_amount, fecha_pago: new Date().toISOString().split('T')[0],
-                metodo_pago: 'MercadoPago', meses: numMeses, notas: `MP pago único #${pago.id}`
-            });
-            await generarFactura({
-                pago_id: nuevoPago.id, cliente_id: lic.cliente_id,
-                concepto: `Renovación ${licConProd?.producto?.nombre || 'Sistema'} — ${numMeses} mes${numMeses > 1 ? 'es' : ''}`,
-                monto: pago.transaction_amount, metodo_pago: 'MercadoPago',
-                fecha: new Date().toISOString().split('T')[0]
-            });
-            if (licConProd?.cliente?.email) {
-                notificarRenovacion({
-                    clienteEmail:          licConProd.cliente.email,
-                    clienteNombre:         licConProd.cliente.nombre,
-                    productoNombre:        licConProd.producto?.nombre || 'Sistema',
-                    nuevaFechaVencimiento: lic.fecha_vencimiento,
-                    monto:                 pago.transaction_amount
+            // Idempotencia real: referencia_externa tiene UNIQUE, así que dos
+            // entregas simultáneas del mismo webhook no duplican el pago.
+            try {
+                await registrarPagoLicencia(lic.id, {
+                    meses: numMeses, monto: pago.transaction_amount, metodo_pago: 'mercadopago',
+                    notas: `MP pago único #${pago.id}`, referencia_externa: `mp_pay_${pago.id}`,
+                    origen: 'mp_unico'
                 });
+            } catch (e) {
+                if (e instanceof PagoDuplicado || e.duplicado) { console.log(`Webhook repetido ignorado (pago ${pago.id})`); return res.sendStatus(200); }
+                throw e;
             }
-            // Sync SIIGO si está configurado
-            crearFacturaSiigo({
-                clienteNombre:  licConProd?.cliente?.nombre,
-                clienteEmail:   licConProd?.cliente?.email,
-                concepto:       `Renovación ${licConProd?.producto?.nombre || 'Sistema'} — ${numMeses} mes${numMeses > 1 ? 'es' : ''}`,
-                monto:          pago.transaction_amount,
-                fecha:          new Date().toISOString().split('T')[0]
-            }).catch(e => console.error('SIIGO sync error:', e.message));
-
             console.log(`✅ Pago MP ${numMeses} mes(es) — licencia ${licenseKey} renovada`);
         }
 
         // ── Cobro automático de suscripción ───────────────────────
         if (type === 'subscription_authorized_payment') {
-            const paymentApi = new Payment(mpClient());
-            const pago = await paymentApi.get({ id: data.id });
-            if (pago.status !== 'approved') return;
+            const pago = await obtenerPagoAutorizado(data.id);
+            if (pago.status !== 'approved') return res.sendStatus(200);
 
             // external_reference = license_key guardado al crear la suscripción
             const licenseKey = pago.external_reference;
             const lic = await Licencia.findOne({ where: { license_key: licenseKey } });
-            if (!lic) return;
+            if (!lic) { console.warn(`Webhook MP suscripcion: licencia ${licenseKey} no existe`); return res.sendStatus(200); }
 
-            const base = new Date(lic.fecha_vencimiento) > new Date() ? new Date(lic.fecha_vencimiento) : new Date();
-            base.setMonth(base.getMonth() + 1);
-            await lic.update({ fecha_vencimiento: base.toISOString().split('T')[0], activo: true, suscripcion_activa: true });
-
-            const licConProd = await Licencia.findByPk(lic.id, {
-                include: [
-                    { model: Producto, as: 'producto', attributes: ['nombre'] },
-                    { model: Cliente,  as: 'cliente',  attributes: ['nombre', 'email'] }
-                ]
-            });
-            const nuevoPago = await Pago.create({
-                licencia_id: lic.id, cliente_id: lic.cliente_id,
-                monto: pago.transaction_amount, fecha_pago: new Date().toISOString().split('T')[0],
-                metodo_pago: 'MercadoPago', meses: 1, notas: `MP suscripción automática #${pago.id}`
-            });
-            await generarFactura({
-                pago_id: nuevoPago.id, cliente_id: lic.cliente_id,
-                concepto: `Suscripción ${licConProd?.producto?.nombre || 'Sistema'} — cobro automático`,
-                monto: pago.transaction_amount, metodo_pago: 'MercadoPago',
-                fecha: new Date().toISOString().split('T')[0]
-            });
-            if (licConProd?.cliente?.email) {
-                notificarRenovacion({
-                    clienteEmail:          licConProd.cliente.email,
-                    clienteNombre:         licConProd.cliente.nombre,
-                    productoNombre:        licConProd.producto?.nombre || 'Sistema',
-                    nuevaFechaVencimiento: lic.fecha_vencimiento,
-                    monto:                 pago.transaction_amount
+            try {
+                await registrarPagoLicencia(lic.id, {
+                    meses: 1, monto: pago.transaction_amount, metodo_pago: 'mercadopago',
+                    notas: `MP suscripción automática #${pago.id}`, referencia_externa: `mp_sub_${pago.id}`,
+                    origen: 'mp_suscripcion'
                 });
+            } catch (e) {
+                if (e instanceof PagoDuplicado || e.duplicado) { console.log(`Webhook de suscripcion repetido ignorado (pago ${pago.id})`); return res.sendStatus(200); }
+                throw e;
             }
             console.log(`✅ Cobro automático MP — licencia ${licenseKey} renovada`);
         }
@@ -255,8 +205,15 @@ exports.mpWebhook = async (req, res) => {
                 console.log(`⚠️ Suscripción ${data.id} ${sub.status}`);
             }
         }
+        return res.sendStatus(200);
     } catch (err) {
+        // 500 = MercadoPago reintenta. Ademas se avisa, porque un webhook que
+        // falla en silencio es un cliente que pago y no le renovaron.
         console.error('Error webhook MP:', err.message);
+        require('../services/telegramService')
+            .enviar(`*Webhook de MercadoPago fallo* (${type} #${data.id})\n${err.message}\nMP lo reintentara.`)
+            .catch(() => {});
+        return res.sendStatus(500);
     }
 };
 
@@ -273,6 +230,14 @@ exports.mpCrearSuscripcion = async (req, res) => {
         });
         if (!lic) return res.status(404).json({ ok: false, msg: 'Licencia no encontrada' });
 
+        // MercadoPago exige el correo de la cuenta MP del pagador (de Colombia).
+        // Antes se mandaba un placeholder y MP respondía "Payer is associated with a different site".
+        const email = String(req.body?.email || lic.cliente.email || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ ok: false, msg: 'Ingrese el correo de su cuenta de MercadoPago para activar el cobro automático.' });
+        }
+        if (!lic.cliente.email) await Cliente.update({ email }, { where: { id: lic.cliente_id } });
+
         const baseUrl = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
         const api = new PreApproval(mpClient());
 
@@ -280,11 +245,11 @@ exports.mpCrearSuscripcion = async (req, res) => {
             body: {
                 reason:          `${lic.producto.nombre} — ${lic.cliente.nombre}`,
                 external_reference: license_key,
-                payer_email:     lic.cliente.email || 'cliente@email.com',
+                payer_email:     email,
                 auto_recurring: {
                     frequency:           1,
                     frequency_type:      'months',
-                    transaction_amount:  Number(lic.producto.precio_mensual),
+                    transaction_amount:  precioLicencia(lic),
                     currency_id:         'COP',
                     start_date:          new Date().toISOString(),
                     end_date:            new Date(Date.now() + 10 * 365 * 24 * 3600 * 1000).toISOString() // 10 años
@@ -299,7 +264,10 @@ exports.mpCrearSuscripcion = async (req, res) => {
 
         res.json({ ok: true, init_point: result.init_point, subscription_id: result.id });
     } catch (err) {
-        res.status(500).json({ ok: false, msg: err.message });
+        const msg = /different site/i.test(err.message)
+            ? 'Ese correo no corresponde a una cuenta de MercadoPago Colombia. Verifique el correo o use "Pagar una vez".'
+            : err.message;
+        res.status(500).json({ ok: false, msg });
     }
 };
 
@@ -326,23 +294,22 @@ exports.validarLicencia = async (req, res) => {
         const { license_key } = req.params;
         const lic = await Licencia.findOne({
             where: { license_key },
-            include: [{ model: Producto, as: 'producto', attributes: ['nombre'] }]
+            include: [{ model: Producto, as: 'producto', attributes: ['nombre', 'precio_mensual'] }]
         });
         if (!lic) return res.status(404).json({ ok: false, msg: 'Licencia no encontrada' });
 
-        const ahora = new Date();
-        const vence = new Date(lic.fecha_vencimiento + 'T23:59:59');
-        const valida = lic.activo && vence >= ahora;
-        const dias   = Math.ceil((vence - ahora) / 86400000);
-
-        await lic.update({ last_check: ahora });
+        await lic.update({ last_check: new Date() });
+        const c = estadoLicencia(lic);
 
         res.json({
-            ok:      valida,
-            activo:  valida,
+            ok:      c.valida,
+            activo:  c.valida,
+            estado:  c.estado,
             producto: lic.producto?.nombre,
-            fecha_vencimiento: lic.fecha_vencimiento,
-            dias_restantes: dias,
+            fecha_vencimiento: c.fecha_vencimiento,
+            fecha_bloqueo:     c.fecha_bloqueo,
+            dias_restantes:    c.dias_restantes,
+            dias_mora:         c.dias_mora,
             suscripcion_activa: lic.suscripcion_activa,
             pago_url: `${process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app'}/pagar/${license_key}`
         });

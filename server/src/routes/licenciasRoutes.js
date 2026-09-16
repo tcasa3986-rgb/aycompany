@@ -9,6 +9,8 @@ router.use(auth);
 router.use(auth.requireRol(['admin']));
 router.get('/',             ctrl.listar);
 router.post('/',            ctrl.crear);
+router.put('/:id',         ctrl.actualizar);
+router.post('/:id/pago',   ctrl.registrarPago);
 router.put('/:id/toggle',  ctrl.toggle);
 router.put('/:id/renovar', ctrl.renovar);
 router.delete('/:id',      ctrl.eliminar);

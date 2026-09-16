@@ -13,6 +13,7 @@ export default function PagarLicencia() {
   const [error, setError]         = useState('');
   const [msg, setMsg]             = useState('');
   const [meses, setMeses]         = useState(1);
+  const [emailMP, setEmailMP]     = useState('');
 
   const DESCUENTOS = { 1: 0, 2: 0, 3: 5, 6: 10, 12: 15 };
   function precioFinal(precio, m) {
@@ -25,18 +26,24 @@ export default function PagarLicencia() {
 
   useEffect(() => {
     api.get(`/pagos/mp/info/${license_key}`)
-      .then(r => setInfo(r.data))
+      .then(r => { setInfo(r.data); setEmailMP(r.data.email || ''); })
       .catch(() => setError('Licencia no encontrada'))
       .finally(() => setCargando(false));
   }, [license_key]);
 
   async function activarSuscripcion() {
+    const email = emailMP.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Escriba el correo de su cuenta de MercadoPago para activar el cobro automático.');
+      return;
+    }
+    setError('');
     setProcesando(true);
     try {
-      const { data } = await api.post(`/pagos/mp/suscripcion/${license_key}`);
+      const { data } = await api.post(`/pagos/mp/suscripcion/${license_key}`, { email });
       window.location.href = data.init_point;
-    } catch {
-      setError('Error al activar la suscripción. Intente de nuevo.');
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Error al activar la suscripción. Intente de nuevo o use "Pagar".');
       setProcesando(false);
     }
   }
@@ -46,8 +53,8 @@ export default function PagarLicencia() {
     try {
       const { data } = await api.post(`/pagos/mp/crear/${license_key}`, { meses });
       window.location.href = data.init_point;
-    } catch {
-      setError('Error al iniciar el pago. Intente de nuevo.');
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Error al iniciar el pago. Intente de nuevo.');
       setProcesando(false);
     }
   }
@@ -89,7 +96,10 @@ export default function PagarLicencia() {
 
         {/* Info licencia */}
         <div style={s.infoBox}>
-          <Row label="Estado"      value={vencida ? 'Vencida' : `Activa (${info.dias_restantes} días)`} color={vencida ? '#e74c3c' : '#2ecc71'} />
+          <Row label="Estado" color={info.estado === 'bloqueada' ? '#e74c3c' : (info.dias_mora > 0 ? '#f59e0b' : '#2ecc71')}
+            value={info.estado === 'bloqueada' ? `Bloqueada — ${info.dias_mora} días de mora`
+              : info.dias_mora > 0 ? `En mora (${info.dias_mora} días)${info.fecha_bloqueo ? ' — se bloquea el ' + new Date(info.fecha_bloqueo + 'T00:00:00').toLocaleDateString('es-CO', { month: 'long', day: 'numeric' }) : ''}`
+              : `Activa (${info.dias_restantes} días)`} />
           <Row label="Vencimiento" value={new Date(info.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })} />
           <Row label="Suscripción" value={info.suscripcion_activa ? '✅ Activa — cobro automático' : '⭕ No configurada'} color={info.suscripcion_activa ? '#2ecc71' : '#888'} />
         </div>
@@ -157,6 +167,11 @@ export default function PagarLicencia() {
         {/* Botones según estado */}
         {!info.suscripcion_activa && (estado !== 'ok' && estado !== 'suscrito') && (
           <>
+            <input
+              type="email" value={emailMP} onChange={e => setEmailMP(e.target.value)}
+              placeholder="Correo de su cuenta MercadoPago (para el cobro automático)"
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #333', background: '#111', color: '#fff', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+            />
             <button onClick={activarSuscripcion} disabled={procesando} style={s.btnPrimario}>
               {procesando ? 'Procesando...' : '🔄 Activar suscripción automática'}
             </button>
