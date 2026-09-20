@@ -73,16 +73,21 @@ const CONTRATOS = [
     },
 ];
 
-// ── Gastos fijos mensuales ────────────────────────────────────────────
+// ── Gastos fijos mensuales (corregidos por Cristian el 20/09/2026) ────
+// Vive con su hermano y HOY paga todo él. Si el hermano consigue trabajo
+// pagaría la mitad de la casa (arriendo + servicios): eso es un escenario,
+// no un hecho, así que se carga la situación actual.
 const GASTOS_FIJOS = [
-    { ambito: 'personal', categoria: 'arriendo',   concepto: 'Arriendo',                monto: 500000 },
-    { ambito: 'personal', categoria: 'recibos',    concepto: 'Recibos (servicios)',     monto: 200000 },
-    { ambito: 'personal', categoria: 'comida',     concepto: 'Comida',                  monto: 200000 },
-    { ambito: 'personal', categoria: 'transporte', concepto: 'Gasolina moto',           monto: 108000 },
+    { ambito: 'personal', categoria: 'arriendo',   concepto: 'Arriendo',                monto: 500000, notas: 'Paga todo Cristian. Si el hermano trabaja, se reparte a la mitad.' },
+    { ambito: 'personal', categoria: 'recibos',    concepto: 'Servicios',               monto: 150000, notas: 'Paga todo Cristian. Si el hermano trabaja, se reparte a la mitad.' },
+    { ambito: 'personal', categoria: 'transporte', concepto: 'Gasolina moto',           monto: 120000, notas: '$30.000 semanales' },
     { ambito: 'personal', categoria: 'celular',    concepto: 'Plan celular',            monto: 50000  },
     { ambito: 'personal', categoria: 'gimnasio',   concepto: 'Gimnasio',                monto: 100000 },
     { ambito: 'empresa',  categoria: 'herramientas', concepto: 'Codex',                 monto: 100000 },
-    { ambito: 'empresa',  categoria: 'herramientas', concepto: 'Claude / Cloud',        monto: 20000  },
+    { ambito: 'empresa',  categoria: 'herramientas', concepto: 'Claude / Cloud',        monto: 64000  },
+    // FALTA LA COMIDA: Cristian la declaró en $150.000-$200.000 el 20/09 por la
+    // mañana y no la incluyó al corregir la lista. Sin ella el margen sale
+    // optimista. Confirmar y ajustar.
 ];
 
 // ── Tratos en negociación: plata PROBABLE, nunca se cuenta como ingreso ──
