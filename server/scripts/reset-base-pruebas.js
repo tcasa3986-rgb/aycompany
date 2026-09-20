@@ -24,6 +24,11 @@ const REALES = ['Ferre Láser CDA', 'Ferre Láser SAS', 'JD Metales', 'ASOERC', 
     await c.query('DELETE FROM abonos_deuda');
     await c.query('DELETE FROM aportes_meta');
     await c.query("DELETE FROM movimientos_financieros WHERE recurrente = 0");
+    // Los datos sembrados no traen pagos ni facturas: los que existan los dejó
+    // una prueba. Sin borrarlos, una referencia_externa repetida hace fallar la
+    // siguiente corrida por duplicado.
+    await c.query('DELETE FROM facturas');
+    await c.query('DELETE FROM pagos');
     await c.query("UPDATE deudas SET estado = 'activa'");
     await c.query("UPDATE metas SET estado = 'activa'");
 

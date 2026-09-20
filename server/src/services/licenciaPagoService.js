@@ -8,7 +8,7 @@
 // el mismo vencimiento y solo se acredita un mes: el cliente pagaría dos y quedaría
 // bloqueado con uno. La factura y las notificaciones van después de confirmar.
 const sequelize = require('../config/db');
-const { Licencia, Cliente, Producto, Pago } = require('../models');
+const { Licencia, Cliente, Producto, Pago, MovimientoFinanciero } = require('../models');
 const { generarFactura } = require('../controllers/facturasController');
 const { notificarRenovacion } = require('./licenciaNotificaciones');
 const { crearFactura: crearFacturaSiigo } = require('./siigoService');
@@ -69,6 +69,17 @@ async function registrarPagoLicencia(licenciaId, p = {}) {
             if (e.name === 'SequelizeUniqueConstraintError') throw new PagoDuplicado(ref);
             throw e;
         }
+
+        // El dinero tiene que aparecer en Finanzas. Sin esto el cliente pagaba,
+        // la licencia se renovaba y se emitía la factura, pero el tablero seguía
+        // mostrando cero ingresos: la plata entraba y no se veía por ninguna parte.
+        await MovimientoFinanciero.create({
+            tipo: 'ingreso', ambito: 'empresa', categoria: 'mensualidad',
+            concepto: `${lic.producto?.nombre || 'Sistema'} — ${lic.cliente?.nombre || 'Cliente'}`,
+            monto, fecha, metodo_pago: metodo,
+            origen: 'licencia', referencia_id: lic.id, cliente_id: lic.cliente_id,
+            notas: p.notas || null
+        }, { transaction: t });
 
         return { lic, pago, nuevaFecha, monto };
     });
