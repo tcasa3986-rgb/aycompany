@@ -24,6 +24,7 @@ const CLIENTES = [
     { nombre: 'JD Metales',        telefono: '', notas: 'Ibagué — sistema Láser Ejecutivo' },
     { nombre: 'ASOERC',            telefono: '321 9544178', notas: 'Reciclaje — solo el sistema' },
     { nombre: 'Maderas Montoya',   telefono: '', notas: 'Dueño: César. Marketing digital, NO paga sistema (amigo)' },
+    { nombre: 'DINASTY POKER CLUB', telefono: '', email: 'dinastypoker936@gmail.com', notas: 'Club de póker. Paga $100.000/mes por el sistema Botón.' },
 ];
 
 // ── Productos (sistemas reales, no el catálogo de demos) ──────────────
@@ -32,6 +33,7 @@ const PRODUCTOS = [
     { nombre: 'Sistema Láser Ejecutivo', precio_mensual: 200000, categoria: 'Sistema' },
     { nombre: 'Sistema ASOERC',          precio_mensual: 250000, categoria: 'Sistema' },
     { nombre: 'Marketing Digital',       precio_mensual: 1000000, categoria: 'Marketing' },
+    { nombre: 'Boton',                   precio_mensual: 100000,  categoria: 'Sistema' },
 ];
 
 // ── Licencias: día de corte y regla de bloqueo por cliente ────────────
@@ -41,6 +43,9 @@ const LICENCIAS = [
     { cliente: 'Ferre Láser SAS', producto: 'Sistema Ferre Láser',      precio: 250000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Corte el 1, se bloquea el 16' },
     { cliente: 'JD Metales',      producto: 'Sistema Láser Ejecutivo',  precio: 200000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Corte el 1, se bloquea el 16' },
     { cliente: 'Maderas Montoya', producto: 'Marketing Digital',        precio: 1000000, dia_corte: 1,  dias_gracia: 0,  bloquear: false, notas: 'NUNCA se bloquea. César es amigo de Cristian' },
+    // Dinasty: Cristian confirmó el 20/09 que es cliente normal y paga $100.000.
+    // Falta que diga el día de corte; hasta entonces se deja sin ciclo fijo.
+    { cliente: 'DINASTY POKER CLUB', producto: 'Boton',                  precio: 100000,  dia_corte: null, dias_gracia: 0, bloquear: true,  notas: 'Paga $100.000/mes. PENDIENTE: definir día de corte y tolerancia.' },
 ];
 
 // ── Contratos con su estructura real de pago ──────────────────────────
@@ -80,6 +85,7 @@ const CONTRATOS = [
 const GASTOS_FIJOS = [
     { ambito: 'personal', categoria: 'arriendo',   concepto: 'Arriendo',                monto: 500000, notas: 'Paga todo Cristian. Si el hermano trabaja, se reparte a la mitad.' },
     { ambito: 'personal', categoria: 'recibos',    concepto: 'Servicios',               monto: 150000, notas: 'Paga todo Cristian. Si el hermano trabaja, se reparte a la mitad.' },
+    { ambito: 'personal', categoria: 'comida',     concepto: 'Comida',                  monto: 200000, notas: 'Cristian: "no lo se, 200 por mucho" (20/09). Se carga el techo: asi el margen que muestra el tablero es el piso, no una cifra optimista.' },
     { ambito: 'personal', categoria: 'transporte', concepto: 'Gasolina moto',           monto: 120000, notas: '$30.000 semanales' },
     { ambito: 'personal', categoria: 'celular',    concepto: 'Plan celular',            monto: 50000  },
     { ambito: 'personal', categoria: 'gimnasio',   concepto: 'Gimnasio',                monto: 100000 },
