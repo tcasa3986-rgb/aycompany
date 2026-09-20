@@ -19,7 +19,7 @@ const GRUPOS = [
     { to: '/finanzas',  icon: Wallet,     label: 'Finanzas', movil: true },
     { to: '/licencias', icon: Key,        label: 'Licencias' },
     { to: '/contratos', icon: ScrollText, label: 'Contratos' },
-    { to: '/costos',    icon: Server,     label: 'Costos' },
+    { to: '/costos',    icon: Server,     label: 'Qué pagar' },
     { to: '/pagos',     icon: CreditCard, label: 'Pagos' },
     { to: '/facturas',  icon: FileText,   label: 'Facturas' },
     { to: '/cartera',   icon: AlertCircle,label: 'Cartera' },

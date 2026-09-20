@@ -205,6 +205,11 @@ async function migracionesLicencias() {
     await addCol('leads', 'probabilidad',  { type: DataTypes.INTEGER,        defaultValue: 50 });
     await addCol('leads', 'fecha_estimada_cierre', { type: DataTypes.DATEONLY, allowNull: true });
 
+    // costos_servidor deja de ser solo infraestructura: ahora lleva también los
+    // pagos personales con fecha (arriendo, servicios, gimnasio...)
+    await addCol('costos_servidor', 'ambito',    { type: DataTypes.ENUM('empresa', 'personal'), defaultValue: 'empresa' });
+    await addCol('costos_servidor', 'categoria', { type: DataTypes.STRING(40), defaultValue: 'hosting' });
+
     // ENUM de metodo_pago: solo se reescribe si de verdad le faltan valores
     // (el ALTER copia la tabla y demora el arranque).
     try {

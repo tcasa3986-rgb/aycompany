@@ -3,7 +3,9 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { Plus, X, Pencil, CheckCircle2, Trash2, Send, Bell } from 'lucide-react';
 
-// Gastos recurrentes de infraestructura (Railway, dominios, APIs) con aviso por Telegram.
+// Todo lo que hay que pagar cada mes en una fecha: el Railway de cada sistema y
+// los dominios del negocio, pero también el arriendo, los servicios o el gimnasio.
+// El aviso diario sale de aquí, por Telegram, sin usar IA ni consumir tokens.
 const ESTADOS = {
   al_dia:   { label: 'Al día',     bg: '#f0fdf4', color: '#16a34a' },
   proximo:  { label: 'Próximo',    bg: '#fffbeb', color: '#d97706' },
@@ -13,7 +15,12 @@ const ESTADOS = {
 };
 const fmtMonto = (m, mon) => (mon === 'USD' ? 'US$' : '$') + Number(m || 0).toLocaleString('es-CO');
 const fmtFecha = s => s ? new Date(s + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-const VACIO = { nombre: '', proveedor: 'Railway', licencia_id: '', monto: '', moneda: 'USD', dia_pago: '', proximo_pago: '', cuenta: '', notas: '', activo: true };
+const CATEGORIAS = {
+  empresa:  ['hosting', 'dominio', 'apis_ia', 'herramientas', 'publicidad', 'otro'],
+  personal: ['arriendo', 'servicios', 'celular', 'gimnasio', 'transporte', 'salud', 'educacion', 'suscripcion', 'otro'],
+};
+const VACIO = { nombre: '', proveedor: '', ambito: 'empresa', categoria: 'hosting', licencia_id: '',
+                monto: '', moneda: 'USD', dia_pago: '', proximo_pago: '', cuenta: '', notas: '', activo: true };
 
 export default function CostosServidor() {
   const [costos, setCostos]       = useState([]);
@@ -34,7 +41,10 @@ export default function CostosServidor() {
 
   function abrirNuevo() { setForm(VACIO); setModal('nuevo'); }
   function abrirEditar(c) {
-    setForm({ nombre: c.nombre, proveedor: c.proveedor || '', licencia_id: c.licencia_id || '', monto: c.monto, moneda: c.moneda, dia_pago: c.dia_pago, proximo_pago: c.proximo_pago || '', cuenta: c.cuenta || '', notas: c.notas || '', activo: c.activo });
+    setForm({ nombre: c.nombre, proveedor: c.proveedor || '', ambito: c.ambito || 'empresa',
+              categoria: c.categoria || 'hosting', licencia_id: c.licencia_id || '', monto: c.monto,
+              moneda: c.moneda, dia_pago: c.dia_pago, proximo_pago: c.proximo_pago || '',
+              cuenta: c.cuenta || '', notas: c.notas || '', activo: c.activo });
     setModal(c);
   }
 
@@ -81,11 +91,11 @@ export default function CostosServidor() {
     <div style={{ padding: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Costos de servidores</h1>
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Qué tengo que pagar</h1>
           <p style={{ fontSize: '.85rem', color: '#64748b', marginTop: 4 }}>
             Al mes: <strong style={{ color: '#0f172a' }}>{fmtMonto(totalUSD, 'USD')}</strong>{totalCOP > 0 && <> + <strong style={{ color: '#0f172a' }}>{fmtMonto(totalCOP, 'COP')}</strong></>}
             {atrasados > 0 && <> · <span style={{ color: '#dc2626', fontWeight: 600 }}>{atrasados} atrasado{atrasados > 1 ? 's' : ''}</span></>}
-            <span style={{ marginLeft: 8, color: '#94a3b8' }}>Aviso por Telegram todos los días 8:00 am: 3 días antes, el día y si se pasó.</span>
+            <span style={{ marginLeft: 8, color: '#94a3b8' }}>Te aviso por Telegram todos los días a las 8:00 am: 3 días antes, el día, y si ya se pasó.</span>
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -106,7 +116,7 @@ export default function CostosServidor() {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
           <thead>
             <tr style={{ background: '#f8fafc' }}>
-              {['Costo', 'Sistema', 'Monto', 'Día de pago', 'Próximo pago', 'Último pago', 'Estado', 'Acciones'].map(h => (
+              {['Pago', 'De quién', 'Monto', 'Día', 'Próximo', 'Último', 'Estado', 'Acciones'].map(h => (
                 <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '.8rem', color: '#64748b', fontWeight: 600 }}>{h}</th>
               ))}
             </tr>
@@ -117,7 +127,16 @@ export default function CostosServidor() {
               return (
                 <tr key={c.id} style={{ borderTop: '1px solid #f1f5f9', opacity: c.activo ? 1 : .55 }}>
                   <td style={td}><strong>{c.nombre}</strong><div style={{ fontSize: '.75rem', color: '#94a3b8' }}>{c.proveedor}{c.cuenta ? ` · ${c.cuenta}` : ''}</div></td>
-                  <td style={td}>{c.licencia ? `${c.licencia.cliente?.nombre} · ${c.licencia.producto?.nombre}` : <span style={{ color: '#94a3b8' }}>General</span>}</td>
+                  <td style={td}>
+                    <span style={{ background: c.ambito === 'personal' ? '#F5F3FF' : '#EFF6FF',
+                                   color: c.ambito === 'personal' ? '#7C3AED' : '#2563EB',
+                                   padding: '2px 9px', borderRadius: 20, fontSize: '.72rem', fontWeight: 700 }}>
+                      {c.ambito === 'personal' ? 'Mío' : 'Negocio'}
+                    </span>
+                    <div style={{ fontSize: '.73rem', color: '#94a3b8', marginTop: 3 }}>
+                      {c.licencia ? c.licencia.cliente?.nombre : String(c.categoria || '').replace(/_/g, ' ')}
+                    </div>
+                  </td>
                   <td style={td}>{fmtMonto(c.monto, c.moneda)}</td>
                   <td style={td}>Día {c.dia_pago}</td>
                   <td style={td}>{fmtFecha(c.proximo_pago)}<div style={{ fontSize: '.72rem', color: '#94a3b8' }}>{c.dias_para_pago < 0 ? `hace ${-c.dias_para_pago} días` : c.dias_para_pago === 0 ? 'hoy' : `en ${c.dias_para_pago} días`}</div></td>
@@ -145,10 +164,23 @@ export default function CostosServidor() {
             </div>
             <form onSubmit={guardar}>
               <div style={grid2}>
-                <Field label="Nombre *"><input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Railway — ASOERC" required /></Field>
-                <Field label="Proveedor"><input value={form.proveedor} onChange={e => setForm({ ...form, proveedor: e.target.value })} placeholder="Railway, Hostinger, OpenAI..." /></Field>
+                <Field label="Nombre *"><input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Railway — ASOERC, Arriendo…" required style={input} /></Field>
+                <Field label="Proveedor"><input value={form.proveedor} onChange={e => setForm({ ...form, proveedor: e.target.value })} placeholder="Railway, Hostinger, arrendador…" style={input} /></Field>
               </div>
-              <Field label="Sistema al que pertenece" hint="Para calcular cuánto te deja cada cliente.">
+              <div style={grid2}>
+                <Field label="¿De quién es este pago?">
+                  <select value={form.ambito} onChange={e => setForm({ ...form, ambito: e.target.value, categoria: CATEGORIAS[e.target.value][0] })} style={input}>
+                    <option value="empresa">Del negocio</option>
+                    <option value="personal">Mío (personal)</option>
+                  </select>
+                </Field>
+                <Field label="Categoría">
+                  <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} style={input}>
+                    {(CATEGORIAS[form.ambito] || ['otro']).map(c => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <Field label="Sistema al que pertenece" hint="Solo si es de un cliente: sirve para saber cuánto te deja cada uno.">
                 <select value={form.licencia_id} onChange={e => setForm({ ...form, licencia_id: e.target.value })}>
                   <option value="">General (no es de un cliente)</option>
                   {licencias.map(l => <option key={l.id} value={l.id}>{nombreLic(l.id)}</option>)}
@@ -165,7 +197,7 @@ export default function CostosServidor() {
                 <Field label="Próximo pago" hint="Vacío = se calcula con el día de pago."><input type="date" value={form.proximo_pago} onChange={e => setForm({ ...form, proximo_pago: e.target.value })} /></Field>
               </div>
               <div style={grid2}>
-                <Field label="Con qué se paga"><input value={form.cuenta} onChange={e => setForm({ ...form, cuenta: e.target.value })} placeholder="Visa Bancolombia, Nequi..." /></Field>
+                <Field label="Con qué se paga"><input value={form.cuenta} onChange={e => setForm({ ...form, cuenta: e.target.value })} placeholder="Visa Bancolombia, Nequi, efectivo…" style={input} /></Field>
                 <Field label="Notas"><input value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} /></Field>
               </div>
               {modal !== 'nuevo' && (

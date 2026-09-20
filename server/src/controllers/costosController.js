@@ -1,4 +1,5 @@
-const { CostoServidor, Licencia, Cliente, Producto } = require('../models');
+const sequelize = require('../config/db');
+const { CostoServidor, Licencia, Cliente, Producto, MovimientoFinanciero } = require('../models');
 const { hoyBogota, aFecha, aStr } = require('../utils/licenciaCiclo');
 
 const include = [{
@@ -35,6 +36,11 @@ function validar(body) {
     const out = {};
     if ('nombre' in body) { if (!String(body.nombre || '').trim()) throw new Error('nombre es obligatorio'); out.nombre = String(body.nombre).trim(); }
     if ('proveedor' in body) out.proveedor = String(body.proveedor || 'Railway').trim();
+    if ('ambito' in body) {
+        if (!['empresa', 'personal'].includes(body.ambito)) throw new Error("ambito debe ser 'empresa' o 'personal'");
+        out.ambito = body.ambito;
+    }
+    if ('categoria' in body) out.categoria = String(body.categoria || 'otro').trim();
     if ('licencia_id' in body) out.licencia_id = body.licencia_id ? parseInt(body.licencia_id) : null;
     if ('monto' in body) { const m = Number(body.monto); if (isNaN(m) || m < 0) throw new Error('monto inválido'); out.monto = m; }
     if ('moneda' in body) { if (!['COP', 'USD'].includes(body.moneda)) throw new Error('moneda debe ser COP o USD'); out.moneda = body.moneda; }
@@ -76,10 +82,25 @@ exports.marcarPagado = async (req, res) => {
         const c = await CostoServidor.findByPk(req.params.id);
         if (!c) return res.status(404).json({ ok: false, msg: 'No encontrado' });
         const fecha = req.body?.fecha && /^\d{4}-\d{2}-\d{2}$/.test(req.body.fecha) ? req.body.fecha : hoyBogota();
-        // Siempre se avanza UN ciclo desde el que estaba programado. Si el costo
-        // venia atrasado varios meses, sigue marcado como atrasado hasta ponerse
-        // al dia: marcar "pagado" una vez no debe borrar los meses que faltan.
-        await c.update({ ultimo_pago: fecha, proximo_pago: siguientePago(c.dia_pago, c.proximo_pago) });
+        const monto = req.body?.monto != null && req.body.monto !== '' ? Number(req.body.monto) : Number(c.monto);
+        if (isNaN(monto) || monto < 0) throw new Error('monto inválido');
+
+        // Marcar algo como pagado ES un egreso. Antes solo se movía la fecha y
+        // la plata no aparecía por ningún lado en Finanzas.
+        await sequelize.transaction(async (t) => {
+            // Siempre se avanza UN ciclo desde el que estaba programado. Si el
+            // pago venía atrasado varios meses, sigue marcado como atrasado
+            // hasta ponerse al día: marcar "pagado" una vez no borra lo que falta.
+            await c.update({ ultimo_pago: fecha, proximo_pago: siguientePago(c.dia_pago, c.proximo_pago) }, { transaction: t });
+            await MovimientoFinanciero.create({
+                tipo: 'egreso', ambito: c.ambito || 'empresa',
+                categoria: c.categoria || 'hosting',
+                concepto: c.nombre, monto, fecha,
+                metodo_pago: 'transferencia',
+                origen: 'costo_servidor', referencia_id: c.id,
+                notas: c.moneda === 'USD' ? `Pagado en USD: ${c.monto}` : null
+            }, { transaction: t });
+        });
         res.json({ ok: true, data: conEstado(await CostoServidor.findByPk(c.id, { include })), msg: `Pagado. Próximo: ${c.proximo_pago}` });
     } catch (e) { res.status(400).json({ ok: false, msg: e.message }); }
 };
