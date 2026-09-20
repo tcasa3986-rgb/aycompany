@@ -38,14 +38,12 @@ const PRODUCTOS = [
 
 // ── Licencias: día de corte y regla de bloqueo por cliente ────────────
 const LICENCIAS = [
-    { cliente: 'ASOERC',          producto: 'Sistema ASOERC',           precio: 250000,  dia_corte: 20, dias_gracia: 0,  bloquear: true,  notas: 'Se bloquea el mismo día 20 si no paga' },
-    { cliente: 'Ferre Láser CDA', producto: 'Sistema Ferre Láser',      precio: 250000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Corte el 1, se bloquea el 16' },
-    { cliente: 'Ferre Láser SAS', producto: 'Sistema Ferre Láser',      precio: 250000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Corte el 1, se bloquea el 16' },
-    { cliente: 'JD Metales',      producto: 'Sistema Láser Ejecutivo',  precio: 200000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Corte el 1, se bloquea el 16' },
+    { cliente: 'ASOERC',          producto: 'Sistema ASOERC',           precio: 250000,  dia_corte: 20, dias_gracia: 0,  bloquear: true,  notas: 'Cobra el 20 y se bloquea ese mismo día si no paga' },
+    { cliente: 'Ferre Láser CDA', producto: 'Sistema Ferre Láser',      precio: 250000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Cobra el 1, se bloquea el 16' },
+    { cliente: 'Ferre Láser SAS', producto: 'Sistema Ferre Láser',      precio: 250000,  dia_corte: 1,  dias_gracia: 15, bloquear: true,  notas: 'Cobra el 1, se bloquea el 16' },
+    { cliente: 'JD Metales',      producto: 'Sistema Láser Ejecutivo',  precio: 200000,  dia_corte: 15, dias_gracia: 15, bloquear: true,  notas: 'Cobra el 15, se bloquea el 30' },
     { cliente: 'Maderas Montoya', producto: 'Marketing Digital',        precio: 1000000, dia_corte: 1,  dias_gracia: 0,  bloquear: false, notas: 'NUNCA se bloquea. César es amigo de Cristian' },
-    // Dinasty: Cristian confirmó el 20/09 que es cliente normal y paga $100.000.
-    // Falta que diga el día de corte; hasta entonces se deja sin ciclo fijo.
-    { cliente: 'DINASTY POKER CLUB', producto: 'Boton',                  precio: 100000,  dia_corte: null, dias_gracia: 0, bloquear: true,  notas: 'Paga $100.000/mes. PENDIENTE: definir día de corte y tolerancia.' },
+    { cliente: 'DINASTY POKER CLUB', producto: 'Boton',                  precio: 100000,  dia_corte: 30, dias_gracia: 15, bloquear: true,  notas: 'Cobra el 30, se bloquea el 15 del mes siguiente. La tolerancia de 15 días se igualó a la de los láser; Cristian no la especificó.' },
 ];
 
 // ── Contratos con su estructura real de pago ──────────────────────────
