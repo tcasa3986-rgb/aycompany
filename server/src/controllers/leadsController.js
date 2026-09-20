@@ -1,5 +1,4 @@
-const { Lead, AgentActividad } = require('../models');
-const { procesarLead } = require('../services/agentService');
+const { Lead } = require('../models');
 
 exports.listar = async (req, res) => {
     try {
@@ -26,26 +25,6 @@ exports.actualizar = async (req, res) => {
 exports.eliminar = async (req, res) => {
     try {
         await Lead.destroy({ where: { id: req.params.id } });
-        res.json({ ok: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-};
-
-exports.actividad = async (req, res) => {
-    try {
-        const actividad = await AgentActividad.findAll({
-            where: { lead_id: req.params.id },
-            order: [['created_at', 'DESC']]
-        });
-        res.json(actividad);
-    } catch (e) { res.status(500).json({ error: e.message }); }
-};
-
-// Disparar el agente manualmente sobre un lead específico
-exports.procesarManual = async (req, res) => {
-    try {
-        const lead = await Lead.findByPk(req.params.id);
-        if (!lead) return res.status(404).json({ error: 'Lead no encontrado' });
-        await procesarLead(lead, req.body.evento || 'Acción manual del administrador');
         res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 };

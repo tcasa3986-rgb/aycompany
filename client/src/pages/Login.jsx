@@ -15,8 +15,14 @@ export default function Login() {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', form);
+      // El portal de vendedores se retiró. Sin esto, esas cuentas entraban a una
+      // pantalla en blanco y recibían 403 en cada petición.
+      if (data.user?.rol === 'vendedor') {
+        toast.error('El portal de vendedores fue descontinuado. Escríbenos si necesitas acceso.');
+        return;
+      }
       login(data.token, data.user);
-      navigate(data.user?.rol === 'vendedor' ? '/vendedor' : '/dashboard');
+      navigate('/dashboard');
     } catch {
       toast.error('Credenciales incorrectas');
     } finally {

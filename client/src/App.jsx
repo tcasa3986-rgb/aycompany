@@ -16,8 +16,6 @@ import Calendario     from './pages/Calendario';
 import Contenido      from './pages/Contenido';
 import Social         from './pages/Social';
 import Leads          from './pages/Leads';
-import Agente         from './pages/Agente';
-import Prospector     from './pages/Prospector';
 import Tickets        from './pages/Tickets';
 import Cartera        from './pages/Cartera';
 import Configuracion  from './pages/Configuracion';
@@ -28,21 +26,10 @@ import Contratos      from './pages/Contratos';
 import Usuarios       from './pages/Usuarios';
 import Reportes       from './pages/Reportes';
 import Analitica      from './pages/Analitica';
-import Empresas       from './pages/Empresas';
-import PortalVendedor  from './pages/PortalVendedor';
-import UnirseVendedor  from './pages/UnirseVendedor';
-import Vendedores      from './pages/Vendedores';
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
   return token ? children : <Navigate to="/" replace />;
-}
-
-function PrivateVendedor() {
-  const { token, user } = useAuthStore();
-  if (!token) return <Navigate to="/" replace />;
-  if (user?.rol === 'vendedor') return <PortalVendedor />;
-  return <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
@@ -50,8 +37,6 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/vendedor"       element={<PrivateVendedor />} />
-        <Route path="/unirse"         element={<UnirseVendedor />} />
         <Route path="/pagar/:license_key"  element={<PagarLicencia />} />
         <Route path="/cliente/:token"     element={<PortalCliente />} />
         <Route path="/" element={<Private><Layout /></Private>}>
@@ -67,8 +52,6 @@ export default function App() {
           <Route path="contenido"  element={<Contenido />} />
           <Route path="social"     element={<Social />} />
           <Route path="leads"      element={<Leads />} />
-          <Route path="agente"     element={<Agente />} />
-          <Route path="prospector" element={<Prospector />} />
           <Route path="tickets"        element={<Tickets />} />
           <Route path="cartera"        element={<Cartera />} />
           <Route path="configuracion"  element={<Configuracion />} />
@@ -79,8 +62,6 @@ export default function App() {
           <Route path="usuarios"       element={<Usuarios />} />
           <Route path="reportes"       element={<Reportes />} />
           <Route path="analitica"      element={<Analitica />} />
-          <Route path="empresas"       element={<Empresas />} />
-          <Route path="vendedores"     element={<Vendedores />} />
         </Route>
       </Routes>
     </BrowserRouter>

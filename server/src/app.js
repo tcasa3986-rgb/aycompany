@@ -8,13 +8,10 @@ const path      = require('path');
 const fs        = require('fs');
 const sequelize = require('./config/db');
 const { Usuario } = require('./models');
-const { seedProductos } = require('./controllers/portalVendedorController');
 const { initBot } = require('./services/plataformaBot');
 const { startPoller }   = require('./services/facebookPoller');
 const { startReminder }  = require('./services/meetingReminder');
 const { startFollowUp }  = require('./services/followUpService');
-const { iniciarScheduler } = require('./services/agentScheduler');
-const { iniciarProspectorScheduler } = require('./services/prospectorScheduler');
 const { iniciarLicenciaExpirationScheduler } = require('./services/licenciaExpirationScheduler');
 const { iniciarSeoReportScheduler } = require('./services/seoReportScheduler');
 const { iniciarBalanceMonitor } = require('./services/balanceMonitor');
@@ -47,21 +44,6 @@ app.use(cors({
     credentials: true
 }));
 
-// ── Demo proxies (deben ir ANTES de express.json para no consumir el body) ────
-const { DEMOS, NODE_DEMOS, PHP_DEMOS, initDemos, nodeProxyMiddleware, phpProxyMiddleware } = require('./demoManager');
-for (const demo of NODE_DEMOS) {
-    if (demo.dist === null) {
-        // Server-rendered Node.js app (EJS/views) — proxy all requests like PHP
-        app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));
-    } else {
-        app.use(`/demos/${demo.name}/api`, nodeProxyMiddleware(demo));
-    }
-}
-for (const demo of PHP_DEMOS) {
-    // Demos con HTML estático no usan proxy PHP
-    if (!demo.dist) app.use(`/demos/${demo.name}`, phpProxyMiddleware(demo));
-}
-
 // ── Límite de tamaño de peticiones ───────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
 
@@ -85,7 +67,6 @@ const authLimiter = rateLimit({
     skipSuccessfulRequests: true
 });
 app.use('/api/auth/login',             authLimiter);
-app.use('/api/auth/registro-vendedor', authLimiter);
 
 // ── Rate limiting para webhooks externos (más permisivo) ─────────────────────
 const webhookLimiter = rateLimit({
@@ -122,9 +103,6 @@ app.use('/api/contratos',      require('./routes/contratosRoutes'));
 app.use('/api/usuarios',       require('./routes/usuariosRoutes'));
 app.use('/api/reportes',       require('./routes/reportesRoutes'));
 app.use('/api/analitica',      require('./routes/analiticaRoutes'));
-app.use('/api/vendedor',       require('./routes/portalVendedorRoutes'));
-app.use('/api/admin/vendedores', require('./routes/adminVendedoresRoutes'));
-app.use('/api/empresas',       require('./routes/empresaRoutes'));
 app.use('/api/marketing',  require('./routes/marketingRoutes'));
 app.use('/api/reuniones',  require('./routes/reunionesRoutes'));
 app.use('/api/contenido',  require('./routes/contenidoRoutes'));
@@ -132,9 +110,6 @@ app.use('/api/metricas',   require('./routes/metricasRoutes'));
 app.use('/api/eventos',    require('./routes/eventosRoutes'));
 app.use('/api/asistente',  require('./routes/asistenteRoutes'));
 app.use('/api/leads',       require('./routes/leadsRoutes'));
-app.use('/api/agente',      require('./routes/agenteRoutes'));
-app.use('/api/prospector',  require('./routes/prospectorRoutes'));
-app.use('/api/llamadas',    require('./routes/llamadasRoutes'));
 app.use('/api/seo',         require('./routes/seoRoutes'));
 app.use('/api/carousel',   require('./routes/carouselRoutes'));
 app.use('/api/stories',    require('./routes/storiesRoutes'));
@@ -148,16 +123,6 @@ app.use((err, req, res, next) => {
     res.status(500).json({ ok: false, msg: isProd ? 'Error interno del servidor' : err.message });
 });
 
-// ── Demo frontends estáticos ─────────────────────────────────────────────────
-if (isProd) {
-    for (const demo of DEMOS) {
-        if (fs.existsSync(demo.dist)) {
-            app.use(`/demos/${demo.name}`, express.static(demo.dist));
-            app.get(`/demos/${demo.name}`, (_, res) => res.sendFile(path.join(demo.dist, 'index.html')));
-            app.get(`/demos/${demo.name}/*`, (_, res) => res.sendFile(path.join(demo.dist, 'index.html')));
-        }
-    }
-}
 
 // En producción redirigir todo lo demás al index.html del React
 if (isProd) {
@@ -303,9 +268,6 @@ async function syncSchema() {
         await addCol('usuarios', 'codigo_referido', { type: DataTypes.STRING(20),  allowNull: true });
         await addCol('usuarios', 'empresa_id',      { type: DataTypes.INTEGER,     allowNull: true });
         // productos — columnas de demo
-        await addCol('productos', 'demo_url',       { type: DataTypes.STRING(300), allowNull: true });
-        await addCol('productos', 'demo_usuario',   { type: DataTypes.STRING(100), allowNull: true });
-        await addCol('productos', 'demo_password',  { type: DataTypes.STRING(100), allowNull: true });
         await addCol('productos', 'descripcion_venta', { type: DataTypes.TEXT,     allowNull: true });
         await addCol('productos', 'categoria',      { type: DataTypes.STRING(60),  defaultValue: 'Sistema' });
         await addCol('productos', 'visible_vendedor', { type: DataTypes.BOOLEAN,   defaultValue: true });
@@ -338,14 +300,10 @@ async function iniciar(intentos = 5) {
             }
             await seedAdmin();
             app.listen(PORT, () => console.log(`🚀 Plataforma corriendo en puerto ${PORT}`));
-            initDemos().catch(e => console.error('⚠️  initDemos falló (no crítico):', e.message));
-            seedProductos().catch(e => console.error('⚠️  seedProductos falló (no crítico):', e.message));
             try { initBot(); } catch(e) { console.warn('⚠️ initBot:', e.message); }
             try { startPoller(); } catch(e) { console.warn('⚠️ startPoller:', e.message); }
             try { startReminder(); } catch(e) { console.warn('⚠️ startReminder:', e.message); }
             try { startFollowUp(); } catch(e) { console.warn('⚠️ startFollowUp:', e.message); }
-            try { iniciarScheduler(); } catch(e) { console.warn('⚠️ agentScheduler:', e.message); }
-            try { iniciarProspectorScheduler(); } catch(e) { console.warn('⚠️ prospectorScheduler:', e.message); }
             try { iniciarLicenciaExpirationScheduler(); } catch(e) { console.warn('⚠️ licenciaScheduler:', e.message); }
             try { iniciarSeoReportScheduler(); } catch(e) { console.warn('⚠️ seoReportScheduler:', e.message); }
             try { iniciarBalanceMonitor(); } catch(e) { console.warn('⚠️ balanceMonitor:', e.message); }

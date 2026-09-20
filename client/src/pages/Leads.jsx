@@ -23,10 +23,7 @@ export default function Leads() {
     const [modal, setModal]         = useState(false);
     const [form, setForm]           = useState(vacio);
     const [editId, setEditId]       = useState(null);
-    const [actividad, setActividad] = useState([]);
-    const [leadVer, setLeadVer]     = useState(null);
     const [filtroEstado, setFiltro] = useState('todos');
-    const [procesando, setProcesando] = useState(null);
 
     async function cargar() {
         const [r1, r2] = await Promise.all([api.get('/leads'), api.get('/leads/stats')]);
@@ -53,22 +50,6 @@ export default function Leads() {
         if (!confirm('¿Eliminar este lead?')) return;
         await api.delete(`/leads/${id}`);
         cargar();
-    }
-
-    async function verActividad(lead) {
-        setLeadVer(lead);
-        const r = await api.get(`/leads/${lead.id}/actividad`);
-        setActividad(r.data);
-    }
-
-    async function procesarManual(lead) {
-        setProcesando(lead.id);
-        try {
-            await api.post(`/leads/${lead.id}/procesar`, { evento: 'Acción manual del administrador' });
-            alert('El agente procesó este lead');
-            cargar();
-        } catch { alert('Error al procesar'); }
-        setProcesando(null);
     }
 
     const leadsFiltrados = filtroEstado === 'todos' ? leads : leads.filter(l => l.estado === filtroEstado);
@@ -160,10 +141,6 @@ export default function Leads() {
                                     </td>
                                     <td style={{ padding: '12px 16px' }}>
                                         <div style={{ display: 'flex', gap: 6 }}>
-                                            <button onClick={() => verActividad(lead)} style={{ ...btnStyle('#6366f1') }}>Historial</button>
-                                            <button onClick={() => procesarManual(lead)} disabled={procesando === lead.id} style={{ ...btnStyle('#8b5cf6') }}>
-                                                {procesando === lead.id ? '...' : 'Agente'}
-                                            </button>
                                             <button onClick={() => abrirEditar(lead)} style={{ ...btnStyle('#f59e0b') }}>Editar</button>
                                             <button onClick={() => eliminar(lead.id)} style={{ ...btnStyle('#ef4444') }}>×</button>
                                         </div>
@@ -212,31 +189,6 @@ export default function Leads() {
                             <button onClick={() => { setModal(false); setEditId(null); }} style={{ ...btnStyle('#94a3b8'), padding: '8px 20px' }}>Cancelar</button>
                             <button onClick={guardar} style={{ ...btnStyle('#6366f1'), padding: '8px 20px' }}>Guardar</button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal historial de actividad */}
-            {leadVer && (
-                <div style={overlay}>
-                    <div style={{ ...modalBox, maxWidth: 600 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <h3 style={{ margin: 0, color: '#1e1b4b' }}>Historial — {leadVer.nombre}</h3>
-                            <button onClick={() => { setLeadVer(null); setActividad([]); }} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
-                        </div>
-                        {actividad.length === 0 ? (
-                            <p style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>Sin actividad registrada</p>
-                        ) : (
-                            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                                {actividad.map(a => (
-                                    <div key={a.id} style={{ borderLeft: '3px solid #6366f1', paddingLeft: 12, marginBottom: 16 }}>
-                                        <div style={{ fontSize: '.75rem', color: '#94a3b8' }}>{new Date(a.created_at).toLocaleString('es-CO')} · {a.tipo} · {a.canal}</div>
-                                        {a.mensaje && <div style={{ marginTop: 4, color: '#1e293b', fontSize: '.88rem' }}>{a.mensaje}</div>}
-                                        {a.resultado && <div style={{ marginTop: 4, background: '#f0fdf4', borderRadius: 6, padding: '6px 10px', color: '#16a34a', fontSize: '.85rem' }}>Respuesta: {a.resultado}</div>}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
             )}

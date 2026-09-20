@@ -24,16 +24,12 @@ const nav = [
   { to: '/calendario',     icon: Calendar,         label: 'Calendario' },
   { to: '/contenido',      icon: Lightbulb,        label: 'Contenido' },
   { to: '/social',         icon: MessageCircle,    label: 'Bandeja Social' },
-  { to: '/prospector',     icon: Radar,            label: 'Prospector' },
-  { to: '/agente',         icon: Bot,              label: 'Agente IA' },
 
   { group: 'Sistema' },
   { to: '/productos',      icon: Package,          label: 'Productos' },
   { to: '/usuarios',       icon: UserCog,          label: 'Usuarios' },
-  { to: '/vendedores',     icon: Share2,            label: 'Vendedores' },
   { to: '/reportes',       icon: BarChart2,        label: 'Reportes' },
   { to: '/analitica',      icon: Brain,            label: 'IA Predictiva' },
-  { to: '/empresas',       icon: Building2,        label: 'Empresas' },
   { to: '/configuracion',  icon: Settings,         label: 'Configuración' },
 ];
 
