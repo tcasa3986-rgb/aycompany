@@ -3,6 +3,7 @@ import { useAuthStore } from './store/authStore';
 import Layout    from './components/Layout';
 import Login     from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Hoy from './pages/Hoy';
 import Clientes  from './pages/Clientes';
 import Productos from './pages/Productos';
 import Licencias from './pages/Licencias';
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/pagar/:license_key"  element={<PagarLicencia />} />
         <Route path="/cliente/:token"     element={<PortalCliente />} />
         <Route path="/" element={<Private><Layout /></Private>}>
+          <Route path="hoy"        element={<Hoy />} />
           <Route path="dashboard"  element={<Dashboard />} />
           <Route path="clientes"   element={<Clientes />} />
           <Route path="productos"  element={<Productos />} />

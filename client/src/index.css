@@ -1,5 +1,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #F8FAFC; color: #0F172A;
+       -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; }
+/* La fila de categorias del capturador se desplaza sin barra visible */
+*::-webkit-scrollbar { height: 0; width: 8px; }
+*::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
 button { cursor: pointer; }
 a { text-decoration: none; color: inherit; }
 input, select, textarea {

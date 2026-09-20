@@ -32,7 +32,8 @@ const REALES = ['Ferre Láser CDA', 'Ferre Láser SAS', 'JD Metales', 'ASOERC', 
     await c.query('DELETE FROM pagos     WHERE cliente_id NOT IN (SELECT id FROM clientes WHERE nombre IN (' + ph + '))', REALES);
     await c.query('DELETE FROM facturas  WHERE cliente_id NOT IN (SELECT id FROM clientes WHERE nombre IN (' + ph + '))', REALES);
     await c.query('DELETE FROM clientes  WHERE nombre NOT IN (' + ph + ')', REALES);
-    await c.query("DELETE FROM costos_servidor WHERE nombre LIKE '%test%'");
+    // Los datos reales no traen costos: cualquiera que exista lo dejó una prueba.
+    await c.query('DELETE FROM costos_servidor');
     await c.query("DELETE FROM leads WHERE valor_unico = 0 AND valor_mensual = 0");
 
     const [[{ n: lic }]]  = await c.query('SELECT COUNT(*) n FROM licencias WHERE activo = 1');

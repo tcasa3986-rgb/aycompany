@@ -22,7 +22,7 @@ export default function Login() {
         return;
       }
       login(data.token, data.user);
-      navigate('/dashboard');
+      navigate('/hoy');
     } catch {
       toast.error('Credenciales incorrectas');
     } finally {
