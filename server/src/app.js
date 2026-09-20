@@ -92,6 +92,7 @@ app.use('/api/clientes',  require('./routes/clientesRoutes'));
 app.use('/api/productos', require('./routes/productosRoutes'));
 app.use('/api/licencias', require('./routes/licenciasRoutes'));
 app.use('/api/costos',    require('./routes/costosRoutes'));
+app.use('/api/finanzas',  require('./routes/finanzasRoutes'));
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/facturas',   require('./routes/facturasRoutes'));
@@ -188,6 +189,14 @@ async function migracionesLicencias() {
     await addCol('licencias', 'precio_mensual', { type: DataTypes.DECIMAL(10, 2), allowNull: true });
     await addCol('licencias', 'notas',          { type: DataTypes.TEXT,           allowNull: true });
     await addCol('pagos', 'referencia_externa', { type: DataTypes.STRING(120),    allowNull: true });
+
+    // contratos — estructura de pago (anticipo + saldo financiado)
+    await addCol('contratos', 'anticipo',      { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
+    await addCol('contratos', 'cuota_mensual', { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
+    await addCol('contratos', 'dia_cobro',     { type: DataTypes.INTEGER,        allowNull: true });
+    await addCol('contratos', 'primera_cuota', { type: DataTypes.DATEONLY,       allowNull: true });
+    await addCol('contratos', 'mensualidad',   { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
+    await addCol('contratos', 'tipo_servicio', { type: DataTypes.ENUM('sistema','marketing','pagina_web','mixto','otro'), defaultValue: 'sistema' });
 
     // ENUM de metodo_pago: solo se reescribe si de verdad le faltan valores
     // (el ALTER copia la tabla y demora el arranque).
