@@ -7,16 +7,41 @@ exports.listar = async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+// Los campos de plata de un trato: se validan aparte porque un error aquí
+// mete dinero inventado en las proyecciones.
+function camposTrato(body) {
+    const out = {};
+    for (const campo of ['valor_unico', 'valor_mensual']) {
+        if (campo in body) {
+            const v = body[campo] === '' || body[campo] == null ? 0 : Number(body[campo]);
+            if (isNaN(v) || v < 0) throw new Error(`${campo} inválido`);
+            out[campo] = v;
+        }
+    }
+    if ('probabilidad' in body) {
+        const p = parseInt(body.probabilidad);
+        if (isNaN(p) || p < 0 || p > 100) throw new Error('probabilidad debe estar entre 0 y 100');
+        out.probabilidad = p;
+    }
+    if ('fecha_estimada_cierre' in body) {
+        const f = body.fecha_estimada_cierre;
+        if (f && !/^\d{4}-\d{2}-\d{2}$/.test(f)) throw new Error('fecha_estimada_cierre debe ser YYYY-MM-DD');
+        out.fecha_estimada_cierre = f || null;
+    }
+    return out;
+}
+
 exports.crear = async (req, res) => {
     try {
-        const lead = await Lead.create(req.body);
+        if (!String(req.body.nombre || '').trim()) throw new Error('nombre es obligatorio');
+        const lead = await Lead.create({ ...req.body, ...camposTrato(req.body) });
         res.status(201).json(lead);
     } catch (e) { res.status(400).json({ error: e.message }); }
 };
 
 exports.actualizar = async (req, res) => {
     try {
-        await Lead.update(req.body, { where: { id: req.params.id } });
+        await Lead.update({ ...req.body, ...camposTrato(req.body) }, { where: { id: req.params.id } });
         const lead = await Lead.findByPk(req.params.id);
         res.json(lead);
     } catch (e) { res.status(400).json({ error: e.message }); }

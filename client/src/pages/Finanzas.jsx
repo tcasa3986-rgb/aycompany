@@ -65,6 +65,7 @@ export default function Finanzas() {
   if (!resumen) return <div style={{ padding: 32, color: '#94a3b8' }}>Cargando…</div>;
 
   const { recurrente, gasto_fijo, margen, por_cobrar, deudas, metas, concentracion, mes } = resumen;
+  const tratos = resumen.tratos_por_cerrar || { cantidad: 0, detalle: [] };
   const mayor = concentracion[0];
   const mesesDeuda = margen.con_cuotas > 0 ? Math.ceil(deudas.total / margen.con_cuotas) : null;
 
@@ -129,6 +130,40 @@ export default function Finanzas() {
               {por_cobrar.contratos.every(c => c.pendiente <= 0) && <tr><td colSpan={6} style={vacio}>Nada pendiente de cobro</td></tr>}
             </Tabla>
           </Seccion>
+
+          {tratos.cantidad > 0 && (
+            <Seccion
+              titulo={`Tratos por cerrar — ${fmt(tratos.valor_unico)} + ${fmt(tratos.valor_mensual)}/mes`}
+              sub="Plata PROBABLE. No está sumada en ninguna cifra de arriba y no lo estará hasta que cierres el trato.">
+              <div style={{ background: '#fffbeb', border: '1px solid #f59e0b40', borderRadius: 10, padding: '10px 16px', marginBottom: 10, fontSize: '.84rem', color: '#334155' }}>
+                Ponderado por probabilidad: <strong>{fmt(tratos.ponderado_unico)}</strong> de una vez
+                {tratos.ponderado_mensual > 0 && <> y <strong>{fmt(tratos.ponderado_mensual)}/mes</strong></>}.
+                Es lo que valen hoy estos tratos si se cumplen las probabilidades que les pusiste.
+              </div>
+              <Tabla cabeceras={['Trato', 'Empresa', 'Pago único', 'Mensual', 'Probabilidad', 'Etapa']}>
+                {tratos.detalle.map(t => (
+                  <tr key={t.id} style={fila}>
+                    <td style={td}>
+                      <strong>{t.nombre}</strong>
+                      {t.notas && <div style={{ fontSize: '.72rem', color: '#94a3b8', maxWidth: 320 }}>{t.notas}</div>}
+                    </td>
+                    <td style={td}>{t.empresa || '—'}</td>
+                    <td style={td}>{t.valor_unico > 0 ? fmt(t.valor_unico) : '—'}</td>
+                    <td style={td}>{t.valor_mensual > 0 ? fmt(t.valor_mensual) : '—'}</td>
+                    <td style={td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 60, height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${t.probabilidad}%`, height: '100%', background: t.probabilidad >= 70 ? '#16a34a' : t.probabilidad >= 40 ? '#f59e0b' : '#94a3b8' }} />
+                        </div>
+                        <span style={{ fontWeight: 600, color: '#475569' }}>{t.probabilidad}%</span>
+                      </div>
+                    </td>
+                    <td style={td}>{String(t.estado).replace(/_/g, ' ')}</td>
+                  </tr>
+                ))}
+              </Tabla>
+            </Seccion>
+          )}
 
           <Seccion titulo="De dónde viene tu ingreso recurrente">
             <Tabla cabeceras={['Cliente', 'Sistema', 'Al mes', 'Peso', 'Estado']}>

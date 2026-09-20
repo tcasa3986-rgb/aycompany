@@ -198,6 +198,12 @@ async function migracionesLicencias() {
     await addCol('contratos', 'mensualidad',   { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
     await addCol('contratos', 'tipo_servicio', { type: DataTypes.ENUM('sistema','marketing','pagina_web','mixto','otro'), defaultValue: 'sistema' });
 
+    // leads — economía del trato (tratos por cerrar)
+    await addCol('leads', 'valor_unico',   { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
+    await addCol('leads', 'valor_mensual', { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
+    await addCol('leads', 'probabilidad',  { type: DataTypes.INTEGER,        defaultValue: 50 });
+    await addCol('leads', 'fecha_estimada_cierre', { type: DataTypes.DATEONLY, allowNull: true });
+
     // ENUM de metodo_pago: solo se reescribe si de verdad le faltan valores
     // (el ALTER copia la tabla y demora el arranque).
     try {

@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 const {
     MovimientoFinanciero, Deuda, AbonoDeuda, Meta, AporteMeta,
-    Contrato, Cliente, Licencia, Producto, CostoServidor
+    Contrato, Cliente, Licencia, Producto, CostoServidor, Lead
 } = require('../models');
 const { hoyBogota, aFecha, aStr, estadoLicencia, precioLicencia } = require('../utils/licenciaCiclo');
 
@@ -326,6 +326,34 @@ exports.resumen = async (req, res) => {
             });
         }
 
+        // Tratos en negociación. NUNCA se suman a lo confirmado: van aparte,
+        // con su probabilidad, para poder ver el escenario sin engañarse.
+        const enNegociacion = await Lead.findAll({
+            where: {
+                estado: { [Op.notIn]: ['cliente', 'descartado', 'sin_respuesta'] },
+                [Op.or]: [{ valor_unico: { [Op.gt]: 0 } }, { valor_mensual: { [Op.gt]: 0 } }]
+            },
+            order: [['probabilidad', 'DESC']]
+        });
+        const tratos = enNegociacion.map(l => ({
+            id: l.id, nombre: l.nombre, empresa: l.empresa, estado: l.estado,
+            valor_unico: num(l.valor_unico), valor_mensual: num(l.valor_mensual),
+            probabilidad: Number(l.probabilidad) || 0,
+            fecha_estimada_cierre: l.fecha_estimada_cierre,
+            // Valor ponderado: lo que vale hoy ese trato dado lo probable que sea.
+            ponderado_unico:   Math.round(num(l.valor_unico)   * (Number(l.probabilidad) || 0) / 100),
+            ponderado_mensual: Math.round(num(l.valor_mensual) * (Number(l.probabilidad) || 0) / 100),
+            notas: l.notas
+        }));
+        const tratos_por_cerrar = {
+            cantidad: tratos.length,
+            valor_unico:   tratos.reduce((s, t) => s + t.valor_unico, 0),
+            valor_mensual: tratos.reduce((s, t) => s + t.valor_mensual, 0),
+            ponderado_unico:   tratos.reduce((s, t) => s + t.ponderado_unico, 0),
+            ponderado_mensual: tratos.reduce((s, t) => s + t.ponderado_mensual, 0),
+            detalle: tratos
+        };
+
         const costos = await CostoServidor.findAll({ where: { activo: true } });
         const costo_infra_usd = costos.filter(c => c.moneda === 'USD').reduce((s, c) => s + num(c.monto), 0);
         const costo_infra_cop = costos.filter(c => c.moneda === 'COP').reduce((s, c) => s + num(c.monto), 0);
@@ -372,6 +400,7 @@ exports.resumen = async (req, res) => {
                 con_cuotas: recurrente_real + cuotas_mes - gasto_total_fijo
             },
             por_cobrar: { total: por_cobrar, contratos: detalle_contratos },
+            tratos_por_cerrar,
             infraestructura: { usd: costo_infra_usd, cop: costo_infra_cop, items: costos.length },
             deudas: { total: deuda_total, detalle: deudasCon },
             metas: metasCon,

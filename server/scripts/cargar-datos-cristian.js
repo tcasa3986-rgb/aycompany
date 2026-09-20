@@ -10,7 +10,7 @@ require('dotenv').config();
 const sequelize = require('../src/config/db');
 const {
     Cliente, Producto, Licencia, Contrato, CostoServidor,
-    MovimientoFinanciero, Deuda, Meta
+    MovimientoFinanciero, Deuda, Meta, Lead
 } = require('../src/models');
 const { hoyBogota } = require('../src/utils/licenciaCiclo');
 const { v4: uuidv4 } = require('uuid');
@@ -85,6 +85,28 @@ const GASTOS_FIJOS = [
     { ambito: 'empresa',  categoria: 'herramientas', concepto: 'Claude / Cloud',        monto: 20000  },
 ];
 
+// ── Tratos en negociación: plata PROBABLE, nunca se cuenta como ingreso ──
+const TRATOS = [
+    {
+        nombre: 'Sistema a medida (trato en curso)', empresa: 'Por confirmar',
+        valor_unico: 2200000, valor_mensual: 300000, probabilidad: 70,
+        estado: 'interesado', sistema_interes: 'Sistema a medida',
+        notas: 'Cristian: "va por muy buen camino" pero sin sí rotundo (20/09/2026). Ajustar la probabilidad cuando haya novedad.'
+    },
+    {
+        nombre: 'Página web', empresa: 'Por confirmar',
+        valor_unico: 500000, valor_mensual: 0, probabilidad: 50,
+        estado: 'interesado', sistema_interes: 'Página web',
+        notas: 'Monto aproximado declarado el 20/09/2026. Confirmar el valor exacto al cerrar.'
+    },
+    {
+        nombre: 'Página web + contenido + pauta', empresa: 'JD Metales (Ibagué)',
+        valor_unico: 600000, valor_mensual: 0, probabilidad: 50,
+        estado: 'interesado', sistema_interes: 'Página web + marketing',
+        notas: 'Rango declarado: entre $500.000 y $700.000. Se cargó el punto medio; corregir al cerrar.'
+    },
+];
+
 const DEUDAS = [
     {
         acreedor: 'Deuda principal', concepto: 'Deuda a liquidar lo antes posible',
@@ -154,6 +176,7 @@ async function buscarOCrear(Modelo, where, datos) {
         ));
     }
 
+    for (const t of TRATOS) marcar(await buscarOCrear(Lead, { nombre: t.nombre }, { ...t, fuente: 'manual' }));
     for (const d of DEUDAS) marcar(await buscarOCrear(Deuda, { acreedor: d.acreedor }, d));
     for (const m of METAS)  marcar(await buscarOCrear(Meta,  { nombre: m.nombre }, m));
 
