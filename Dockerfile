@@ -6,16 +6,19 @@
 # demos y el Prospector, que se retiraron: la imagen ahora es Node a secas.
 FROM node:20-slim
 
-ENV NODE_ENV=production
 WORKDIR /app
 
-# Dependencias del servidor
+# NODE_ENV NO se fija aquí a proposito: con NODE_ENV=production npm omite las
+# devDependencies, y Vite es una de ellas — el build del cliente fallaba con
+# "vite: not found". Railway ya inyecta NODE_ENV=production en ejecucion.
+
+# Dependencias del servidor (sin las de desarrollo, ahi si corresponde)
 COPY server/package*.json ./server/
 RUN cd server && npm install --omit=dev --no-audit --no-fund
 
-# Build del cliente (devDependencies necesarias para Vite)
+# Cliente: se instalan CON devDependencies porque Vite compila en este paso
 COPY client/package*.json ./client/
-RUN cd client && npm ci --no-audit --no-fund
+RUN cd client && npm ci --include=dev --no-audit --no-fund
 COPY client ./client
 RUN cd client && npm run build && rm -rf node_modules
 
