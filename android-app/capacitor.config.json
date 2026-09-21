@@ -1,0 +1,13 @@
+{
+  "appId": "co.aicompany.plataforma",
+  "appName": "AI Company",
+  "webDir": "www",
+  "server": {
+    "url": "https://mi-plataforma-production.up.railway.app",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#F8FAFC"
+  }
+}

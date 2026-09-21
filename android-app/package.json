@@ -1,0 +1,15 @@
+{
+  "name": "ai-company-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App Android nativa de mi-plataforma: cascarón que abre la plataforma web + widget de pantalla de inicio",
+  "scripts": {
+    "sync": "cap sync android",
+    "abrir": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/cli": "^6.2.2",
+    "@capacitor/core": "^6.2.2"
+  }
+}

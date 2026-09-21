@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AI Company</string>
+    <string name="title_activity_main">AI Company</string>
+    <string name="package_name">co.aicompany.plataforma</string>
+    <string name="custom_url_scheme">co.aicompany.plataforma</string>
+    <string name="widget_descripcion">Cuánto te queda libre, cuánto te deben y qué necesita tu atención hoy</string>
+</resources>
