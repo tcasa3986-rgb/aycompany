@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const Anthropic = require('@anthropic-ai/sdk');
 const { Evento, MetricaMarketing, MetaMarketing, EstrategiaMarketing, IdeaContenido, Cliente, Licencia, Pago, MovimientoFinanciero } = require('../models');
 const { interpretar } = require('./registroRapido');
+const { transcribir } = require('./transcribirAudio');
 const { Op } = require('sequelize');
 
 let bot = null;
@@ -257,7 +258,7 @@ _"recibí 750000 del alquiler moto"_
     });
 
     bot.on('message', async (msg) => {
-        if (!msg.text || msg.text.startsWith('/start')) return;
+        if (msg.text && msg.text.startsWith('/start')) return;
         if (chatId && String(msg.chat.id) !== String(chatId)) {
             // Antes se descartaba en silencio: si el chat configurado no era el
             // suyo, el bot se quedaba mudo y no habia forma de saber por que.
@@ -265,10 +266,41 @@ _"recibí 750000 del alquiler moto"_
             return;
         }
 
+        // Audios
+        // Antes `if (!msg.text) return` botaba las notas de voz sin responder ni
+        // dejar rastro. Cristian le habla por audio: era el motivo real de que
+        // el bot "no atendiera".
+        let texto = msg.text;
+        let deAudio = false;
+        const nota = msg.voice || msg.audio || msg.video_note;
+        if (!texto && nota) {
+            bot.sendChatAction(msg.chat.id, 'typing');
+            let enlace;
+            try {
+                enlace = await bot.getFileLink(nota.file_id);
+            } catch (err) {
+                console.error('Bot: no pude pedir el audio a Telegram:', err.message);
+                await bot.sendMessage(msg.chat.id, '⚠️ No pude bajar tu audio. Intenta de nuevo.');
+                return;
+            }
+            const r = await transcribir(enlace, 'nota.ogg');
+            if (r.error) { await bot.sendMessage(msg.chat.id, '⚠️ ' + r.error); return; }
+            texto = r.texto;
+            deAudio = true;
+            console.log('Bot: audio transcrito ->', texto);
+        }
+
+        // Cualquier otra cosa (foto, sticker, documento) se contesta igual: el
+        // silencio es lo unico que no se vale.
+        if (!texto) {
+            await bot.sendMessage(msg.chat.id, 'Por ahora entiendo texto y notas de voz. Mandame eso y lo resuelvo.');
+            return;
+        }
+
         // Atajo sin IA: "gaste 30000 gasolina" se resuelve con expresiones
         // regulares. Cuesta cero tokens y responde de una. Solo lo que no cuadra
         // con ese formato pasa al asistente.
-        const plata = interpretar(msg.text);
+        const plata = interpretar(texto);
         if (plata) {
             try {
                 const hoy = new Date(Date.now() - 5 * 3600000).toISOString().split('T')[0];
@@ -291,9 +323,14 @@ _${plata.categoria} · ${plata.ambito}_`,
         const typing = setInterval(() => bot.sendChatAction(msg.chat.id, 'typing'), 4000);
 
         try {
-            const respuesta = await procesarMensaje(msg.text);
+            const respuesta = await procesarMensaje(texto);
             clearInterval(typing);
-            await bot.sendMessage(msg.chat.id, respuesta, { parse_mode: 'Markdown' });
+            // Si vino por voz se devuelve lo que se entendio: si transcribio mal,
+            // la respuesta rara deja de ser un misterio.
+            const cabeza = deAudio ? `_te entendí:_ "${texto}"
+
+` : '';
+            await bot.sendMessage(msg.chat.id, cabeza + respuesta, { parse_mode: 'Markdown' });
         } catch (err) {
             clearInterval(typing);
             console.error('AI Company Bot error:', err.message);

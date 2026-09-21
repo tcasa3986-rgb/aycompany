@@ -15,10 +15,21 @@ const { hoyBogota, precioLicencia, aFecha, aStr } = require('../utils/licenciaCi
 const num = v => Number(v || 0);
 
 function conClave(req, res, next) {
+    // Se deja rastro de cada intento: cuando el widget del celular dice "sin
+    // conexión" hay que poder saber si la petición llegó o ni siquiera salió.
+    const huella = `${req.ip} · ${(req.get('User-Agent') || 'sin UA').slice(0, 60)}`;
     const esperada = process.env.WIDGET_KEY;
-    if (!esperada) return res.status(503).json({ ok: false, msg: 'WIDGET_KEY no configurada en el servidor' });
+    if (!esperada) {
+        console.warn(`Widget: 503 sin WIDGET_KEY · ${huella}`);
+        return res.status(503).json({ ok: false, msg: 'WIDGET_KEY no configurada en el servidor' });
+    }
     const dada = req.query.key || req.get('X-Widget-Key');
-    if (!dada || dada !== esperada) return res.status(401).json({ ok: false, msg: 'Clave de widget inválida' });
+    if (!dada || dada !== esperada) {
+        const pista = dada ? `clave de ${dada.length} caracteres que no coincide` : 'sin clave';
+        console.warn(`Widget: 401 ${pista} · ${huella}`);
+        return res.status(401).json({ ok: false, msg: 'Clave de widget inválida' });
+    }
+    console.log(`Widget: OK · ${huella}`);
     next();
 }
 
