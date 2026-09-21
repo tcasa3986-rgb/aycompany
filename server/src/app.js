@@ -94,6 +94,7 @@ app.use('/api/licencias', require('./routes/licenciasRoutes'));
 app.use('/api/costos',    require('./routes/costosRoutes'));
 app.use('/api/finanzas',  require('./routes/finanzasRoutes'));
 app.use('/api/hoy',       require('./routes/hoyRoutes'));
+app.use('/api/widget',    require('./routes/widgetRoutes'));   // clave propia, solo lectura
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/facturas',   require('./routes/facturasRoutes'));

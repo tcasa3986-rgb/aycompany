@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import CapturaRapida from '../components/CapturaRapida';
 import {
@@ -31,8 +31,12 @@ function saludo() {
 
 export default function Hoy() {
   const [d, setD] = useState(null);
-  const [captura, setCaptura] = useState(false);
   const navigate = useNavigate();
+  // ?captura=1 abre el capturador de una: es lo que hace el acceso directo
+  // "Registrar gasto" al mantener presionado el ícono de la app.
+  const [params, setParams] = useSearchParams();
+  const [captura, setCaptura] = useState(params.get('captura') === '1');
+  const cerrarCaptura = () => { setCaptura(false); if (params.get('captura')) setParams({}); cargar(); };
 
   const cargar = () => api.get('/hoy').then(r => setD(r.data)).catch(() => setD({ error: true }));
   useEffect(cargar, []);
@@ -127,7 +131,7 @@ export default function Hoy() {
         </>
       )}
 
-      {captura && <CapturaRapida onCerrar={() => { setCaptura(false); cargar(); }} />}
+      {captura && <CapturaRapida onCerrar={cerrarCaptura} />}
     </div>
   );
 }

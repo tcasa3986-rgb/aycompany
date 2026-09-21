@@ -26,5 +26,43 @@
     "productivity"
   ],
   "lang": "es",
-  "dir": "ltr"
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Registrar gasto",
+      "short_name": "Gasto",
+      "description": "Anotar un gasto en 3 segundos",
+      "url": "/hoy?captura=1",
+      "icons": [
+        {
+          "src": "/logo-ai-company.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Qué hago hoy",
+      "short_name": "Hoy",
+      "description": "Lo que necesita tu atención",
+      "url": "/hoy",
+      "icons": [
+        {
+          "src": "/logo-ai-company.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Finanzas",
+      "short_name": "Plata",
+      "description": "Cuánto entra, cuánto sale, cuánto queda",
+      "url": "/finanzas",
+      "icons": [
+        {
+          "src": "/logo-ai-company.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }
