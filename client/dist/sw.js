@@ -12,7 +12,7 @@
 //     por construcción: si cambia el contenido, cambia el nombre.
 //   - /api/: nunca se toca.
 //   - El nombre de la caché lleva fecha: cada despliegue borra la anterior.
-const CACHE = 'aicompany-2026-09-20';
+const CACHE = 'aicompany-2026-09-20b';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 

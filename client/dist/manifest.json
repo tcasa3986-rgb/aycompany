@@ -9,23 +9,35 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo-ai-company.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/logo-ai-company.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": [
     "business",
     "productivity"
   ],
-  "lang": "es",
+  "lang": "es-CO",
   "dir": "ltr",
   "shortcuts": [
     {
@@ -35,8 +47,9 @@
       "url": "/hoy?captura=1",
       "icons": [
         {
-          "src": "/logo-ai-company.png",
-          "sizes": "192x192"
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -47,8 +60,9 @@
       "url": "/hoy",
       "icons": [
         {
-          "src": "/logo-ai-company.png",
-          "sizes": "192x192"
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -59,10 +73,13 @@
       "url": "/finanzas",
       "icons": [
         {
-          "src": "/logo-ai-company.png",
-          "sizes": "192x192"
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
-  ]
+  ],
+  "id": "/hoy",
+  "scope": "/"
 }
