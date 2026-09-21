@@ -2,6 +2,7 @@ const { Cliente, Licencia, Pago, Producto, Ticket, Proyecto } = require('../mode
 const { Op } = require('sequelize');
 const sequelize = require('../config/db');
 const Anthropic = require('@anthropic-ai/sdk');
+const { hoyBogota, estadoLicencia, precioLicencia } = require('../utils/licenciaCiclo');
 
 exports.predicciones = async (req, res) => {
     try {
@@ -23,32 +24,53 @@ exports.predicciones = async (req, res) => {
         });
 
         // ── Calcular riesgo de churn por cliente ──────────────────────────────
+        //
+        // La regla vieja sumaba puntos por "vence en N días" y por "sin pagos
+        // +90 días". Con licencias MENSUALES todo el mundo vence en menos de 30
+        // días siempre, y los pagos históricos no están cargados: resultado, los
+        // 6 clientes en "riesgo alto" y Cristian viendo una pantalla que grita
+        // urgencia sobre gente que está al día. Un tablero que se equivoca así
+        // se deja de mirar.
+        //
+        // La única fuente de verdad de "está atrasado" es el ciclo de la
+        // licencia (estadoLicencia): mora, gracia, bloqueo. Lo demás es ruido.
+        const hoy = hoyBogota();
+        let atrasadas = 0;   // licencias vencidas sin pagar, se bloqueen o no
         const scoredClientes = clientes.map(c => {
             const licencias = c.licencias || [];
             const pagos     = c.pagos || [];
 
             let score = 0;
-            let razon = [];
+            const razon = [];
 
-            const licActiva  = licencias.find(l => l.activo && new Date(l.fecha_vencimiento) >= ahora);
-            const licVencida = licencias.find(l => new Date(l.fecha_vencimiento) < ahora);
-            const ultimoPago = pagos.length > 0 ? new Date(pagos[0].fecha_pago) : null;
-            const diasSinPago = ultimoPago ? Math.ceil((ahora - ultimoPago) / 86400000) : 999;
+            const activas = licencias.filter(l => l.activo);
+            const estados = activas.map(l => ({ l, e: estadoLicencia(l, hoy) }));
+            for (const x of estados) if (x.e.estado !== 'al_dia' && x.e.estado !== 'por_vencer') atrasadas++;
 
-            if (!licActiva && licVencida) { score += 80; razon.push('Sin licencia activa'); }
-            if (licActiva) {
-                const vence = new Date(licActiva.fecha_vencimiento);
-                const diasRestantes = Math.ceil((vence - ahora) / 86400000);
-                if (diasRestantes <= 7)  { score += 60; razon.push(`Vence en ${diasRestantes}d`); }
-                else if (diasRestantes <= 15) { score += 40; razon.push(`Vence en ${diasRestantes}d`); }
-                else if (diasRestantes <= 30) { score += 20; razon.push(`Vence en ${diasRestantes}d`); }
+            // Peor estado entre sus licencias
+            const bloqueada = estados.find(x => x.e.estado === 'bloqueada');
+            const enGracia  = estados.find(x => x.e.estado === 'en_gracia');
+            const moraLibre = estados.find(x => x.e.estado === 'mora_sin_bloqueo');
+
+            if (activas.length === 0) {
+                score = 80; razon.push('Sin licencia activa');
+            } else if (bloqueada) {
+                score = 100; razon.push(`Bloqueado · ${bloqueada.e.dias_mora} días de mora`);
+            } else if (enGracia) {
+                score = 70; razon.push(`Vencido hace ${enGracia.e.dias_mora}d · se bloquea en ${Math.max(0, (enGracia.l.dias_gracia || 0) - enGracia.e.dias_mora)}d`);
+            } else if (moraLibre) {
+                // Maderas: no se bloquea nunca, pero sí se le debe cobrar
+                score = 40; razon.push(`Debe ${moraLibre.e.dias_mora} días · nunca se bloquea`);
+            } else {
+                razon.push('Al día');
             }
-            if (diasSinPago > 90)  { score += 30; razon.push('Sin pagos +90 días'); }
-            else if (diasSinPago > 60) { score += 15; razon.push('Sin pagos +60 días'); }
 
-            const mrr = licencias
-                .filter(l => l.activo && new Date(l.fecha_vencimiento) >= ahora)
-                .reduce((s, l) => s + Number(l.producto?.precio_mensual || 0), 0);
+            const ultimoPago = pagos.length > 0 ? new Date(pagos[0].fecha_pago) : null;
+            const diasSinPago = ultimoPago ? Math.ceil((ahora - ultimoPago) / 86400000) : null;
+
+            // El precio manda desde la licencia (puede tener uno propio), no
+            // desde el catálogo.
+            const mrr = activas.reduce((s, l) => s + precioLicencia(l), 0);
 
             return {
                 id:      c.id,
@@ -56,7 +78,7 @@ exports.predicciones = async (req, res) => {
                 empresa: c.empresa,
                 email:   c.email,
                 score:   Math.min(score, 100),
-                razon:   razon.join(' · ') || 'Cliente estable',
+                razon:   razon.join(' · '),
                 riesgo:  score >= 60 ? 'alto' : score >= 30 ? 'medio' : 'bajo',
                 mrr,
                 ultimoPago: ultimoPago?.toISOString().split('T')[0] || null,
@@ -89,8 +111,11 @@ exports.predicciones = async (req, res) => {
             });
         }
 
-        // Promedio últimos 3 meses
-        const promedio3m = meses.slice(-3).reduce((s, m) => s + m.total, 0) / 3;
+        // Promedio últimos 3 meses. Los pagos históricos no están cargados, así
+        // que sin piso la proyección daba $0 — y $0 no es una proyección, es un
+        // hueco en los datos. El piso honesto es lo recurrente de las licencias
+        // activas: eso entra todos los meses mientras nadie se caiga.
+        const promedio3m = Math.max(meses.slice(-3).reduce((s, m) => s + m.total, 0) / 3, mrrTotal);
         const forecast = [1, 2, 3].map(i => {
             const d = new Date(ahora.getFullYear(), ahora.getMonth() + i, 1);
             return {
@@ -118,6 +143,9 @@ exports.predicciones = async (req, res) => {
                 resumen: {
                     totalClientes:    scoredClientes.length,
                     enRiesgoAlto:     enRiesgo.length,
+                    // "Vencen este mes" con ciclos mensuales es siempre TODOS:
+                    // no dice nada. Lo que sirve es cuántos están atrasados.
+                    cobrosAtrasados:  atrasadas,
                     mrrTotal,
                     mrrEnRiesgo,
                     pctRiesgo:        scoredClientes.length > 0 ? Math.round(enRiesgo.length / scoredClientes.length * 100) : 0,

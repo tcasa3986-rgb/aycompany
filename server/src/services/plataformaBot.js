@@ -128,7 +128,7 @@ async function ejecutarTool(name, input) {
             Pago.findAll({ where: { fecha_pago: { [Op.gte]: inicioMes } } })
         ]);
         const ingresosMes = pagosMes.reduce((s, p) => s + Number(p.monto || 0), 0);
-        return `📊 *Resumen AI Company*\n\n👥 Clientes: *${totalClientes}*\n🔑 Licencias activas: *${licenciasActivas}*\n💰 Ingresos este mes: *$${ingresosMes.toLocaleString('es-CO')}*\n📅 ${hoy.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+        return `📊 *Resumen AI Company*\n\n👥 Clientes: *${totalClientes}*\n🔑 Licencias activas: *${licenciasActivas}*\n💰 Ingresos este mes: *$${ingresosMes.toLocaleString('es-CO')}*\n📅 ${hoy.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Bogota' })}`;
     }
 
     if (name === 'get_eventos_proximos') {
@@ -141,7 +141,7 @@ async function ejecutarTool(name, input) {
         });
         if (!eventos.length) return `📅 Sin eventos en los próximos ${dias} días.`;
         return `📅 *Próximos ${dias} días:*\n\n` + eventos.map(e => {
-            const f = new Date(e.fecha_inicio).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const f = new Date(e.fecha_inicio).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
             return `• *${e.titulo}*\n  🕐 ${f}${e.participantes ? `\n  👥 ${e.participantes}` : ''}${e.link ? `\n  🔗 ${e.link}` : ''}`;
         }).join('\n\n');
     }
@@ -206,7 +206,7 @@ async function ejecutarTool(name, input) {
             participantes: evento.participantes || '',
             link:          evento.link || '',
         }).catch(err => console.warn('Bot: no pude espejar la reunion:', err.message));
-        const f = new Date(evento.fecha_inicio).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+        const f = new Date(evento.fecha_inicio).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
         return `✅ *Evento creado en el calendario*\n📌 ${evento.titulo}\n📅 ${f}${evento.participantes ? `\n👥 ${evento.participantes}` : ''}`;
     }
 
@@ -295,6 +295,7 @@ Valores por defecto cuando no te los digan:
 - Duracion: 1 hora.
 - Fechas: NO las calcules. Estan resueltas abajo, copia la que corresponda.
 - Las horas son de Colombia y se escriben SIN zona horaria ni "Z". "2026-09-22T09:00:00" es las 9 de la mañana en Colombia.
+- Las horas que te devuelven las herramientas YA estan en hora de Colombia: repitelas tal cual, no las conviertas.
 
 CALENDARIO (usa estas fechas tal cual):
 ${calendario}

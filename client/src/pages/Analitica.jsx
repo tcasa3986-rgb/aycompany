@@ -75,7 +75,8 @@ export default function Analitica() {
                 <StatCard icon={AlertTriangle} label="En riesgo alto"     value={resumen.enRiesgoAlto}    color="#ef4444" sub={`${resumen.pctRiesgo}% del total`}/>
                 <StatCard icon={DollarSign}    label="MRR total"          value={`$${Number(resumen.mrrTotal).toLocaleString('es')}`} color="#10b981"/>
                 <StatCard icon={AlertTriangle} label="MRR en riesgo"      value={`$${Number(resumen.mrrEnRiesgo).toLocaleString('es')}`} color="#f59e0b"/>
-                <StatCard icon={TrendingUp}    label="Vencen este mes"    value={resumen.vencenEsteMes}   color="#8b5cf6"/>
+                <StatCard icon={AlertTriangle} label="Cobros atrasados"   value={resumen.cobrosAtrasados ?? 0} color={resumen.cobrosAtrasados ? '#ef4444' : '#22c55e'}
+                          sub={resumen.cobrosAtrasados ? 'licencias vencidas sin pagar' : 'todos al día'}/>
                 <StatCard icon={CheckCircle}   label="Tickets pendientes" value={resumen.ticketsPendientes} color="#0284c7"/>
             </div>
 
