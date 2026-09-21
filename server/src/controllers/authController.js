@@ -88,7 +88,13 @@ exports.login = async (req, res) => {
         limpiarIntentos(emailLimpio);
         console.log(`✅ Login: ${emailLimpio} — IP: ${req.ip}`);
 
-        const expiresIn = user.rol === 'vendedor' ? '7d' : (process.env.JWT_EXPIRES_IN || '12h');
+        // En el navegador la sesion dura 12 h (alguien puede dejarla abierta en un
+        // computador ajeno). En la app nativa del celular, que es personal, dura
+        // 30 dias: la app se identifica en el User-Agent.
+        const esAppNativa = /AICompanyApp/i.test(req.get('User-Agent') || '');
+        const expiresIn = esAppNativa ? '30d'
+            : user.rol === 'vendedor' ? '7d'
+            : (process.env.JWT_EXPIRES_IN || '12h');
         const token = jwt.sign(
             { id: user.id, nombre: user.nombre, rol: user.rol },
             process.env.JWT_SECRET,

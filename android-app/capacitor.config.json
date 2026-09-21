@@ -8,6 +8,7 @@
   },
   "android": {
     "allowMixedContent": false,
-    "backgroundColor": "#F8FAFC"
+    "backgroundColor": "#F8FAFC",
+    "appendUserAgent": "AICompanyApp/1"
   }
 }
