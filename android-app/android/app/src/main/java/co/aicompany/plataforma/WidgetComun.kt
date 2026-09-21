@@ -36,6 +36,17 @@ object WidgetComun {
         return signo + "$" + f.format(Math.abs(n))
     }
 
+    /** Corto, para donde no cabe la cifra entera: $1,28M o $250K. */
+    fun copCorto(n: Double): String {
+        val a = Math.abs(n)
+        val signo = if (n < 0) "-" else ""
+        return when {
+            a >= 1_000_000 -> signo + "$" + String.format(Locale("es", "CO"), "%.2f", a / 1_000_000).replace('.', ',') + "M"
+            a >= 1_000     -> signo + "$" + Math.round(a / 1000) + "K"
+            else           -> cop(n)
+        }
+    }
+
     /** Para la cifra grande: si no cabe en 27sp, se baja el tamaño en vez de cortar. */
     fun tamanoCifra(texto: String): Float = when {
         texto.length <= 10 -> 27f

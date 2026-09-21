@@ -23,6 +23,13 @@ const { iniciarAlertasCobro }      = require('./services/alertasCobroScheduler')
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
+// Railway pone un proxy delante: sin esto Express ve la IP del proxy, el
+// limitador de peticiones no puede distinguir a nadie y lanza un error de
+// validacion en cada peticion con X-Forwarded-For (llena los logs y deja el
+// limite de intentos de login sin efecto real). 1 = confiar solo en el
+// primer salto, que es el de Railway.
+app.set('trust proxy', 1);
+
 // ── Seguridad: cabeceras HTTP ────────────────────────────────────────────────
 app.use(helmet({
     contentSecurityPolicy: false, // desactivado para no romper el frontend React

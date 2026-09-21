@@ -71,12 +71,16 @@ class PlataWidget : AppWidgetProvider() {
                     v.setTextViewText(R.id.plata_entro, "↑ " + WidgetComun.cop(entro))
                     v.setTextViewText(R.id.plata_salio, "↓ " + WidgetComun.cop(salio))
 
-                    v.setTextViewText(R.id.plata_estado, when {
-                        entro == 0.0 && salio == 0.0 -> "sin anotar"
-                        neto < 0                     -> "en rojo"
-                        neto < entro * 0.2           -> "ajustado"
-                        else                         -> "vas bien"
-                    })
+                    // En rojo la cifra cuando el mes va en contra: se ve de lejos.
+                    v.setTextColor(R.id.plata_libre, if (neto < 0) 0xFFFECACA.toInt() else 0xFFFFFFFF.toInt())
+
+                    // La pastilla lleva el gasto fijo: es plata que se va igual
+                    // aunque no se haya anotado, y si no se muestra se olvida.
+                    val fijo = d.optDouble("gasto_fijo", 0.0)
+                    v.setTextViewText(R.id.plata_estado,
+                        if (fijo > 0) "fijos " + WidgetComun.copCorto(fijo)
+                        else if (entro == 0.0 && salio == 0.0) "sin anotar"
+                        else if (neto < 0) "en rojo" else "vas bien")
                 }
                 mgr.updateAppWidget(id, v)
             }

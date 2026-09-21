@@ -46,7 +46,11 @@ router.get('/', conClave, async (req, res) => {
         // Lo que entró y salió ESTE mes (para el widget de plata)
         const d0 = aFecha(hoy);
         const inicioMes = aStr(new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1)));
-        const movsMes = await MovimientoFinanciero.findAll({ where: { fecha: { [Op.gte]: inicioMes } } });
+        // Sin los recurrentes: esos son la plantilla del gasto fijo, no plata
+        // que se haya movido. Van aparte en gasto_fijo.
+        const movsMes = await MovimientoFinanciero.findAll({
+            where: { fecha: { [Op.gte]: inicioMes }, recurrente: false }
+        });
         const mes = { ingresos: 0, egresos: 0 };
         for (const m of movsMes) mes[m.tipo === 'ingreso' ? 'ingresos' : 'egresos'] += num(m.monto);
 

@@ -284,7 +284,14 @@ exports.resumen = async (req, res) => {
         const inicioMes = aStr(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
         const finMes    = aStr(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)));
 
-        const movsMes = await MovimientoFinanciero.findAll({ where: { fecha: { [Op.between]: [inicioMes, finMes] } } });
+        // Los movimientos marcados como recurrentes NO son plata que se movio:
+        // son la plantilla del gasto fijo mensual, para proyectar. Si se suman
+        // aqui, el sistema dice que gastaste 1.284.000 el dia que declaraste tus
+        // gastos fijos, sin que hayas pagado nada — y ademas los cuenta dos veces,
+        // porque abajo salen otra vez como gasto_fijo.
+        const movsMes = await MovimientoFinanciero.findAll({
+            where: { fecha: { [Op.between]: [inicioMes, finMes] }, recurrente: false }
+        });
         const suma = (tipo, ambito) => movsMes
             .filter(m => m.tipo === tipo && (!ambito || m.ambito === ambito))
             .reduce((s, m) => s + num(m.monto), 0);
@@ -382,7 +389,9 @@ exports.resumen = async (req, res) => {
                 ingresos_empresa: suma('ingreso', 'empresa'), egresos_empresa: suma('egreso', 'empresa'),
                 ingresos_personal: suma('ingreso', 'personal'), egresos_personal: suma('egreso', 'personal'),
                 balance: suma('ingreso') - suma('egreso'),
-                movimientos: movsMes.length
+                movimientos: movsMes.length,
+                // Lo que se va a ir igual aunque no se haya anotado todavia
+                fijos_previstos: gastoFijo.empresa + gastoFijo.personal
             },
             recurrente: {
                 licencias: mrr_licencias,

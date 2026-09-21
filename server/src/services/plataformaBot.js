@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const Anthropic = require('@anthropic-ai/sdk');
-const { Evento, MetricaMarketing, MetaMarketing, EstrategiaMarketing, IdeaContenido, Cliente, Licencia, Pago } = require('../models');
+const { Evento, MetricaMarketing, MetaMarketing, EstrategiaMarketing, IdeaContenido, Cliente, Licencia, Pago, MovimientoFinanciero } = require('../models');
+const { interpretar } = require('./registroRapido');
 const { Op } = require('sequelize');
 
 let bot = null;
@@ -244,14 +245,47 @@ function initBot() {
     bot.onText(/\/start/, (msg) => {
         if (chatId && String(msg.chat.id) !== String(chatId)) return;
         bot.sendMessage(msg.chat.id,
-            `🤖 *Bienvenido al asistente de AI Company*\n\nPuedo ayudarte con información y acciones en tiempo real:\n\n📊 _"¿Cómo vamos este mes?"_\n📅 _"¿Qué tengo esta semana?"_\n📈 _"¿Cómo van nuestras metas de marketing?"_\n💡 _"¿Qué ideas de contenido tenemos?"_\n\n*También puedo actualizar datos:*\n\n📅 _"Crea una reunión mañana a las 3pm con Juan"_\n📊 _"Registra 800 seguidores en Instagram hoy"_\n💡 _"Agrega una idea: reel sobre beneficios del software"_\n\nEscríbeme en lenguaje natural 👇`,
+            `🤖 *Bienvenido al asistente de AI Company*\n\nPuedo ayudarte con información y acciones en tiempo real:\n\n📊 _"¿Cómo vamos este mes?"_\n📅 _"¿Qué tengo esta semana?"_\n📈 _"¿Cómo van nuestras metas de marketing?"_\n💡 _"¿Qué ideas de contenido tenemos?"_\n\n*Para anotar plata* (sin gastar tokens, responde de una):
+
+_"gasté 30000 gasolina"_
+_"me pagaron 250000 de mensualidad"_
+_"recibí 750000 del alquiler moto"_
+
+*También puedo actualizar datos:*\n\n📅 _"Crea una reunión mañana a las 3pm con Juan"_\n📊 _"Registra 800 seguidores en Instagram hoy"_\n💡 _"Agrega una idea: reel sobre beneficios del software"_\n\nEscríbeme en lenguaje natural 👇`,
             { parse_mode: 'Markdown' }
         );
     });
 
     bot.on('message', async (msg) => {
         if (!msg.text || msg.text.startsWith('/start')) return;
-        if (chatId && String(msg.chat.id) !== String(chatId)) return;
+        if (chatId && String(msg.chat.id) !== String(chatId)) {
+            // Antes se descartaba en silencio: si el chat configurado no era el
+            // suyo, el bot se quedaba mudo y no habia forma de saber por que.
+            console.warn(`Bot: mensaje ignorado, viene del chat ${msg.chat.id} y el configurado es ${chatId}`);
+            return;
+        }
+
+        // Atajo sin IA: "gaste 30000 gasolina" se resuelve con expresiones
+        // regulares. Cuesta cero tokens y responde de una. Solo lo que no cuadra
+        // con ese formato pasa al asistente.
+        const plata = interpretar(msg.text);
+        if (plata) {
+            try {
+                const hoy = new Date(Date.now() - 5 * 3600000).toISOString().split('T')[0];
+                await MovimientoFinanciero.create({ ...plata, fecha: hoy, origen: 'manual', recurrente: false });
+                const signo = plata.tipo === 'egreso' ? '−' : '+';
+                const cop = '$' + Number(plata.monto).toLocaleString('es-CO');
+                await bot.sendMessage(msg.chat.id,
+                    `✅ Anotado
+${signo} *${cop}* · ${plata.concepto}
+_${plata.categoria} · ${plata.ambito}_`,
+                    { parse_mode: 'Markdown' });
+            } catch (err) {
+                console.error('Bot: no se pudo anotar el movimiento:', err.message);
+                await bot.sendMessage(msg.chat.id, '⚠️ No pude anotarlo. Revisa en la app.');
+            }
+            return;
+        }
 
         bot.sendChatAction(msg.chat.id, 'typing');
         const typing = setInterval(() => bot.sendChatAction(msg.chat.id, 'typing'), 4000);
