@@ -15,12 +15,27 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     public static final String EXTRA_RUTA = "ruta";
+    private static final String ACCION_REFRESCAR = "co.aicompany.plataforma.REFRESCAR";
     private static final String BASE = "https://mi-plataforma-production.up.railway.app";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         navegarSiHayRuta(getIntent());
+    }
+
+    /**
+     * Al salir de la app se refrescan los widgets.
+     *
+     * Android solo los actualiza solo cada 30 minutos. Si uno anota un gasto y
+     * vuelve al escritorio, el widget sigue mostrando lo de antes y parece que
+     * no se guardó nada. Este es el momento exacto en que hay algo nuevo que
+     * mostrar, y no cuesta nada.
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+        sendBroadcast(new Intent(ACCION_REFRESCAR).setPackage(getPackageName()));
     }
 
     @Override

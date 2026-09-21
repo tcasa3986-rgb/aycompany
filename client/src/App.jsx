@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
+import { pantalla, olvidarRecarga, Red } from './components/Pantalla';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout    from './components/Layout';
@@ -8,31 +9,31 @@ import Hoy from './pages/Hoy';
 // Cada pantalla se descarga solo cuando se abre. Antes las 27 venían en un
 // solo archivo de 900 KB que el celular tenía que ejecutar completo antes
 // de pintar nada: por eso se congelaba al abrir.
-const Dashboard      = lazy(() => import('./pages/Dashboard'));
-const Clientes       = lazy(() => import('./pages/Clientes'));
-const Productos      = lazy(() => import('./pages/Productos'));
-const Licencias      = lazy(() => import('./pages/Licencias'));
-const CostosServidor = lazy(() => import('./pages/CostosServidor'));
-const Finanzas       = lazy(() => import('./pages/Finanzas'));
-const Pagos          = lazy(() => import('./pages/Pagos'));
-const PagarLicencia  = lazy(() => import('./pages/PagarLicencia'));
-const PortalCliente  = lazy(() => import('./pages/PortalCliente'));
-const Facturas       = lazy(() => import('./pages/Facturas'));
-const Marketing      = lazy(() => import('./pages/Marketing'));
-const Calendario     = lazy(() => import('./pages/Calendario'));
-const Contenido      = lazy(() => import('./pages/Contenido'));
-const Social         = lazy(() => import('./pages/Social'));
-const Leads          = lazy(() => import('./pages/Leads'));
-const Tickets        = lazy(() => import('./pages/Tickets'));
-const Cartera        = lazy(() => import('./pages/Cartera'));
-const Configuracion  = lazy(() => import('./pages/Configuracion'));
-const Proyectos      = lazy(() => import('./pages/Proyectos'));
-const ClienteDetalle = lazy(() => import('./pages/ClienteDetalle'));
-const Pipeline       = lazy(() => import('./pages/Pipeline'));
-const Contratos      = lazy(() => import('./pages/Contratos'));
-const Usuarios       = lazy(() => import('./pages/Usuarios'));
-const Reportes       = lazy(() => import('./pages/Reportes'));
-const Analitica      = lazy(() => import('./pages/Analitica'));
+const Dashboard      = pantalla(() => import('./pages/Dashboard'));
+const Clientes       = pantalla(() => import('./pages/Clientes'));
+const Productos      = pantalla(() => import('./pages/Productos'));
+const Licencias      = pantalla(() => import('./pages/Licencias'));
+const CostosServidor = pantalla(() => import('./pages/CostosServidor'));
+const Finanzas       = pantalla(() => import('./pages/Finanzas'));
+const Pagos          = pantalla(() => import('./pages/Pagos'));
+const PagarLicencia  = pantalla(() => import('./pages/PagarLicencia'));
+const PortalCliente  = pantalla(() => import('./pages/PortalCliente'));
+const Facturas       = pantalla(() => import('./pages/Facturas'));
+const Marketing      = pantalla(() => import('./pages/Marketing'));
+const Calendario     = pantalla(() => import('./pages/Calendario'));
+const Contenido      = pantalla(() => import('./pages/Contenido'));
+const Social         = pantalla(() => import('./pages/Social'));
+const Leads          = pantalla(() => import('./pages/Leads'));
+const Tickets        = pantalla(() => import('./pages/Tickets'));
+const Cartera        = pantalla(() => import('./pages/Cartera'));
+const Configuracion  = pantalla(() => import('./pages/Configuracion'));
+const Proyectos      = pantalla(() => import('./pages/Proyectos'));
+const ClienteDetalle = pantalla(() => import('./pages/ClienteDetalle'));
+const Pipeline       = pantalla(() => import('./pages/Pipeline'));
+const Contratos      = pantalla(() => import('./pages/Contratos'));
+const Usuarios       = pantalla(() => import('./pages/Usuarios'));
+const Reportes       = pantalla(() => import('./pages/Reportes'));
+const Analitica      = pantalla(() => import('./pages/Analitica'));
 
 // Barra fina arriba mientras baja el código de la pantalla. No cubre nada.
 function Cargando() {
@@ -48,8 +49,13 @@ function Private({ children }) {
 }
 
 export default function App() {
+  // Si la app arrancó bien, se limpia la marca de recarga: la próxima vez que
+  // un despliegue deje un archivo viejo colgado, puede volver a recargar.
+  useEffect(() => { olvidarRecarga(); }, []);
+
   return (
     <BrowserRouter>
+      <Red>
       <Suspense fallback={<Cargando />}>
       <Routes>
         <Route path="/" element={<Login />} />
@@ -83,6 +89,7 @@ export default function App() {
         </Route>
       </Routes>
       </Suspense>
+      </Red>
     </BrowserRouter>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, AlertTriangle, Target, Server } from 'lucide-react';
+import { Plus, Trash2, Pencil, AlertTriangle, Target, Server } from 'lucide-react';
 import {
   C, fmt, fmtFecha, Pagina, Cabecera, Tarjeta, Cifra, Rejilla, Franja, Probable,
   Tabla, Fila, Td, Vacio, Boton, BotonIcono, Pildora, Insignia, Barra,
@@ -16,7 +16,7 @@ const CATEGORIAS = {
   },
   personal: {
     ingreso: ['sueldo', 'alquiler_moto', 'otro'],
-    egreso:  ['arriendo', 'recibos', 'comida', 'transporte', 'celular', 'gimnasio', 'salud', 'educacion', 'deuda', 'ahorro_meta', 'otro'],
+    egreso:  ['arriendo', 'recibos', 'comida', 'transporte', 'cuota_moto', 'celular', 'gimnasio', 'salud', 'educacion', 'ropa', 'deuda', 'ahorro_meta', 'otro'],
   },
 };
 const VACIO = { tipo: 'egreso', ambito: 'empresa', categoria: 'otro', concepto: '', monto: '',
@@ -30,6 +30,7 @@ export default function Finanzas() {
   const [movs, setMovs] = useState([]);
   const [modal, setModal] = useState(false);
   const [form, setForm]   = useState(VACIO);
+  const [editId, setEditId] = useState(null);
   const [filtro, setFiltro] = useState({ ambito: '', tipo: '' });
 
   const cargar = () => {
@@ -44,10 +45,23 @@ export default function Finanzas() {
   async function guardar(e) {
     e.preventDefault();
     try {
-      const x = await api.post('/finanzas/movimientos', form);
-      toast.success(x.data.msg); setModal(false); setForm(VACIO); cargar();
+      const x = editId
+        ? await api.put(`/finanzas/movimientos/${editId}`, form)
+        : await api.post('/finanzas/movimientos', form);
+      toast.success(x.data.msg); cerrarModal(); cargar();
     } catch (err) { toast.error(err.response?.data?.msg || 'Error al guardar'); }
   }
+  function abrirNuevo() { setEditId(null); setForm(VACIO); setModal(true); }
+  function abrirEdicion(m) {
+    setEditId(m.id);
+    setForm({
+      tipo: m.tipo, ambito: m.ambito, categoria: m.categoria, concepto: m.concepto,
+      monto: String(m.monto), fecha: String(m.fecha).slice(0, 10),
+      metodo_pago: m.metodo_pago || 'transferencia', recurrente: !!m.recurrente, notas: m.notas || '',
+    });
+    setModal(true);
+  }
+  function cerrarModal() { setModal(false); setEditId(null); setForm(VACIO); }
   async function eliminar(m) {
     if (!confirm(`¿Eliminar "${m.concepto}"?`)) return;
     try { const x = await api.delete(`/finanzas/movimientos/${m.id}`); toast.success(x.data.msg); cargar(); }
@@ -78,7 +92,7 @@ export default function Finanzas() {
     <Pagina>
       <Cabecera titulo="Finanzas"
         sub={`Este mes entra ${fmt(mes.ingresos)} y sale ${fmt(mes.egresos)} · ${mes.movimientos} movimientos`}>
-        <Boton onClick={() => { setForm({ ...VACIO, fecha: r.hoy }); setModal(true); }}>
+        <Boton onClick={() => { setEditId(null); setForm({ ...VACIO, fecha: r.hoy }); setModal(true); }}>
           <Plus size={16} /> Registrar movimiento
         </Boton>
       </Cabecera>
@@ -206,7 +220,10 @@ export default function Finanzas() {
                   <Td style={{ fontWeight: 750, whiteSpace: 'nowrap', color: m.tipo === 'ingreso' ? C.verde : C.rojo }}>
                     {m.tipo === 'ingreso' ? '+' : '−'}{fmt(m.monto)}
                   </Td>
-                  <Td><BotonIcono color={C.rojo} titulo="Eliminar" onClick={() => eliminar(m)}><Trash2 size={14} /></BotonIcono></Td>
+                  <Td style={{ whiteSpace: 'nowrap' }}>
+                    <BotonIcono color={C.azul} titulo="Corregir" onClick={() => abrirEdicion(m)}><Pencil size={14} /></BotonIcono>
+                    <BotonIcono color={C.rojo} titulo="Eliminar" onClick={() => eliminar(m)}><Trash2 size={14} /></BotonIcono>
+                  </Td>
                 </Fila>
               ))}
               {movs.length === 0 && <Vacio cols={6}>Sin movimientos todavía</Vacio>}
@@ -286,7 +303,7 @@ export default function Finanzas() {
       )}
 
       {modal && (
-        <Modal titulo="Registrar movimiento" onCerrar={() => setModal(false)}>
+        <Modal titulo={editId ? 'Corregir movimiento' : 'Registrar movimiento'} onCerrar={cerrarModal}>
           <form onSubmit={guardar}>
             <Dos>
               <Campo label="¿Entra o sale?">
@@ -333,7 +350,7 @@ export default function Finanzas() {
               </Franja>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
-              <Boton type="button" variante="borde" onClick={() => setModal(false)}>Cancelar</Boton>
+              <Boton type="button" variante="borde" onClick={cerrarModal}>Cancelar</Boton>
               <Boton type="submit">Guardar</Boton>
             </div>
           </form>
