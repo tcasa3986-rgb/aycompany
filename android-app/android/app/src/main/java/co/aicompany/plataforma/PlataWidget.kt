@@ -37,7 +37,8 @@ class PlataWidget : AppWidgetProvider() {
                 v.setTextViewText(R.id.plata_libre, "Falta la clave")
                 v.setTextViewTextSize(R.id.plata_libre, TypedValue.COMPLEX_UNIT_SP, 18f)
                 v.setTextViewText(R.id.plata_estado, "sin clave")
-                v.setTextViewText(R.id.plata_entro, "Quita el widget y vuelve a agregarlo")
+                v.setTextViewText(R.id.plata_entro, "Toca para escribirla")
+                v.setOnClickPendingIntent(R.id.plata_raiz, WidgetComun.configurar(ctx, id * 10 + 5, id))
                 v.setTextViewText(R.id.plata_salio, "")
                 mgr.updateAppWidget(id, v)
                 return
@@ -45,13 +46,20 @@ class PlataWidget : AppWidgetProvider() {
 
             mgr.updateAppWidget(id, v)
 
-            WidgetComun.pedir(clave) { d ->
-                if (d == null) {
-                    v.setTextViewText(R.id.plata_estado, "sin datos")
-                    v.setTextViewText(R.id.plata_entro, "Sin conexión")
-                    v.setTextViewText(R.id.plata_salio, "")
+            WidgetComun.pedir(clave) { r ->
+                if (r.error != null) {
+                    // Tocar arregla lo que se pueda arreglar: si es la clave lleva
+                    // a escribirla; si es la red, vuelve a intentar sin abrir la app.
+                    v.setOnClickPendingIntent(R.id.plata_raiz,
+                        if (r.esClave) WidgetComun.configurar(ctx, id * 10 + 5, id)
+                        else WidgetComun.reintentar(ctx, id * 10 + 6))
+                    v.setTextViewText(R.id.plata_estado, if (r.esClave) "clave" else "sin red")
                     v.setTextViewText(R.id.plata_libre, "—")
+                    v.setTextViewTextSize(R.id.plata_libre, TypedValue.COMPLEX_UNIT_SP, 27f)
+                    v.setTextViewText(R.id.plata_entro, r.error)
+                    v.setTextViewText(R.id.plata_salio, "")
                 } else {
+                    val d = r.datos!!
                     val mes = d.optJSONObject("mes")
                     val entro = mes?.optDouble("ingresos", 0.0) ?: 0.0
                     val salio = mes?.optDouble("egresos", 0.0) ?: 0.0

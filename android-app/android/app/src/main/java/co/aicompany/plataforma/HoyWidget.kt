@@ -47,7 +47,8 @@ class HoyWidget : AppWidgetProvider() {
             val clave = WidgetComun.clave(ctx)
             if (clave.isNullOrBlank()) {
                 v.setTextViewText(R.id.hoy_contador, "sin clave")
-                soloMensaje("Quita el widget y vuelve a agregarlo para escribir la clave", 0xFF64748B.toInt())
+                v.setOnClickPendingIntent(R.id.hoy_raiz, WidgetComun.configurar(ctx, id * 10 + 5, id))
+                soloMensaje("Toca para escribir la clave del widget", 0xFF64748B.toInt())
                 mgr.updateAppWidget(id, v)
                 return
             }
@@ -55,11 +56,17 @@ class HoyWidget : AppWidgetProvider() {
             v.setTextViewText(R.id.hoy_contador, "…")
             mgr.updateAppWidget(id, v)
 
-            WidgetComun.pedir(clave) { d ->
-                if (d == null) {
-                    v.setTextViewText(R.id.hoy_contador, "sin red")
-                    soloMensaje("Sin conexión · toca para reintentar", 0xFF64748B.toInt())
+            WidgetComun.pedir(clave) { r ->
+                if (r.error != null) {
+                    // Tocar arregla lo que se pueda arreglar: si es la clave lleva
+                    // a escribirla; si es la red, vuelve a intentar sin abrir la app.
+                    v.setOnClickPendingIntent(R.id.hoy_raiz,
+                        if (r.esClave) WidgetComun.configurar(ctx, id * 10 + 5, id)
+                        else WidgetComun.reintentar(ctx, id * 10 + 6))
+                    v.setTextViewText(R.id.hoy_contador, if (r.esClave) "clave" else "sin red")
+                    soloMensaje(r.error, 0xFF64748B.toInt())
                 } else {
+                    val d = r.datos!!
                     v.setTextViewText(R.id.hoy_fecha, WidgetComun.fechaBonita(d.optString("hoy", null)))
 
                     val acciones = d.optJSONArray("acciones")

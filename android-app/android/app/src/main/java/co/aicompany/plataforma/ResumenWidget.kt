@@ -1,19 +1,13 @@
 package co.aicompany.plataforma
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.text.NumberFormat
 import java.util.Locale
-import java.util.concurrent.Executors
 
 /**
  * Widget de pantalla de inicio. Lee /api/widget de la plataforma y pinta:
@@ -32,9 +26,7 @@ class ResumenWidget : AppWidgetProvider() {
         const val BASE_URL = "https://mi-plataforma-production.up.railway.app"
         const val PREFS = "widget_prefs"
         const val PREF_KEY = "widget_key"
-        const val ACCION_REFRESCAR = "co.aicompany.plataforma.REFRESCAR"
-
-        private val hilo = Executors.newSingleThreadExecutor()
+        const val ACCION_REFRESCAR = WidgetComun.ACCION_REFRESCAR
 
         fun claveGuardada(ctx: Context): String? =
             ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(PREF_KEY, null)
@@ -49,21 +41,14 @@ class ResumenWidget : AppWidgetProvider() {
         fun actualizar(ctx: Context, mgr: AppWidgetManager, id: Int) {
             val vistas = RemoteViews(ctx.packageName, R.layout.widget_resumen)
 
-            // Tocar cualquier parte abre la app en Inicio
-            val abrir = Intent(Intent.ACTION_VIEW, Uri.parse("$BASE_URL/hoy")).apply {
-                setPackage(ctx.packageName)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            val abrirApp = Intent(ctx, MainActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-            vistas.setOnClickPendingIntent(
-                R.id.widget_raiz,
-                PendingIntent.getActivity(ctx, id, abrirApp, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            )
+            // Tocar cualquier parte abre la app en Hoy
+            vistas.setOnClickPendingIntent(R.id.widget_raiz, WidgetComun.abrir(ctx, id * 10 + 7, "/hoy"))
 
             val clave = claveGuardada(ctx)
             if (clave.isNullOrBlank()) {
                 vistas.setTextViewText(R.id.txt_libre, "Falta la clave")
-                vistas.setTextViewText(R.id.txt_detalle, "Quita el widget y vuelve a agregarlo para escribirla")
+                vistas.setTextViewText(R.id.txt_detalle, "Toca para escribirla")
+                vistas.setOnClickPendingIntent(R.id.widget_raiz, WidgetComun.configurar(ctx, id * 10 + 5, id))
                 vistas.setViewVisibility(R.id.txt_acciones, View.GONE)
                 mgr.updateAppWidget(id, vistas)
                 return
@@ -72,16 +57,14 @@ class ResumenWidget : AppWidgetProvider() {
             vistas.setTextViewText(R.id.txt_detalle, "Actualizando…")
             mgr.updateAppWidget(id, vistas)
 
-            hilo.execute {
-                try {
-                    val con = (URL("$BASE_URL/api/widget?key=$clave").openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 10_000; readTimeout = 10_000
-                        setRequestProperty("Accept", "application/json")
-                    }
-                    val cuerpo = con.inputStream.bufferedReader().readText()
-                    val d = JSONObject(cuerpo)
-                    if (!d.optBoolean("ok")) throw Exception(d.optString("msg", "error"))
-
+            WidgetComun.pedir(clave) { r ->
+                if (r.error != null) {
+                    vistas.setOnClickPendingIntent(R.id.widget_raiz,
+                        if (r.esClave) WidgetComun.configurar(ctx, id * 10 + 5, id)
+                        else WidgetComun.reintentar(ctx, id * 10 + 6))
+                    vistas.setTextViewText(R.id.txt_detalle, r.error)
+                } else {
+                    val d = r.datos!!
                     val libre = d.getDouble("libre")
                     vistas.setTextViewText(R.id.txt_libre, cop(libre))
                     vistas.setTextColor(R.id.txt_libre, if (libre >= 0) 0xFF0F172A.toInt() else 0xFFDC2626.toInt())
@@ -97,19 +80,19 @@ class ResumenWidget : AppWidgetProvider() {
                         vistas.setTextColor(R.id.txt_acciones, 0xFF16A34A.toInt())
                     } else {
                         val sb = StringBuilder()
-                        for (i in 0 until acciones.length()) {
+                        // Este widget es de 4x2: mas de tres renglones no caben.
+                        val cuantas = minOf(acciones.length(), 3)
+                        for (i in 0 until cuantas) {
                             val a = acciones.getJSONObject(i)
                             val punto = when (a.optString("u")) { "alta" -> "● "; "media" -> "◐ "; else -> "○ " }
                             if (i > 0) sb.append("\n")
                             sb.append(punto).append(a.optString("t"))
                         }
-                        if (pend > acciones.length()) sb.append("\n+${pend - acciones.length()} más")
+                        if (pend > cuantas) sb.append("\n+${pend - cuantas} más")
                         vistas.setTextViewText(R.id.txt_acciones, sb.toString())
                         vistas.setTextColor(R.id.txt_acciones, 0xFF334155.toInt())
                     }
                     vistas.setViewVisibility(R.id.txt_acciones, View.VISIBLE)
-                } catch (e: Exception) {
-                    vistas.setTextViewText(R.id.txt_detalle, "Sin conexión · toca para reintentar")
                 }
                 mgr.updateAppWidget(id, vistas)
             }

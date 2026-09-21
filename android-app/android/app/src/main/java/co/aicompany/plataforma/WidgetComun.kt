@@ -1,6 +1,7 @@
 package co.aicompany.plataforma
 
 import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import org.json.JSONObject
@@ -80,20 +81,60 @@ object WidgetComun {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    /**
+     * Resultado de pedir el resumen. Si [error] no es nulo, ese es el texto que
+     * se le muestra a Cristian tal cual. [esClave] distingue "no hay red" de
+     * "la clave esta mal", que es un problema con arreglo distinto: tocar el
+     * widget lo lleva a escribirla otra vez.
+     */
+    class Resp(val datos: org.json.JSONObject?, val error: String?, val esClave: Boolean = false)
+
     /** Pide el resumen en segundo plano. El callback llega en ese mismo hilo. */
-    fun pedir(clave: String, listo: (JSONObject?) -> Unit) {
+    fun pedir(clave: String, listo: (Resp) -> Unit) {
         hilo.execute {
+            var r: Resp
+            var con: HttpURLConnection? = null
             try {
-                val con = (URL("$BASE_URL/api/widget?key=$clave").openConnection() as HttpURLConnection).apply {
+                con = (URL("$BASE_URL/api/widget").openConnection() as HttpURLConnection).apply {
                     connectTimeout = 10_000; readTimeout = 10_000
                     setRequestProperty("Accept", "application/json")
+                    // Por cabecera y no en la URL: asi la clave no queda escrita
+                    // en registros de acceso ni se daña si trae caracteres raros.
+                    setRequestProperty("X-Widget-Key", clave)
                 }
-                val cuerpo = con.inputStream.bufferedReader().readText()
-                val d = JSONObject(cuerpo)
-                listo(if (d.optBoolean("ok")) d else null)
+                val codigo = con.responseCode
+                r = when {
+                    codigo == 200 -> {
+                        val d = JSONObject(con.inputStream.bufferedReader().readText())
+                        if (d.optBoolean("ok")) Resp(d, null)
+                        else Resp(null, d.optString("msg", "Error del servidor"))
+                    }
+                    codigo == 401 -> Resp(null, "Clave incorrecta · toca para escribirla", true)
+                    codigo == 503 -> Resp(null, "Falta WIDGET_KEY en el servidor", true)
+                    else          -> Resp(null, "El servidor respondio $codigo")
+                }
             } catch (e: Exception) {
-                listo(null)
+                r = Resp(null, "Sin conexion · toca para reintentar")
+            } finally {
+                try { con?.disconnect() } catch (_: Exception) {}
             }
+            listo(r)
         }
+    }
+
+    /** Vuelve a pedir los datos sin abrir la app. */
+    fun reintentar(ctx: Context, codigo: Int): PendingIntent =
+        PendingIntent.getBroadcast(ctx, codigo,
+            Intent(ACCION_REFRESCAR).setPackage(ctx.packageName),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    /** Abre la pantalla de la clave para ese widget. */
+    fun configurar(ctx: Context, codigo: Int, widgetId: Int): PendingIntent {
+        val i = Intent(ctx, ConfigurarWidgetActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+        }
+        return PendingIntent.getActivity(ctx, codigo, i,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 }

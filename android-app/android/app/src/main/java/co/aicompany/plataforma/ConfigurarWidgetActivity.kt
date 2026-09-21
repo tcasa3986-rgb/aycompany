@@ -65,22 +65,51 @@ class ConfigurarWidgetActivity : Activity() {
         }
         raiz.addView(campo)
 
-        raiz.addView(Button(this).apply {
+        val aviso = TextView(this).apply {
+            textSize = 13f; setTextColor(Color.parseColor("#DC2626"))
+            setPadding(0, (10 * dp).toInt(), 0, 0)
+            visibility = android.view.View.GONE
+        }
+
+        val boton = Button(this).apply {
             text = "Poner el widget"
             setBackgroundColor(Color.parseColor("#2563EB")); setTextColor(Color.WHITE)
             val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             lp.topMargin = (20 * dp).toInt(); layoutParams = lp
-            setOnClickListener {
-                val clave = campo.text.toString().trim()
-                if (clave.length < 8) { campo.error = "Muy corta"; return@setOnClickListener }
-                getSharedPreferences(ResumenWidget.PREFS, Context.MODE_PRIVATE)
-                    .edit().putString(ResumenWidget.PREF_KEY, clave).apply()
+        }
+        raiz.addView(boton)
+        raiz.addView(aviso)
 
-                pintarWidget()
-                setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
-                finish()
+        boton.setOnClickListener {
+            val clave = campo.text.toString().trim()
+            if (clave.length < 8) { campo.error = "Muy corta"; return@setOnClickListener }
+
+            // Se prueba contra el servidor ANTES de guardarla. Si no, una clave
+            // mal escrita se guarda igual y el widget queda diciendo "sin
+            // conexion" para siempre, que es mentira y no se sabe como arreglar.
+            boton.isEnabled = false
+            boton.text = "Probando la clave…"
+            aviso.visibility = android.view.View.GONE
+
+            WidgetComun.pedir(clave) { r ->
+                runOnUiThread {
+                    // Sin red no se puede comprobar: se guarda y el widget dira
+                    // que reintente. Con 401 NO se guarda: esa clave no sirve.
+                    if (r.error != null && r.esClave) {
+                        boton.isEnabled = true
+                        boton.text = "Poner el widget"
+                        aviso.text = "Esa clave no es. Cópiala de Railway → mi-plataforma → Variables → WIDGET_KEY."
+                        aviso.visibility = android.view.View.VISIBLE
+                        return@runOnUiThread
+                    }
+                    getSharedPreferences(ResumenWidget.PREFS, Context.MODE_PRIVATE)
+                        .edit().putString(ResumenWidget.PREF_KEY, clave).apply()
+                    pintarWidget()
+                    setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
+                    finish()
+                }
             }
-        })
+        }
 
         raiz.gravity = Gravity.TOP
         setContentView(raiz)
