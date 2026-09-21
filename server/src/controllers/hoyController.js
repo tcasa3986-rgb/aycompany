@@ -161,12 +161,16 @@ async function armarAcciones(hoy = hoyBogota()) {
             const dia = aStr(f);
             const esHoy = dia === hoy;
             const hora = f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
+            // En el widget solo cabe una línea de 44 caracteres, así que el
+            // cuándo va primero y corto, y el título sin el "Reunión con" que
+            // se repite en todas.
             const cuando = esHoy
-                ? 'hoy'
-                : f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'America/Bogota' });
+                ? 'Hoy'
+                : f.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', timeZone: 'America/Bogota' }).replace('.', '');
+            const nombre = (r.titulo || r.asunto || 'sin título').replace(/^reuni[óo]n\s+con\s+/i, '').trim() || 'sin título';
             push({ urgencia: esHoy ? 'media' : 'baja', color: 'azul', icono: 'calendar',
-                titulo: `Reunión ${cuando}: ${r.titulo || r.asunto || 'sin título'}`,
-                detalle: `${hora}${r.participantes ? ' · ' + r.participantes : ''}`,
+                titulo: `${cuando} ${hora} · ${nombre}`,
+                detalle: `Reunión${r.participantes ? ' · ' + r.participantes : ''}`,
                 accion: 'Ver', ruta: '/calendario', ref: r.id });
         }
     } catch (e) { console.warn('Hoy: no pude leer las reuniones:', e.message); }
