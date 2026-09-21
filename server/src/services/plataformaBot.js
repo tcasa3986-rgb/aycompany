@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const Anthropic = require('@anthropic-ai/sdk');
-const { Evento, MetricaMarketing, MetaMarketing, EstrategiaMarketing, IdeaContenido, Cliente, Licencia, Pago, MovimientoFinanciero } = require('../models');
+const { Evento, MetricaMarketing, MetaMarketing, EstrategiaMarketing, IdeaContenido, Cliente, Licencia, Pago, MovimientoFinanciero, Reunion } = require('../models');
 const { interpretar } = require('./registroRapido');
 const { transcribir } = require('./transcribirAudio');
 const { Op } = require('sequelize');
@@ -97,6 +97,22 @@ const TOOLS = [
     }
 ];
 
+/**
+ * Toma lo que mande el modelo y lo trata como hora de Colombia.
+ *
+ * "2026-09-22T09:00:00", "2026-09-22T09:00:00Z" y "2026-09-22 09:00" son las
+ * nueve de la mañana en Bogotá, las tres. Si el modelo pega una Z o un offset,
+ * se ignora: el reloj que importa es el de Cristian, no el del servidor.
+ */
+function aHoraColombia(valor) {
+    if (!valor) return valor;
+    const t = String(valor).trim().replace(' ', 'T');
+    const m = t.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return valor;   // formato raro: que lo resuelva Sequelize como pueda
+    const [, y, mes, dia, hh, mm, ss] = m;
+    return new Date(Date.UTC(+y, +mes - 1, +dia, +hh + 5, +mm, +(ss || 0)));
+}
+
 async function ejecutarTool(name, input) {
     const hoy = new Date();
 
@@ -166,7 +182,30 @@ async function ejecutarTool(name, input) {
     }
 
     if (name === 'crear_evento') {
-        const evento = await Evento.create({ ...input, color: '#6366f1' });
+        // Hay DOS tablas de calendario: `eventos` es la que pinta la pantalla de
+        // Calendario, y `reuniones` es la que miran Hoy, el widget y el
+        // recordatorio de cada minuto. La app, cuando agenda, crea la reunion y
+        // espeja el evento. El bot solo creaba el evento: por eso una reunion
+        // dictada por voz salia en el calendario pero NO en el widget, y nunca
+        // llegaba el recordatorio.
+        // La hora SIEMPRE se entiende como hora de Colombia, venga como venga.
+        // El modelo a veces manda "...T09:00:00Z" y eso quedaba a las 4 a.m.
+        const entrada = { ...input };
+        entrada.fecha_inicio = aHoraColombia(input.fecha_inicio);
+        if (input.fecha_fin) entrada.fecha_fin = aHoraColombia(input.fecha_fin);
+
+        const evento = await Evento.create({ ...entrada, color: '#6366f1' });
+        const dura = input.fecha_fin
+            ? Math.max(15, Math.round((new Date(input.fecha_fin) - new Date(input.fecha_inicio)) / 60000))
+            : 60;
+        await Reunion.create({
+            titulo:        evento.titulo,
+            descripcion:   evento.descripcion || '',
+            fecha:         evento.fecha_inicio,
+            duracion:      dura,
+            participantes: evento.participantes || '',
+            link:          evento.link || '',
+        }).catch(err => console.warn('Bot: no pude espejar la reunion:', err.message));
         const f = new Date(evento.fecha_inicio).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
         return `✅ *Evento creado en el calendario*\n📌 ${evento.titulo}\n📅 ${f}${evento.participantes ? `\n👥 ${evento.participantes}` : ''}`;
     }
@@ -232,6 +271,18 @@ function instrucciones() {
     const iso = ahora.toISOString().split('T')[0];
     const largo = ahora.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
+    // Los modelos se equivocan contando dias: al pedirle "el martes" puso el 27,
+    // que era domingo. Aqui va el calendario ya resuelto para que no calcule
+    // nada, solo lea.
+    const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const proximos = [];
+    for (let i = 0; i <= 14; i++) {
+        const dd = new Date(ahora.getTime() + i * 86400000);
+        const etiqueta = i === 0 ? ' (HOY)' : i === 1 ? ' (mañana)' : '';
+        proximos.push(`${DIAS[dd.getUTCDay()]} ${dd.getUTCDate()} = ${dd.toISOString().split('T')[0]}${etiqueta}`);
+    }
+    const calendario = proximos.join('\n');
+
     return `Eres el asistente de AI Company, la empresa de Cristian. Hoy es ${largo} (${iso}), hora de Colombia.
 
 Tienes acceso a los datos reales: calendario, marketing, contenido, clientes y licencias. Usa las herramientas para consultar y para registrar.
@@ -242,7 +293,12 @@ Cristian te habla casi siempre por nota de voz, muchas veces manejando. Cada pre
 Valores por defecto cuando no te los digan:
 - Hora de una reunion: 9:00 a.m.
 - Duracion: 1 hora.
-- "el martes", "mañana", "la otra semana": calcula la fecha desde HOY (${iso}). "El martes" es el proximo martes que venga.
+- Fechas: NO las calcules. Estan resueltas abajo, copia la que corresponda.
+- Las horas son de Colombia y se escriben SIN zona horaria ni "Z". "2026-09-22T09:00:00" es las 9 de la mañana en Colombia.
+
+CALENDARIO (usa estas fechas tal cual):
+${calendario}
+
 - Participantes, link, descripcion: dejalos vacios si no los menciono.
 - Si nombra un cliente que ya existe, usalo tal cual esta guardado.
 

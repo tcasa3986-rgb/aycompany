@@ -3,7 +3,7 @@ const {
     Licencia, Cliente, Producto, Contrato, CostoServidor,
     MovimientoFinanciero, Deuda, AbonoDeuda, Reunion
 } = require('../models');
-const { hoyBogota, aFecha, estadoLicencia, precioLicencia } = require('../utils/licenciaCiclo');
+const { hoyBogota, aFecha, aStr, estadoLicencia, precioLicencia } = require('../utils/licenciaCiclo');
 
 const num = v => Number(v || 0);
 const cop = n => '$' + Number(n || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
@@ -145,18 +145,31 @@ async function armarAcciones(hoy = hoyBogota()) {
         }
     }
 
-    // ── Reuniones de hoy ──────────────────────────────────────────────
+    // ── Reuniones: hoy y lo que viene ─────────────────────────────────
+    // Antes solo miraba HOY. Una reunión agendada para el martes no aparecía en
+    // ninguna parte hasta el martes por la mañana, que es cuando ya no sirve
+    // saberlo. Se muestran los próximos 3 días, con el día por delante.
     try {
+        const fin = new Date(aFecha(hoy).getTime() + 3 * 86400000);
+        const hasta = aStr(fin);
         const reuniones = await Reunion.findAll({
-            where: { fecha: { [Op.between]: [`${hoy} 00:00:00`, `${hoy} 23:59:59`] } }
+            where: { fecha: { [Op.between]: [`${hoy} 00:00:00`, `${hasta} 23:59:59`] } },
+            order: [['fecha', 'ASC']],
         });
         for (const r of reuniones) {
-            push({ urgencia: 'media', color: 'azul', icono: 'calendar',
-                titulo: `Reunión hoy: ${r.titulo || r.asunto || 'sin título'}`,
-                detalle: new Date(r.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+            const f = new Date(r.fecha);
+            const dia = aStr(f);
+            const esHoy = dia === hoy;
+            const hora = f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
+            const cuando = esHoy
+                ? 'hoy'
+                : f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'America/Bogota' });
+            push({ urgencia: esHoy ? 'media' : 'baja', color: 'azul', icono: 'calendar',
+                titulo: `Reunión ${cuando}: ${r.titulo || r.asunto || 'sin título'}`,
+                detalle: `${hora}${r.participantes ? ' · ' + r.participantes : ''}`,
                 accion: 'Ver', ruta: '/calendario', ref: r.id });
         }
-    } catch (_) { /* el modelo de reuniones puede no tener esas columnas */ }
+    } catch (e) { console.warn('Hoy: no pude leer las reuniones:', e.message); }
 
     acciones.sort((a, b) => PESO[a.urgencia] - PESO[b.urgencia]);
     return acciones.map((a, i) => ({ id: i + 1, ...a }));
