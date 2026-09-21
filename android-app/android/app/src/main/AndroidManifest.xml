@@ -87,4 +87,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Con el ahorro de bateria encendido, Android le corta la red a la app en
+         segundo plano y los widgets quedan diciendo "sin conexion" sin que haya
+         forma de saber por que. Esto permite pedirle al usuario que la exente. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 </manifest>

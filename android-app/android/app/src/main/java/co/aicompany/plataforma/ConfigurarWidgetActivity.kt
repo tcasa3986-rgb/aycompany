@@ -106,6 +106,7 @@ class ConfigurarWidgetActivity : Activity() {
                         .edit().putString(ResumenWidget.PREF_KEY, clave).apply()
                     pintarWidget()
                     setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
+                    pedirExencionDeBateria()
                     finish()
                 }
             }
@@ -113,6 +114,27 @@ class ConfigurarWidgetActivity : Activity() {
 
         raiz.gravity = Gravity.TOP
         setContentView(raiz)
+    }
+
+    /**
+     * Con el ahorro de batería encendido, Android bloquea la red de la app en
+     * segundo plano: el widget intenta, le cortan el DNS en 0 ms y queda
+     * diciendo "sin conexión" — que es mentira y no se puede adivinar desde el
+     * teléfono. Se le pide al sistema que exente la app; es un toque.
+     */
+    private fun pedirExencionDeBateria() {
+        if (android.os.Build.VERSION.SDK_INT < 23) return
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            if (pm.isIgnoringBatteryOptimizations(packageName)) return
+            startActivity(Intent(
+                android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                android.net.Uri.parse("package:$packageName")
+            ))
+        } catch (e: Exception) {
+            // Algunos fabricantes esconden esa pantalla: no vale la pena tumbar
+            // la configuración del widget por esto.
+        }
     }
 
     /**

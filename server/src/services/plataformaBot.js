@@ -101,11 +101,15 @@ async function ejecutarTool(name, input) {
     const hoy = new Date();
 
     if (name === 'get_resumen_general') {
-        const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        // Ojo con los nombres: Licencia no tiene columna `estado` (se calcula) y
+        // Pago guarda la fecha en `fecha_pago`, no en `createdAt`. Con los dos
+        // nombres viejos esta herramienta reventaba con "Unknown column".
+        const d1 = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const inicioMes = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, '0')}-01`;
         const [totalClientes, licenciasActivas, pagosMes] = await Promise.all([
             Cliente.count(),
-            Licencia.count({ where: { estado: 'activa' } }),
-            Pago.findAll({ where: { createdAt: { [Op.gte]: inicioMes } } })
+            Licencia.count({ where: { activo: true } }),
+            Pago.findAll({ where: { fecha_pago: { [Op.gte]: inicioMes } } })
         ]);
         const ingresosMes = pagosMes.reduce((s, p) => s + Number(p.monto || 0), 0);
         return `📊 *Resumen AI Company*\n\n👥 Clientes: *${totalClientes}*\n🔑 Licencias activas: *${licenciasActivas}*\n💰 Ingresos este mes: *$${ingresosMes.toLocaleString('es-CO')}*\n📅 ${hoy.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
@@ -190,10 +194,33 @@ async function ejecutarTool(name, input) {
     return 'Acción no reconocida.';
 }
 
+/**
+ * El asistente, con dos proveedores.
+ *
+ * Por que: la noche del 20/09 el bot oyo perfecto una orden por voz y contesto
+ * un error - "Your credit balance is too low to access the Anthropic API".
+ * Un asistente que depende del saldo de UNA cuenta se cae entero el dia que esa
+ * cuenta se seca. Se intenta con Claude y, si falla por lo que sea, con OpenAI,
+ * que ya se usa para transcribir los audios.
+ */
 async function procesarMensaje(texto) {
-    if (!process.env.ANTHROPIC_API_KEY) return '⚠️ Claude no configurado. Contacta al administrador.';
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const hayClaude = !!process.env.ANTHROPIC_API_KEY;
+    const hayOpenAI = !!process.env.OPENAI_API_KEY;
+    if (!hayClaude && !hayOpenAI) return '⚠️ No hay ningun asistente configurado. Contacta al administrador.';
 
+    if (hayClaude) {
+        try {
+            return await conClaude(texto);
+        } catch (err) {
+            console.warn('Bot: Claude fallo (' + String(err.message).slice(0, 120) + '). Paso a OpenAI.');
+            if (!hayOpenAI) throw err;
+        }
+    }
+    return conOpenAI(texto);
+}
+
+/** El prompt es el mismo para los dos: que respondan igual. */
+function instrucciones() {
     const hoy = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const sistema = `Eres el asistente inteligente de AI Company, una empresa de tecnología y marketing digital. Hoy es ${hoy}.
 
@@ -202,7 +229,12 @@ Tienes acceso a toda la información de la empresa: eventos del calendario, mét
 Cuando el usuario pida información, usa las herramientas para obtener datos reales y actualizados. Cuando quiera registrar o crear algo, usa la herramienta correspondiente.
 
 Sé conciso, útil y profesional. Responde en español. Usa formato Markdown de Telegram: *negrita* para títulos importantes.`;
+    return sistema;
+}
 
+async function conClaude(texto) {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const sistema = instrucciones();
     const messages = [{ role: 'user', content: texto }];
 
     let response = await anthropic.messages.create({
@@ -232,6 +264,47 @@ Sé conciso, útil y profesional. Responde en español. Usa formato Markdown de 
     }
 
     return response.content.filter(b => b.type === 'text').map(b => b.text).join('\n') || '✅ Listo.';
+}
+
+/** Las mismas herramientas, en el formato que espera OpenAI. */
+function herramientasOpenAI() {
+    return TOOLS.map(t => ({
+        type: 'function',
+        function: { name: t.name, description: t.description, parameters: t.input_schema },
+    }));
+}
+
+async function conOpenAI(texto) {
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const mensajes = [
+        { role: 'system', content: instrucciones() },
+        { role: 'user', content: texto },
+    ];
+    const herramientas = herramientasOpenAI();
+
+    // Tope de vueltas: si el modelo se enreda pidiendo herramientas, se corta en
+    // vez de quedarse girando y gastando.
+    for (let vuelta = 0; vuelta < 6; vuelta++) {
+        const r = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: mensajes,
+            tools: herramientas,
+            max_tokens: 1024,
+        });
+        const m = r.choices[0].message;
+        if (!m.tool_calls || m.tool_calls.length === 0) {
+            return (m.content || '').trim() || 'Listo.';
+        }
+        mensajes.push(m);
+        for (const llamada of m.tool_calls) {
+            let entrada = {};
+            try { entrada = JSON.parse(llamada.function.arguments || '{}'); } catch (e) { /* el modelo mando basura */ }
+            const resultado = await ejecutarTool(llamada.function.name, entrada);
+            mensajes.push({ role: 'tool', tool_call_id: llamada.id, content: String(resultado) });
+        }
+    }
+    return 'Me enrede con esa. Me la dices de otra forma?';
 }
 
 function initBot() {
@@ -339,4 +412,5 @@ _${plata.categoria} · ${plata.ambito}_`,
     });
 }
 
-module.exports = { initBot };
+// procesarMensaje se exporta para poder probarlo sin levantar Telegram.
+module.exports = { initBot, procesarMensaje };
