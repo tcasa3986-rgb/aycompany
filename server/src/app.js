@@ -273,35 +273,37 @@ async function verificarEsquema() {
 }
 
 async function syncSchema() {
-    try {
-        await sequelize.sync({ alter: true });
-        console.log('✅ Schema sincronizado (alter)');
-    } catch (alterErr) {
-        console.warn('⚠️  sync alter falló, aplicando migraciones manuales:', alterErr.message);
-        try { await sequelize.sync(); } catch (_) {}
+    // sync() SIN alter: solo crea las tablas que falten. Nunca reescribe columnas.
+    //
+    // Antes era sync({ alter: true }) y eso costó caro dos veces:
+    //   1. Agregaba un índice nuevo por cada campo `unique` EN CADA ARRANQUE. La
+    //      base de producción llegó a 247 índices duplicados y a 63 de los 64
+    //      que MySQL permite por tabla; el arranque empezó a fallar.
+    //   2. Reescribía columnas que ya estaban bien (ALTER TABLE reuniones CHANGE
+    //      recordatorio_enviado ...) y una de esas se quedó colgada esperando un
+    //      commit. Un ALTER lento al arrancar es un despliegue que Railway da
+    //      por caído.
+    //
+    // Las columnas nuevas se agregan de forma explícita en migracionesLicencias()
+    // y en el bloque de abajo, con addCol(), que es idempotente y no toca nada
+    // que ya exista.
+    await sequelize.sync();
+    console.log('✅ Tablas verificadas (sin alter)');
 
-        const { DataTypes } = require('sequelize');
-        // usuarios — columnas del sistema de vendedores
-        await addCol('usuarios', 'telefono',        { type: DataTypes.STRING(20),  allowNull: true });
-        await addCol('usuarios', 'ciudad',          { type: DataTypes.STRING(100), allowNull: true });
-        await addCol('usuarios', 'activo',          { type: DataTypes.BOOLEAN, defaultValue: true });
-        await addCol('usuarios', 'referido_por',    { type: DataTypes.INTEGER,     allowNull: true });
-        await addCol('usuarios', 'codigo_referido', { type: DataTypes.STRING(20),  allowNull: true });
-        await addCol('usuarios', 'empresa_id',      { type: DataTypes.INTEGER,     allowNull: true });
-        // productos — columnas de demo
-        await addCol('productos', 'descripcion_venta', { type: DataTypes.TEXT,     allowNull: true });
-        await addCol('productos', 'categoria',      { type: DataTypes.STRING(60),  defaultValue: 'Sistema' });
-        await addCol('productos', 'visible_vendedor', { type: DataTypes.BOOLEAN,   defaultValue: true });
-        await addCol('productos', 'imagen_url',     { type: DataTypes.STRING(300), allowNull: true });
-        // licencias — ciclo de cobro (día de corte / tolerancia / nunca bloquear)
-        await addCol('licencias', 'dia_corte',      { type: DataTypes.INTEGER,       allowNull: true });
-        await addCol('licencias', 'dias_gracia',    { type: DataTypes.INTEGER,       defaultValue: 0 });
-        await addCol('licencias', 'bloquear',       { type: DataTypes.BOOLEAN,       defaultValue: true });
-        await addCol('licencias', 'precio_mensual', { type: DataTypes.DECIMAL(10, 2), allowNull: true });
-        await addCol('licencias', 'notas',          { type: DataTypes.TEXT,          allowNull: true });
-        await addCol('pagos', 'referencia_externa', { type: DataTypes.STRING(120), allowNull: true });
-        console.log('✅ Migraciones manuales completadas');
-    }
+    const { DataTypes } = require('sequelize');
+    // usuarios — columnas del sistema de vendedores (ya retirado; las columnas quedan)
+    await addCol('usuarios', 'telefono',        { type: DataTypes.STRING(20),  allowNull: true });
+    await addCol('usuarios', 'ciudad',          { type: DataTypes.STRING(100), allowNull: true });
+    await addCol('usuarios', 'activo',          { type: DataTypes.BOOLEAN, defaultValue: true });
+    await addCol('usuarios', 'referido_por',    { type: DataTypes.INTEGER,     allowNull: true });
+    await addCol('usuarios', 'codigo_referido', { type: DataTypes.STRING(20),  allowNull: true });
+    await addCol('usuarios', 'empresa_id',      { type: DataTypes.INTEGER,     allowNull: true });
+    // productos
+    await addCol('productos', 'descripcion_venta', { type: DataTypes.TEXT,     allowNull: true });
+    await addCol('productos', 'categoria',      { type: DataTypes.STRING(60),  defaultValue: 'Sistema' });
+    await addCol('productos', 'visible_vendedor', { type: DataTypes.BOOLEAN,   defaultValue: true });
+    await addCol('productos', 'imagen_url',     { type: DataTypes.STRING(300), allowNull: true });
+    console.log('✅ Migraciones explícitas completadas');
 }
 
 async function iniciar(intentos = 5) {

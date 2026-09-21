@@ -1,34 +1,55 @@
-const CACHE = 'aicompany-v1';
-const STATIC = ['/', '/dashboard', '/manifest.json'];
+// Service worker de la PWA.
+//
+// La versión anterior era "primero caché, luego red" con un nombre de caché
+// fijo. Resultado: después de cada despliegue el celular seguía ejecutando el
+// JavaScript ANTERIOR hasta que la caché se vaciara sola, y el index.html
+// cacheado apuntaba a un archivo con hash que ya no existía en el servidor.
+//
+// Ahora:
+//   - HTML y navegación: SIEMPRE red primero. Solo se usa la caché si no hay
+//     conexión. Así cada apertura trae la versión desplegada.
+//   - Archivos con hash (assets/index-XXXX.js): caché primero. Son inmutables
+//     por construcción: si cambia el contenido, cambia el nombre.
+//   - /api/: nunca se toca.
+//   - El nombre de la caché lleva fecha: cada despliegue borra la anterior.
+const CACHE = 'aicompany-2026-09-20';
 
-self.addEventListener('install', e => {
-    e.waitUntil(
-        caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
-    );
-});
+self.addEventListener('install', e => { self.skipWaiting(); });
 
 self.addEventListener('activate', e => {
     e.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-        ).then(() => self.clients.claim())
+        caches.keys()
+            .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+            .then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', e => {
-    // Solo cachear GET, nunca las llamadas a /api/
-    if (e.request.method !== 'GET' || e.request.url.includes('/api/')) return;
+    const req = e.request;
+    if (req.method !== 'GET') return;
+    const url = new URL(req.url);
+    if (url.origin !== self.location.origin) return;
+    if (url.pathname.startsWith('/api/')) return;
 
-    e.respondWith(
-        caches.match(e.request).then(cached => {
-            const networkFetch = fetch(e.request).then(res => {
-                if (res && res.status === 200 && res.type === 'basic') {
-                    const clone = res.clone();
-                    caches.open(CACHE).then(c => c.put(e.request, clone));
-                }
+    // Assets con hash: inmutables, caché primero.
+    const esAssetConHash = /\/assets\/.+-[A-Za-z0-9_-]{8,}\.(js|css|woff2?)$/.test(url.pathname);
+    if (esAssetConHash) {
+        e.respondWith(
+            caches.match(req).then(hit => hit || fetch(req).then(res => {
+                if (res && res.status === 200) caches.open(CACHE).then(c => c.put(req, res.clone()));
                 return res;
-            }).catch(() => cached);
-            return cached || networkFetch;
-        })
+            }))
+        );
+        return;
+    }
+
+    // Todo lo demás (index.html, manifest, imágenes): red primero, caché de respaldo.
+    e.respondWith(
+        fetch(req).then(res => {
+            if (res && res.status === 200 && res.type === 'basic') {
+                caches.open(CACHE).then(c => c.put(req, res.clone()));
+            }
+            return res;
+        }).catch(() => caches.match(req).then(hit => hit || caches.match('/')))
     );
 });

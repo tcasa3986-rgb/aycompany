@@ -1,33 +1,46 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout    from './components/Layout';
 import Login     from './pages/Login';
-import Dashboard from './pages/Dashboard';
 import Hoy from './pages/Hoy';
-import Clientes  from './pages/Clientes';
-import Productos from './pages/Productos';
-import Licencias from './pages/Licencias';
-import CostosServidor from './pages/CostosServidor';
-import Finanzas from './pages/Finanzas';
-import Pagos          from './pages/Pagos';
-import PagarLicencia  from './pages/PagarLicencia';
-import PortalCliente  from './pages/PortalCliente';
-import Facturas       from './pages/Facturas';
-import Marketing      from './pages/Marketing';
-import Calendario     from './pages/Calendario';
-import Contenido      from './pages/Contenido';
-import Social         from './pages/Social';
-import Leads          from './pages/Leads';
-import Tickets        from './pages/Tickets';
-import Cartera        from './pages/Cartera';
-import Configuracion  from './pages/Configuracion';
-import Proyectos      from './pages/Proyectos';
-import ClienteDetalle from './pages/ClienteDetalle';
-import Pipeline       from './pages/Pipeline';
-import Contratos      from './pages/Contratos';
-import Usuarios       from './pages/Usuarios';
-import Reportes       from './pages/Reportes';
-import Analitica      from './pages/Analitica';
+
+// Cada pantalla se descarga solo cuando se abre. Antes las 27 venían en un
+// solo archivo de 900 KB que el celular tenía que ejecutar completo antes
+// de pintar nada: por eso se congelaba al abrir.
+const Dashboard      = lazy(() => import('./pages/Dashboard'));
+const Clientes       = lazy(() => import('./pages/Clientes'));
+const Productos      = lazy(() => import('./pages/Productos'));
+const Licencias      = lazy(() => import('./pages/Licencias'));
+const CostosServidor = lazy(() => import('./pages/CostosServidor'));
+const Finanzas       = lazy(() => import('./pages/Finanzas'));
+const Pagos          = lazy(() => import('./pages/Pagos'));
+const PagarLicencia  = lazy(() => import('./pages/PagarLicencia'));
+const PortalCliente  = lazy(() => import('./pages/PortalCliente'));
+const Facturas       = lazy(() => import('./pages/Facturas'));
+const Marketing      = lazy(() => import('./pages/Marketing'));
+const Calendario     = lazy(() => import('./pages/Calendario'));
+const Contenido      = lazy(() => import('./pages/Contenido'));
+const Social         = lazy(() => import('./pages/Social'));
+const Leads          = lazy(() => import('./pages/Leads'));
+const Tickets        = lazy(() => import('./pages/Tickets'));
+const Cartera        = lazy(() => import('./pages/Cartera'));
+const Configuracion  = lazy(() => import('./pages/Configuracion'));
+const Proyectos      = lazy(() => import('./pages/Proyectos'));
+const ClienteDetalle = lazy(() => import('./pages/ClienteDetalle'));
+const Pipeline       = lazy(() => import('./pages/Pipeline'));
+const Contratos      = lazy(() => import('./pages/Contratos'));
+const Usuarios       = lazy(() => import('./pages/Usuarios'));
+const Reportes       = lazy(() => import('./pages/Reportes'));
+const Analitica      = lazy(() => import('./pages/Analitica'));
+
+// Barra fina arriba mientras baja el código de la pantalla. No cubre nada.
+function Cargando() {
+  return <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, background: '#2563EB',
+                       animation: 'cargando 1s ease-in-out infinite', zIndex: 100 }}>
+    <style>{`@keyframes cargando { 0%{transform:scaleX(0);transform-origin:left} 50%{transform:scaleX(1);transform-origin:left} 51%{transform-origin:right} 100%{transform:scaleX(0);transform-origin:right} }`}</style>
+  </div>;
+}
 
 function Private({ children }) {
   const token = useAuthStore(s => s.token);
@@ -37,6 +50,7 @@ function Private({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <Suspense fallback={<Cargando />}>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/pagar/:license_key"  element={<PagarLicencia />} />
@@ -68,6 +82,7 @@ export default function App() {
           <Route path="analitica"      element={<Analitica />} />
         </Route>
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
