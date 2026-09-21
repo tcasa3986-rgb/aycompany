@@ -137,6 +137,15 @@ app.use((err, req, res, next) => {
 // En producción redirigir todo lo demás al index.html del React
 if (isProd) {
     app.get('*', (req, res) => {
+        // Un archivo de código o de estilo que no existe NO puede responder el
+        // index.html con un 200: el navegador recibe HTML donde esperaba
+        // JavaScript, se niega a ejecutarlo y la pantalla queda en blanco sin
+        // decir por qué. Pasa en cada despliegue, porque los nombres llevan
+        // hash y el que tenga la app abierta pide los del despliegue anterior.
+        // Con un 404 honesto, el cliente sabe que quedó viejo y se recarga.
+        if (/\.(js|mjs|css|map|json|png|jpg|jpeg|svg|webp|ico|woff2?|ttf)$/i.test(req.path)) {
+            return res.status(404).type('text/plain').send('No existe. Probablemente la app quedó en una versión vieja: recarga.');
+        }
         const index = path.join(__dirname, '../../client/dist/index.html');
         if (fs.existsSync(index)) res.sendFile(index);
         else res.status(404).send('Frontend no compilado');
