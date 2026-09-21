@@ -28,11 +28,12 @@ const CATS = {
 
 const fmt = n => n ? '$ ' + Number(n).toLocaleString('es-CO') : '$ 0';
 
-export default function CapturaRapida({ onCerrar }) {
-  const [tipo, setTipo]     = useState('egreso');
+export default function CapturaRapida({ onCerrar, tipoInicial = 'egreso' }) {
+  // tipoInicial viene del boton del widget: "Entro" abre en ingreso, "Gaste" en egreso
+  const [tipo, setTipo]     = useState(tipoInicial === 'ingreso' ? 'ingreso' : 'egreso');
   const [monto, setMonto]   = useState('');
-  const [cat, setCat]       = useState(CATS.egreso[0]);
-  const [ambito, setAmbito] = useState('personal');
+  const [cat, setCat]       = useState(CATS[tipoInicial === 'ingreso' ? 'ingreso' : 'egreso'][0]);
+  const [ambito, setAmbito] = useState(CATS[tipoInicial === 'ingreso' ? 'ingreso' : 'egreso'][0].ambito);
   const [guardando, setGuardando] = useState(false);
   const montoRef = useRef(null);
 

@@ -15,7 +15,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * Pantalla que Android abre al agregar el widget: pide la WIDGET_KEY una vez.
+ * Pantalla que Android abre al agregar cualquiera de los widgets: pide la
+ * WIDGET_KEY. La clave es una sola para los tres, así que al agregar el segundo
+ * ya viene escrita y basta con darle al botón.
+ *
  * Se construye en código (sin XML) para no arrastrar dependencias de diseño.
  */
 class ConfigurarWidgetActivity : Activity() {
@@ -38,18 +41,22 @@ class ConfigurarWidgetActivity : Activity() {
             setBackgroundColor(Color.parseColor("#F8FAFC"))
         }
 
+        val existente = ResumenWidget.claveGuardada(this)
+
         raiz.addView(TextView(this).apply {
             text = "Clave del widget"
             textSize = 22f; setTypeface(null, Typeface.BOLD)
             setTextColor(Color.parseColor("#0F172A"))
         })
         raiz.addView(TextView(this).apply {
-            text = "Es la variable WIDGET_KEY de Railway. Solo sirve para leer el resumen: no da acceso a nada más."
+            text = if (existente.isNullOrBlank())
+                "Es la variable WIDGET_KEY de Railway. Solo sirve para leer el resumen: no da acceso a nada más."
+            else
+                "Ya la habías guardado. Dale al botón y listo."
             textSize = 14f; setTextColor(Color.parseColor("#64748B"))
             setPadding(0, (8 * dp).toInt(), 0, (20 * dp).toInt())
         })
 
-        val existente = ResumenWidget.claveGuardada(this)
         val campo = EditText(this).apply {
             hint = "Pega la clave aquí"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -59,7 +66,7 @@ class ConfigurarWidgetActivity : Activity() {
         raiz.addView(campo)
 
         raiz.addView(Button(this).apply {
-            text = "Guardar y poner el widget"
+            text = "Poner el widget"
             setBackgroundColor(Color.parseColor("#2563EB")); setTextColor(Color.WHITE)
             val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             lp.topMargin = (20 * dp).toInt(); layoutParams = lp
@@ -69,9 +76,7 @@ class ConfigurarWidgetActivity : Activity() {
                 getSharedPreferences(ResumenWidget.PREFS, Context.MODE_PRIVATE)
                     .edit().putString(ResumenWidget.PREF_KEY, clave).apply()
 
-                val mgr = AppWidgetManager.getInstance(this@ConfigurarWidgetActivity)
-                ResumenWidget.actualizar(this@ConfigurarWidgetActivity, mgr, widgetId)
-
+                pintarWidget()
                 setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
                 finish()
             }
@@ -79,5 +84,21 @@ class ConfigurarWidgetActivity : Activity() {
 
         raiz.gravity = Gravity.TOP
         setContentView(raiz)
+    }
+
+    /**
+     * El id no dice de qué widget se trata: hay que preguntarle a Android por el
+     * proveedor. Si por lo que sea no lo sabe, se refrescan todos — la clave es
+     * la misma y sobra trabajo, no falla nada.
+     */
+    private fun pintarWidget() {
+        val mgr = AppWidgetManager.getInstance(this)
+        val clase = try { mgr.getAppWidgetInfo(widgetId)?.provider?.className } catch (e: Exception) { null }
+        when (clase) {
+            PlataWidget::class.java.name   -> PlataWidget.actualizar(this, mgr, widgetId)
+            HoyWidget::class.java.name     -> HoyWidget.actualizar(this, mgr, widgetId)
+            ResumenWidget::class.java.name -> ResumenWidget.actualizar(this, mgr, widgetId)
+            else -> sendBroadcast(Intent(WidgetComun.ACCION_REFRESCAR).setPackage(packageName))
+        }
     }
 }

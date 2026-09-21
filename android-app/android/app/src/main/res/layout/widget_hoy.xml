@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget HOY (4x3). Tarjeta blanca: fecha y contador arriba, hasta 5 filas de
+  "lo que te toca" con punto de color, y un pie que abre la app.
+  Las filas son fijas (RemoteViews no soporta listas dinámicas sin un servicio
+  aparte): se muestran u ocultan desde Kotlin.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/hoy_raiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/w_fondo_tarjeta"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingTop="15dp"
+    android:paddingBottom="12dp">
+
+    <!-- Cabecera -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/hoy_saludo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hoy"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:textColor="#94A3B8" />
+            <TextView
+                android:id="@+id/hoy_fecha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="…"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#0F172A" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/hoy_contador"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="…"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/w_pastilla_azul"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F1F5F9"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Estado vacío -->
+    <TextView
+        android:id="@+id/hoy_vacio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="✓  Nada pendiente. Buen día."
+        android:textSize="13sp"
+        android:textColor="#16A34A"
+        android:paddingTop="10dp"
+        android:visibility="gone" />
+
+    <!-- Filas (hasta 5) -->
+    <LinearLayout android:id="@+id/hoy_fila1" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="5dp" android:paddingBottom="5dp">
+        <ImageView android:id="@+id/hoy_punto1" android:layout_width="9dp" android:layout_height="9dp" android:src="@drawable/w_punto_gris" android:layout_marginEnd="10dp" />
+        <TextView android:id="@+id/hoy_txt1" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12.5sp" android:textColor="#0F172A" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/hoy_fila2" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="5dp" android:paddingBottom="5dp">
+        <ImageView android:id="@+id/hoy_punto2" android:layout_width="9dp" android:layout_height="9dp" android:src="@drawable/w_punto_gris" android:layout_marginEnd="10dp" />
+        <TextView android:id="@+id/hoy_txt2" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12.5sp" android:textColor="#0F172A" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/hoy_fila3" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="5dp" android:paddingBottom="5dp">
+        <ImageView android:id="@+id/hoy_punto3" android:layout_width="9dp" android:layout_height="9dp" android:src="@drawable/w_punto_gris" android:layout_marginEnd="10dp" />
+        <TextView android:id="@+id/hoy_txt3" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12.5sp" android:textColor="#0F172A" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/hoy_fila4" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="5dp" android:paddingBottom="5dp">
+        <ImageView android:id="@+id/hoy_punto4" android:layout_width="9dp" android:layout_height="9dp" android:src="@drawable/w_punto_gris" android:layout_marginEnd="10dp" />
+        <TextView android:id="@+id/hoy_txt4" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12.5sp" android:textColor="#0F172A" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/hoy_fila5" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="5dp" android:paddingBottom="5dp">
+        <ImageView android:id="@+id/hoy_punto5" android:layout_width="9dp" android:layout_height="9dp" android:src="@drawable/w_punto_gris" android:layout_marginEnd="10dp" />
+        <TextView android:id="@+id/hoy_txt5" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12.5sp" android:textColor="#0F172A" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- Relleno + pie -->
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+    <TextView
+        android:id="@+id/hoy_pie"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ver todo  →"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="#2563EB"
+        android:gravity="end"
+        android:paddingTop="4dp" />
+</LinearLayout>

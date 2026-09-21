@@ -24,11 +24,11 @@
 
         </activity>
 
-        <!-- Widget de pantalla de inicio -->
+        <!-- Widgets de pantalla de inicio. Los tres comparten la misma WIDGET_KEY. -->
         <receiver
             android:name=".ResumenWidget"
             android:exported="true"
-            android:label="AI Company">
+            android:label="@string/widget_resumen_nombre">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="co.aicompany.plataforma.REFRESCAR" />
@@ -36,6 +36,32 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_resumen_info" />
+        </receiver>
+
+        <receiver
+            android:name=".PlataWidget"
+            android:exported="true"
+            android:label="@string/widget_plata_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="co.aicompany.plataforma.REFRESCAR" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_plata_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HoyWidget"
+            android:exported="true"
+            android:label="@string/widget_hoy_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="co.aicompany.plataforma.REFRESCAR" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_hoy_info" />
         </receiver>
 
         <activity

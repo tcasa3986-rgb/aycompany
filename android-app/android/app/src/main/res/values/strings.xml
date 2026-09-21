@@ -5,4 +5,9 @@
     <string name="package_name">co.aicompany.plataforma</string>
     <string name="custom_url_scheme">co.aicompany.plataforma</string>
     <string name="widget_descripcion">Cuánto te queda libre, cuánto te deben y qué necesita tu atención hoy</string>
+    <string name="widget_plata_descripcion">Lo que entró y salió este mes, con botones para anotar un ingreso o un gasto al instante</string>
+    <string name="widget_hoy_descripcion">Tu agenda del día: cobros, pagos y reuniones ordenados por urgencia</string>
+    <string name="widget_plata_nombre">Plata · Entró y salió</string>
+    <string name="widget_hoy_nombre">Hoy · Lo que te toca</string>
+    <string name="widget_resumen_nombre">Resumen del negocio</string>
 </resources>

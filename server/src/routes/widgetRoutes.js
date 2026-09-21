@@ -10,7 +10,7 @@ const router = require('express').Router();
 const { armarAcciones } = require('../controllers/hoyController');
 const { Licencia, Producto, MovimientoFinanciero, Contrato, Deuda, AbonoDeuda } = require('../models');
 const { Op } = require('sequelize');
-const { hoyBogota, precioLicencia } = require('../utils/licenciaCiclo');
+const { hoyBogota, precioLicencia, aFecha, aStr } = require('../utils/licenciaCiclo');
 
 const num = v => Number(v || 0);
 
@@ -43,6 +43,15 @@ router.get('/', conClave, async (req, res) => {
         const deudas = await Deuda.findAll({ where: { estado: 'activa' }, include: [{ model: AbonoDeuda, as: 'abonos' }] });
         const deuda = deudas.reduce((s, d) => s + Math.max(0, num(d.monto_original) - (d.abonos || []).reduce((x, a) => x + num(a.monto), 0)), 0);
 
+        // Lo que entró y salió ESTE mes (para el widget de plata)
+        const d0 = aFecha(hoy);
+        const inicioMes = aStr(new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1)));
+        const movsMes = await MovimientoFinanciero.findAll({ where: { fecha: { [Op.gte]: inicioMes } } });
+        const mes = { ingresos: 0, egresos: 0 };
+        for (const m of movsMes) mes[m.tipo === 'ingreso' ? 'ingresos' : 'egresos'] += num(m.monto);
+
+        const corto = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
+
         // Respuesta pequeña y plana: un widget tiene poco espacio y poca CPU.
         res.set('Cache-Control', 'no-store');
         res.json({
@@ -50,12 +59,16 @@ router.get('/', conClave, async (req, res) => {
             libre: recurrente - gastoFijo,
             te_deben: porCobrar,
             recurrente, deuda,
+            gasto_fijo: gastoFijo,
+            mes,
             pendientes: acciones.length,
             urgentes: acciones.filter(a => a.urgencia === 'alta').length,
-            // Las 3 más importantes, con título corto para que quepan
-            acciones: acciones.slice(0, 3).map(a => ({
-                t: a.titulo.length > 42 ? a.titulo.slice(0, 40) + '…' : a.titulo,
+            // Hasta 6, con título corto para que quepan en el widget de Hoy
+            acciones: acciones.slice(0, 6).map(a => ({
+                t: corto(a.titulo, 44),
+                d: corto(a.detalle || '', 60),
                 u: a.urgencia,
+                i: a.icono,
             })),
         });
     } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }

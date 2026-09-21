@@ -131,7 +131,7 @@ export default function Hoy() {
         </>
       )}
 
-      {captura && <CapturaRapida onCerrar={cerrarCaptura} />}
+      {captura && <CapturaRapida onCerrar={cerrarCaptura} tipoInicial={params.get('tipo') || 'egreso'} />}
     </div>
   );
 }
