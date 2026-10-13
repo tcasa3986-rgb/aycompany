@@ -34,6 +34,7 @@ const Contratos      = pantalla(() => import('./pages/Contratos'));
 const Usuarios       = pantalla(() => import('./pages/Usuarios'));
 const Reportes       = pantalla(() => import('./pages/Reportes'));
 const Analitica      = pantalla(() => import('./pages/Analitica'));
+const Habitos        = pantalla(() => import('./pages/Habitos'));
 
 // Barra fina arriba mientras baja el código de la pantalla. No cubre nada.
 function Cargando() {
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="usuarios"       element={<Usuarios />} />
           <Route path="reportes"       element={<Reportes />} />
           <Route path="analitica"      element={<Analitica />} />
+          <Route path="habitos"        element={<Habitos />} />
         </Route>
       </Routes>
       </Suspense>

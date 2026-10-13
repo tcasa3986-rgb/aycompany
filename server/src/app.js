@@ -19,6 +19,7 @@ const { iniciarVentasReportScheduler } = require('./services/ventasReportSchedul
 const { iniciarCarouselScheduler } = require('./services/carouselScheduler');
 const { iniciarStoriesScheduler }  = require('./services/storiesScheduler');
 const { iniciarAlertasCobro }      = require('./services/alertasCobroScheduler');
+const { iniciarHabitos }           = require('./services/habitosScheduler');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -101,6 +102,7 @@ app.use('/api/licencias', require('./routes/licenciasRoutes'));
 app.use('/api/costos',    require('./routes/costosRoutes'));
 app.use('/api/finanzas',  require('./routes/finanzasRoutes'));
 app.use('/api/hoy',       require('./routes/hoyRoutes'));
+app.use('/api/habitos',   require('./routes/habitosRoutes'));
 app.use('/api/widget',    require('./routes/widgetRoutes'));   // clave propia, solo lectura
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
@@ -351,6 +353,7 @@ async function iniciar(intentos = 5) {
             try { iniciarCarouselScheduler(); } catch(e) { console.warn('⚠️ carousel:', e.message); }
             try { iniciarStoriesScheduler();  } catch(e) { console.warn('⚠️ stories:', e.message); }
             try { iniciarAlertasCobro();      } catch(e) { console.warn('⚠️ alertasCobro:', e.message); }
+            try { iniciarHabitos();           } catch(e) { console.warn('⚠️ habitos:', e.message); }
             return;
         } catch (err) {
             console.error(`Intento ${i}/${intentos} fallido: ${err.message}`);

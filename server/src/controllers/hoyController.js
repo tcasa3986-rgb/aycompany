@@ -145,6 +145,23 @@ async function armarAcciones(hoy = hoyBogota()) {
         }
     }
 
+    // ── Hábitos que faltan ────────────────────────────────────────────
+    // Van al final de la lista a propósito: primero la plata y los clientes,
+    // después lo personal. Pero tienen que estar, o la pantalla "Hoy" no es
+    // de verdad lo que te toca hoy.
+    try {
+        const { pendientesDeHoy } = require('./habitosController');
+        const { pendientes, de_hoy } = await pendientesDeHoy(hoy);
+        if (pendientes.length > 0) {
+            const nombres = pendientes.slice(0, 3).map(h => h.nombre).join(', ');
+            const resto = pendientes.length > 3 ? ` y ${pendientes.length - 3} más` : '';
+            push({ urgencia: 'baja', color: 'violeta', icono: 'repeat',
+                titulo: `${pendientes.length} de ${de_hoy.length} hábitos sin marcar`,
+                detalle: nombres + resto,
+                accion: 'Marcar', ruta: '/habitos' });
+        }
+    } catch (e) { console.warn('Hoy: no pude leer los hábitos:', e.message); }
+
     // ── Reuniones: hoy y lo que viene ─────────────────────────────────
     // Antes solo miraba HOY. Una reunión agendada para el martes no aparecía en
     // ninguna parte hasta el martes por la mañana, que es cuando ya no sirve
