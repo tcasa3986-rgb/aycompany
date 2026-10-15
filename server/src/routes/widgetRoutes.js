@@ -7,7 +7,7 @@
 // ruta y solo lee. Si se filtra, lo peor que pasa es que alguien vea el
 // resumen; no puede tocar nada. Se rota cambiando la variable en Railway.
 const router = require('express').Router();
-const { armarAcciones } = require('../controllers/hoyController');
+const { accionesDeHoy } = require('../controllers/hoyController');
 const { Licencia, Producto, MovimientoFinanciero, Contrato, Deuda, AbonoDeuda } = require('../models');
 const { Op } = require('sequelize');
 const { hoyBogota, precioLicencia, aFecha, aStr } = require('../utils/licenciaCiclo');
@@ -36,7 +36,9 @@ function conClave(req, res, next) {
 router.get('/', conClave, async (req, res) => {
     try {
         const hoy = hoyBogota();
-        const acciones = await armarAcciones(hoy);
+        // Solo lo de hoy: en un widget de 5 renglones no caben los problemas
+        // estructurales, y si caben tapan lo que de verdad vence hoy.
+        const { acciones } = await accionesDeHoy(hoy);
 
         const licencias = await Licencia.findAll({ where: { activo: true }, include: [{ model: Producto, as: 'producto', attributes: ['precio_mensual'] }] });
         const recurrente = licencias.reduce((s, l) => s + precioLicencia(l), 0);

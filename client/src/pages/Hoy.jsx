@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
+import toast from 'react-hot-toast';
 import CapturaRapida from '../components/CapturaRapida';
 import {
   Lock, Clock, AlertTriangle, Banknote, Server, FileText, Calendar,
@@ -36,6 +37,8 @@ export default function Hoy() {
   // "Registrar gasto" al mantener presionado el ícono de la app.
   const [params, setParams] = useSearchParams();
   const [captura, setCaptura] = useState(params.get('captura') === '1');
+  const [verFondo, setVerFondo] = useState(false);
+  const [nuevoTxt, setNuevoTxt] = useState('');
   const cerrarCaptura = () => { setCaptura(false); if (params.get('captura')) setParams({}); cargar(); };
 
   const cargar = () => api.get('/hoy').then(r => setD(r.data)).catch(() => setD({ error: true }));
@@ -44,7 +47,7 @@ export default function Hoy() {
   if (!d) return <div style={{ padding: 32, color: '#94A3B8' }}>Cargando…</div>;
   if (d.error) return <div style={{ padding: 32, color: '#DC2626' }}>No se pudo cargar. Recarga la página.</div>;
 
-  const { acciones, contexto, hechas_hoy, pendientes } = d;
+  const { acciones, fondo = [], contexto, hechas_hoy, pendientes } = d;
   const fecha = new Date(d.hoy + 'T12:00:00').toLocaleDateString('es-CO',
     { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -103,7 +106,14 @@ export default function Hoy() {
                     <h3 style={S.filaTitulo}>{a.titulo}</h3>
                     <p style={S.filaDetalle}>{a.detalle}</p>
                   </div>
-                  <button onClick={() => navigate(a.ruta)} style={{ ...S.filaBtn, background: c.barra }}>
+                  <button
+                    onClick={async () => {
+                      if (a.tipo === 'pendiente') {
+                        try { const x = await api.post(`/hoy/pendientes/${a.ref}/hecho`); toast.success(x.data.msg); cargar(); }
+                        catch { toast.error('No se pudo'); }
+                      } else navigate(a.ruta);
+                    }}
+                    style={{ ...S.filaBtn, background: c.barra }}>
                     {a.accion}
                   </button>
                 </article>
@@ -111,6 +121,58 @@ export default function Hoy() {
             })}
           </div>
         </>
+      )}
+
+      {/* Programar algo mío */}
+      <form
+        onSubmit={async e => {
+          e.preventDefault();
+          const t = nuevoTxt.trim();
+          if (!t) return;
+          try {
+            await api.post('/hoy/pendientes', { titulo: t });
+            setNuevoTxt(''); cargar();
+          } catch { toast.error('No se pudo agendar'); }
+        }}
+        style={S.agregar}>
+        <Plus size={17} color="#94A3B8" />
+        <input
+          value={nuevoTxt}
+          onChange={e => setNuevoTxt(e.target.value)}
+          placeholder="Agregar algo que tengo que hacer hoy…"
+          style={S.agregarInput} />
+        {nuevoTxt.trim() && <button type="submit" style={S.agregarBtn}>Agendar</button>}
+      </form>
+
+      {/* Lo de fondo: cierto, pero no es tarea de hoy */}
+      {fondo.length > 0 && (
+        <div style={S.fondoCaja}>
+          <button onClick={() => setVerFondo(v => !v)} style={S.fondoCabecera}>
+            <span style={S.fondoTitulo}>
+              {fondo.length} {fondo.length === 1 ? 'cosa de fondo' : 'cosas de fondo'}
+            </span>
+            <span style={S.fondoPie}>{verFondo ? 'ocultar' : 'ver'}</span>
+          </button>
+          {verFondo && (
+            <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+              {fondo.map(a => (
+                <div key={a.id} style={S.fondoFila}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={S.fondoNombre}>{a.titulo}</div>
+                    <div style={S.fondoDetalle}>{a.detalle}</div>
+                  </div>
+                  <button onClick={() => navigate(a.ruta)} style={S.fondoAccion}>{a.accion}</button>
+                  <button
+                    onClick={async () => {
+                      try { const x = await api.post('/hoy/posponer', { clave: a.clave, dias: 30 }); toast.success(x.data.msg); cargar(); }
+                      catch { toast.error('No se pudo'); }
+                    }}
+                    style={S.fondoPosponer}>Ya lo sé</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Ya resueltas */}
@@ -144,6 +206,25 @@ const Cifra = ({ rotulo, valor, color }) => (
 );
 
 const S = {
+  agregar: { display: 'flex', alignItems: 'center', gap: 10, background: '#fff', borderRadius: 14,
+             padding: '12px 14px', marginTop: 16, border: '1px dashed #CBD5E1' },
+  agregarInput: { flex: 1, border: 'none', outline: 'none', fontSize: '.92rem', color: '#0F172A', background: 'transparent' },
+  agregarBtn: { border: 'none', background: '#2563EB', color: '#fff', borderRadius: 9,
+                padding: '8px 14px', fontWeight: 700, fontSize: '.82rem', cursor: 'pointer' },
+
+  fondoCaja: { marginTop: 18, background: '#F8FAFC', borderRadius: 14, padding: '12px 14px' },
+  fondoCabecera: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                   background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
+  fondoTitulo: { fontSize: '.84rem', fontWeight: 700, color: '#475569' },
+  fondoPie: { fontSize: '.76rem', color: '#2563EB', fontWeight: 600 },
+  fondoFila: { display: 'flex', alignItems: 'center', gap: 10, background: '#fff', borderRadius: 11, padding: '10px 12px' },
+  fondoNombre: { fontSize: '.88rem', fontWeight: 650, color: '#334155' },
+  fondoDetalle: { fontSize: '.76rem', color: '#94A3B8', marginTop: 2 },
+  fondoAccion: { border: 'none', background: '#E2E8F0', color: '#334155', borderRadius: 8,
+                 padding: '7px 12px', fontSize: '.76rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' },
+  fondoPosponer: { border: 'none', background: 'none', color: '#94A3B8', fontSize: '.74rem',
+                   cursor: 'pointer', whiteSpace: 'nowrap' },
+
   pagina: { padding: 'clamp(20px, 4vw, 38px)', maxWidth: 1180, margin: '0 auto' },
   cabecera: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 22 },
   titulo: { fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: 'clamp(1.35rem, 4vw, 1.75rem)',

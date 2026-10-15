@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 const {
     Licencia, Cliente, Producto, Contrato, CostoServidor,
-    MovimientoFinanciero, Deuda, AbonoDeuda, Reunion
+    MovimientoFinanciero, Deuda, AbonoDeuda, Reunion, Pendiente, AvisoPospuesto
 } = require('../models');
 const { hoyBogota, aFecha, aStr, estadoLicencia, precioLicencia } = require('../utils/licenciaCiclo');
 
@@ -19,7 +19,26 @@ const PESO = { alta: 0, media: 1, baja: 2 };
  */
 async function armarAcciones(hoy = hoyBogota()) {
     const acciones = [];
-    const push = a => acciones.push(a);
+
+    // Lo que Cristian ya vio y pospuso no vuelve a aparecer hasta su fecha.
+    const pospuestos = new Map();
+    try {
+        for (const a of await AvisoPospuesto.findAll()) pospuestos.set(a.clave, String(a.hasta).slice(0, 10));
+    } catch (_) { /* la tabla puede no existir todavía en un despliegue viejo */ }
+
+    /**
+     * `clase` separa dos cosas que antes iban revueltas y por eso la lista
+     * decía lo mismo todos los días:
+     *   'hoy'   — vence, toca o se paga HOY. Es una tarea.
+     *   'fondo' — un problema estructural cierto pero permanente ("nunca te ha
+     *             pagado", "no tienes medida la infraestructura"). No es tarea
+     *             de hoy: es algo que hay que decidir. Va en su propia lista.
+     */
+    const push = a => {
+        const clase = a.clase || 'hoy';
+        if (a.clave && pospuestos.has(a.clave) && hoy < pospuestos.get(a.clave)) return;
+        acciones.push({ ...a, clase });
+    };
 
     // ── Licencias: vencimientos, mora y bloqueos ──────────────────────
     const licencias = await Licencia.findAll({
@@ -89,7 +108,8 @@ async function armarAcciones(hoy = hoyBogota()) {
                 ? `${ct.cliente?.nombre} nunca te ha pagado la cuota`
                 : `${ct.cliente?.nombre} tiene saldo pendiente`,
             detalle: `${cop(pendiente)} pendientes${cuota > 0 ? ` · ${cuotas} ${cuotas === 1 ? 'cuota' : 'cuotas'} de ${cop(cuota)}` : ''}`,
-            accion: 'Cobrar', ruta: '/contratos', ref: ct.id
+            accion: 'Cobrar', ruta: '/contratos', ref: ct.id,
+            clase: 'fondo', clave: `contrato:${ct.id}`
         });
     }
 
@@ -121,7 +141,8 @@ async function armarAcciones(hoy = hoyBogota()) {
         push({ urgencia: 'media', color: 'azul', icono: 'server',
             titulo: 'No tienes medido cuánto te cuesta la infraestructura',
             detalle: 'Railway, dominios y APIs no están registrados: tu margen real es menor al que ves',
-            accion: 'Medir', ruta: '/costos' });
+            accion: 'Medir', ruta: '/costos',
+            clase: 'fondo', clave: 'costos:sin-medir' });
     }
 
     // ── Concentración de ingreso en un solo cliente ───────────────────
@@ -141,9 +162,33 @@ async function armarAcciones(hoy = hoyBogota()) {
                 detalle: tieneContrato
                     ? `${cop(monto)} al mes concentrados en un solo cliente`
                     : `${cop(monto)} al mes por acuerdo de palabra, sin contrato escrito`,
-                accion: tieneContrato ? 'Ver' : 'Redactar contrato', ruta: '/contratos' });
+                accion: tieneContrato ? 'Ver' : 'Redactar contrato', ruta: '/contratos',
+                clase: 'fondo', clave: 'concentracion' });
         }
     }
+
+    // ── Lo que Cristian se programó ───────────────────────────────────
+    // Solo lo de hoy y lo atrasado. Un pendiente de mañana no existe hoy: esa
+    // es toda la gracia de poder programarlos.
+    try {
+        const mios = await Pendiente.findAll({
+            where: { hecho: false, fecha: { [Op.lte]: hoy } },
+            order: [['fecha', 'ASC'], ['hora', 'ASC']],
+        });
+        for (const p of mios) {
+            const fecha = String(p.fecha).slice(0, 10);
+            const dias = Math.round((aFecha(hoy) - aFecha(fecha)) / 86400000);
+            push({
+                urgencia: dias > 0 ? 'alta' : p.urgencia,
+                color: dias > 0 ? 'rojo' : 'azul', icono: 'check',
+                titulo: p.titulo,
+                detalle: dias > 0
+                    ? `Era para el ${fecha} · ${dias} ${dias === 1 ? 'día' : 'días'} atrasado`
+                    : (p.detalle || (p.hora ? p.hora : 'Para hoy')),
+                accion: 'Hecho', ruta: '/hoy', ref: p.id, tipo: 'pendiente',
+            });
+        }
+    } catch (e) { console.warn('Hoy: no pude leer los pendientes:', e.message); }
 
     // ── Hábitos que faltan ────────────────────────────────────────────
     // Van al final de la lista a propósito: primero la plata y los clientes,
@@ -196,13 +241,22 @@ async function armarAcciones(hoy = hoyBogota()) {
     return acciones.map((a, i) => ({ id: i + 1, ...a }));
 }
 
+/** Solo lo de hoy. Es lo que ven la pantalla y el widget. */
+async function accionesDeHoy(hoy = hoyBogota()) {
+    const todas = await armarAcciones(hoy);
+    return {
+        acciones: todas.filter(a => a.clase !== 'fondo'),
+        fondo:    todas.filter(a => a.clase === 'fondo'),
+    };
+}
+
 exports.resumen = async (req, res) => {
     try {
         const hoy = hoyBogota();
         const d = aFecha(hoy);
         const inicioMes = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
 
-        const acciones = await armarAcciones(hoy);
+        const { acciones, fondo } = await accionesDeHoy(hoy);
 
         // Contexto compacto: tres cifras, nada más. La pantalla de Inicio no es
         // un tablero; los números van de apoyo, no de protagonistas.
@@ -237,6 +291,8 @@ exports.resumen = async (req, res) => {
         res.json({
             ok: true, hoy,
             acciones,
+            // Los problemas de fondo van aparte: ciertos, pero no son tarea de hoy.
+            fondo,
             pendientes: acciones.length,
             contexto: {
                 libre: recurrente - gastoFijo,
@@ -252,3 +308,79 @@ exports.resumen = async (req, res) => {
 };
 
 exports.armarAcciones = armarAcciones;
+exports.accionesDeHoy = accionesDeHoy;
+
+// ── Pendientes propios ────────────────────────────────────────────────────────
+exports.crearPendiente = async (req, res) => {
+    try {
+        const { titulo } = req.body || {};
+        if (!titulo) return res.status(400).json({ ok: false, msg: 'Escribe qué tienes que hacer' });
+        const p = await Pendiente.create({
+            titulo,
+            detalle:  req.body.detalle || null,
+            fecha:    /^\d{4}-\d{2}-\d{2}$/.test(req.body.fecha || '') ? req.body.fecha : hoyBogota(),
+            hora:     req.body.hora || null,
+            urgencia: ['alta','media','baja'].includes(req.body.urgencia) ? req.body.urgencia : 'media',
+            ambito:   req.body.ambito === 'personal' ? 'personal' : 'empresa',
+            repetir:  ['no','diario','semanal','quincenal','mensual'].includes(req.body.repetir) ? req.body.repetir : 'no',
+        });
+        res.json({ ok: true, msg: 'Agendado', data: p });
+    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+};
+
+const SALTO = { diario: 1, semanal: 7, quincenal: 15, mensual: 30 };
+
+exports.completarPendiente = async (req, res) => {
+    try {
+        const p = await Pendiente.findByPk(req.params.id);
+        if (!p) return res.status(404).json({ ok: false, msg: 'No existe' });
+        const hoy = hoyBogota();
+        await p.update({ hecho: true, fecha_hecho: hoy });
+
+        // Si se repite, el siguiente nace solo. Si no, se crearía a mano cada
+        // vez y se dejaría de hacer.
+        let siguiente = null;
+        if (p.repetir && p.repetir !== 'no') {
+            const base = aFecha(hoy);
+            const prox = aStr(new Date(base.getTime() + SALTO[p.repetir] * 86400000));
+            siguiente = await Pendiente.create({
+                titulo: p.titulo, detalle: p.detalle, fecha: prox, hora: p.hora,
+                urgencia: p.urgencia, ambito: p.ambito, repetir: p.repetir,
+            });
+        }
+        res.json({ ok: true, msg: siguiente ? `Listo. El siguiente queda para el ${siguiente.fecha}` : 'Listo', data: p });
+    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+};
+
+exports.eliminarPendiente = async (req, res) => {
+    try {
+        const p = await Pendiente.findByPk(req.params.id);
+        if (!p) return res.status(404).json({ ok: false, msg: 'No existe' });
+        await p.destroy();
+        res.json({ ok: true, msg: 'Borrado' });
+    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+};
+
+exports.listarPendientes = async (req, res) => {
+    try {
+        const desde = req.query.desde || hoyBogota();
+        const data = await Pendiente.findAll({
+            where: { hecho: false, fecha: { [Op.gte]: desde } },
+            order: [['fecha', 'ASC'], ['hora', 'ASC']], limit: 100,
+        });
+        res.json({ ok: true, data });
+    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+};
+
+// ── Posponer un aviso de fondo ────────────────────────────────────────────────
+exports.posponer = async (req, res) => {
+    try {
+        const { clave } = req.body || {};
+        if (!clave) return res.status(400).json({ ok: false, msg: 'Falta la clave del aviso' });
+        const dias = Math.min(365, Math.max(1, Number(req.body.dias) || 7));
+        const hasta = aStr(new Date(aFecha(hoyBogota()).getTime() + dias * 86400000));
+        const [a] = await AvisoPospuesto.findOrCreate({ where: { clave }, defaults: { clave, hasta } });
+        await a.update({ hasta, motivo: req.body.motivo || null });
+        res.json({ ok: true, msg: `Lo vuelvo a sacar el ${hasta}`, data: a });
+    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+};
