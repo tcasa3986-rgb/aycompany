@@ -53,7 +53,9 @@ app.use(cors({
 }));
 
 // ── Límite de tamaño de peticiones ───────────────────────────────────────────
-app.use(express.json({ limit: '2mb' }));
+// Se guarda el cuerpo crudo: la firma HMAC de los webhooks de Meta se calcula
+// sobre los bytes exactos, y una vez parseado el JSON ya no se puede rehacer.
+app.use(express.json({ limit: '2mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // ── Rate limiting global ──────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
@@ -104,6 +106,7 @@ app.use('/api/finanzas',  require('./routes/finanzasRoutes'));
 app.use('/api/hoy',       require('./routes/hoyRoutes'));
 app.use('/api/habitos',   require('./routes/habitosRoutes'));
 app.use('/api/digitales', require('./routes/digitalesRoutes'));
+app.use('/api/whatsapp', require('./routes/whatsappRoutes'));   // publica: Meta no inicia sesion
 app.use('/api/widget',    require('./routes/widgetRoutes'));   // clave propia, solo lectura
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
