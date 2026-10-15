@@ -9,7 +9,7 @@
 // El asesor con IA (objeciones, cierres, seguimientos) es el paso siguiente.
 // Esto es el piso: que nadie se pierda y que nadie quede sin respuesta.
 const { VentaDigital, ProductoDigital } = require('../models');
-const { enviarMensaje } = require('./whatsappService');
+const { enviarMensaje, cuentaDe } = require('./whatsappService');
 const telegram = require('./telegramService');
 const { transcribir } = require('./transcribirAudio');
 
@@ -23,8 +23,8 @@ const recordar = id => {
 };
 
 /** Baja el audio de Meta y lo pasa a texto. */
-async function textoDeAudio(mediaId) {
-    const token = process.env.WHATSAPP_TOKEN;
+async function textoDeAudio(mediaId, cuenta = 'empresa') {
+    const token = cuenta === 'digital' ? process.env.WA_DIGITAL_TOKEN : process.env.WHATSAPP_TOKEN;
     if (!token || !mediaId) return null;
     try {
         const meta = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
@@ -80,6 +80,11 @@ async function recibir(cuerpo) {
             const valor = cambio.value || {};
             const perfil = valor.contacts?.[0]?.profile?.name || null;
 
+            // A CUÁL de los dos números escribieron. Define todo lo que sigue:
+            // al de la agencia contesta Cristian; al de ventas, el bot.
+            const phoneId = valor.metadata?.phone_number_id;
+            const cuenta = cuentaDe(phoneId);
+
             for (const m of valor.messages || []) {
                 if (vistos.has(m.id)) continue;
                 recordar(m.id);
@@ -89,7 +94,7 @@ async function recibir(cuerpo) {
                 let tipo = m.type;
 
                 if (tipo === 'audio' || tipo === 'voice') {
-                    texto = await textoDeAudio(m.audio?.id || m.voice?.id);
+                    texto = await textoDeAudio(m.audio?.id || m.voice?.id, cuenta);
                 }
                 if (tipo === 'image') {
                     // Una imagen en esta conversación casi siempre es el comprobante.
@@ -121,16 +126,30 @@ async function recibir(cuerpo) {
 
                 // ── Aviso a Cristian ─────────────────────────────────────
                 const quien = perfil || telefono;
+                const donde = cuenta === 'digital' ? 'Productos digitales' : 'AI Company';
                 const cabeza = tipo === 'image' ? '💸 *Posible comprobante*' : '💬 *Escribieron al WhatsApp*';
+                const pie = cuenta === 'digital'
+                    ? '_Está en Digitales. El bot ya le respondió._'
+                    : '_Al número de la agencia. Contéstale tú._';
                 await telegram.enviar(
-                    `${cabeza}\n\n*${quien}* (${telefono})\n${texto || '(' + tipo + ')'}\n\n_Está en Digitales._`
+                    `${cabeza}
+_${donde}_
+
+*${quien}* (${telefono})
+${texto || '(' + tipo + ')'}
+
+${pie}`
                 ).catch(() => {});
 
                 // ── Respuesta automática ─────────────────────────────────
+                // SOLO en el número de ventas. Al de la agencia no contesta
+                // nadie automático: esas conversaciones las quiere llevar
+                // Cristian en persona, y un bot metiéndose ahí hace daño.
+                if (cuenta !== 'digital') continue;
                 try {
                     const resp = await respuestaAutomatica(texto, { ...venta.toJSON(), esNueva });
                     if (resp) {
-                        await enviarMensaje(telefono, resp);
+                        await enviarMensaje(telefono, resp, 'digital');
                         if (venta.estado === 'escribio' && /•/.test(resp)) await venta.update({ estado: 'cotizado' });
                     }
                 } catch (e) {

@@ -16,13 +16,13 @@ router.get('/webhook', (req, res) => {
     const modo   = req.query['hub.mode'];
     const token  = req.query['hub.verify_token'];
     const reto   = req.query['hub.challenge'];
-    const esperado = process.env.META_VERIFY_TOKEN;
+    const esperados = [process.env.META_VERIFY_TOKEN, process.env.WA_DIGITAL_VERIFY_TOKEN].filter(Boolean);
 
-    if (!esperado) {
+    if (esperados.length === 0) {
         console.warn('WhatsApp: falta META_VERIFY_TOKEN, no se puede verificar el webhook');
         return res.sendStatus(500);
     }
-    if (modo === 'subscribe' && token === esperado) {
+    if (modo === 'subscribe' && esperados.includes(token)) {
         console.log('✅ WhatsApp: webhook verificado por Meta');
         return res.status(200).send(reto);
     }
@@ -32,16 +32,22 @@ router.get('/webhook', (req, res) => {
 
 /** ¿El mensaje viene de verdad de Meta? */
 function firmaValida(req) {
-    const secreto = process.env.META_APP_SECRET;
-    // Sin secreto configurado no se puede comprobar. Se deja pasar para no
-    // tumbar el canal, pero queda gritando en los logs: es un hueco real.
-    if (!secreto) return 'sin_secreto';
+    // Son DOS apps de Meta (la de AI Company y la de productos digitales), y
+    // cada una firma con su propio secreto. Vale si coincide con cualquiera.
+    const secretos = [process.env.META_APP_SECRET, process.env.WA_DIGITAL_APP_SECRET].filter(Boolean);
+
+    // Sin ningún secreto configurado no se puede comprobar. Se deja pasar para
+    // no tumbar el canal, pero queda gritando en los logs: es un hueco real.
+    if (secretos.length === 0) return 'sin_secreto';
+
     const firma = req.get('X-Hub-Signature-256') || '';
-    if (!req.rawBody) return false;
-    const esperada = 'sha256=' + crypto.createHmac('sha256', secreto).update(req.rawBody).digest('hex');
-    try {
-        return crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada));
-    } catch (_) { return false; }
+    if (!req.rawBody || !firma) return false;
+
+    return secretos.some(s => {
+        const esperada = 'sha256=' + crypto.createHmac('sha256', s).update(req.rawBody).digest('hex');
+        try { return crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada)); }
+        catch (_) { return false; }
+    });
 }
 
 // ── 2. Mensajes entrantes ────────────────────────────────────────────────────
