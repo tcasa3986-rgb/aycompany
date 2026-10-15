@@ -103,6 +103,7 @@ app.use('/api/costos',    require('./routes/costosRoutes'));
 app.use('/api/finanzas',  require('./routes/finanzasRoutes'));
 app.use('/api/hoy',       require('./routes/hoyRoutes'));
 app.use('/api/habitos',   require('./routes/habitosRoutes'));
+app.use('/api/digitales', require('./routes/digitalesRoutes'));
 app.use('/api/widget',    require('./routes/widgetRoutes'));   // clave propia, solo lectura
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));

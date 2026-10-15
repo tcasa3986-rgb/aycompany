@@ -14,6 +14,8 @@ const Habito      = require('./Habito');
 const HabitoRegistro = require('./HabitoRegistro');
 const Pendiente   = require('./Pendiente');
 const AvisoPospuesto = require('./AvisoPospuesto');
+const ProductoDigital = require('./ProductoDigital');
+const VentaDigital = require('./VentaDigital');
 const Factura  = require('./Factura');
 const EstrategiaMarketing = require('./EstrategiaMarketing');
 const Reunion             = require('./Reunion');
@@ -70,6 +72,9 @@ Tarea.belongsTo(Proyecto,  { foreignKey: 'proyecto_id', as: 'proyecto' });
 
 Deuda.hasMany(AbonoDeuda,   { foreignKey: 'deuda_id', as: 'abonos' });
 AbonoDeuda.belongsTo(Deuda, { foreignKey: 'deuda_id', as: 'deuda' });
+ProductoDigital.hasMany(VentaDigital, { foreignKey: 'producto_id', as: 'ventas' });
+VentaDigital.belongsTo(ProductoDigital, { foreignKey: 'producto_id', as: 'producto' });
+
 Habito.hasMany(HabitoRegistro,  { foreignKey: 'habito_id', as: 'registros', onDelete: 'CASCADE' });
 HabitoRegistro.belongsTo(Habito, { foreignKey: 'habito_id', as: 'habito' });
 
@@ -80,4 +85,4 @@ MovimientoFinanciero.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente
 Cliente.hasMany(Contrato,  { foreignKey: 'cliente_id', as: 'contratos' });
 Contrato.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
 
-module.exports = { Usuario, Empresa, Cliente, Producto, Licencia, Pago, CostoServidor, MovimientoFinanciero, Deuda, AbonoDeuda, Meta, AporteMeta, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento, MensajeSocial, Lead, Ticket, Configuracion, Proyecto, Tarea, Contrato, Habito, HabitoRegistro, Pendiente, AvisoPospuesto };
+module.exports = { Usuario, Empresa, Cliente, Producto, Licencia, Pago, CostoServidor, MovimientoFinanciero, Deuda, AbonoDeuda, Meta, AporteMeta, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento, MensajeSocial, Lead, Ticket, Configuracion, Proyecto, Tarea, Contrato, Habito, HabitoRegistro, Pendiente, AvisoPospuesto, ProductoDigital, VentaDigital };
