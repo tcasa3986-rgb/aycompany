@@ -141,19 +141,35 @@ ${texto || '(' + tipo + ')'}
 ${pie}`
                 ).catch(() => {});
 
-                // ── Respuesta automática ─────────────────────────────────
-                // SOLO en el número de ventas. Al de la agencia no contesta
-                // nadie automático: esas conversaciones las quiere llevar
-                // Cristian en persona, y un bot metiéndose ahí hace daño.
+                // ── La respuesta ─────────────────────────────────────────
+                // SOLO en el numero de ventas. Al de la agencia no contesta
+                // nadie automatico: esas conversaciones las quiere llevar
+                // Cristian en persona, y un bot metiendose ahi hace daño.
                 if (cuenta !== 'digital') continue;
                 try {
-                    const resp = await respuestaAutomatica(texto, { ...venta.toJSON(), esNueva });
-                    if (resp) {
-                        await enviarMensaje(telefono, resp, 'digital');
-                        if (venta.estado === 'escribio' && /•/.test(resp)) await venta.update({ estado: 'cotizado' });
+                    // El vendedor portado del sistema viejo, con su
+                    // pre-entrenamiento. Si no hay IA configurada, cae a las
+                    // reglas de aqui, que son gratis y resuelven lo repetido.
+                    const bot = require('./botVentas');
+                    if (process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY) {
+                        await bot.procesarMensaje({
+                            numero: telefono,
+                            nombre: perfil,
+                            tipo,
+                            texto,
+                            mediaBuffer: null,   // las imagenes se bajan dentro del bot
+                        });
+                    } else {
+                        const resp = await respuestaAutomatica(texto, { ...venta.toJSON(), esNueva });
+                        if (resp) {
+                            await enviarMensaje(telefono, resp, 'digital');
+                            if (venta.estado === 'escribio' && /•/.test(resp)) await venta.update({ estado: 'cotizado' });
+                        }
                     }
                 } catch (e) {
-                    console.warn('WhatsApp: no pude responder a', telefono, '-', e.message);
+                    console.error('WhatsApp: el bot fallo con', telefono, '-', e.message);
+                    // Que no se quede callado por un error nuestro.
+                    try { await enviarMensaje(telefono, 'Dame un momentico y te respondo 🙌', 'digital'); } catch (_) {}
                 }
             }
         }

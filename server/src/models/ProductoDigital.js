@@ -23,6 +23,12 @@ const ProductoDigital = sequelize.define('ProductoDigital', {
     dolor:       { type: DataTypes.TEXT },   // qué problema resuelve, en las palabras del cliente
     objeciones:  { type: DataTypes.TEXT },   // "muy caro | ya lo tengo gratis" con su respuesta
 
+    // La escalera de precios del sistema viejo: se ofrece SIEMPRE primero el
+    // combo, y solo se baja al básico si el cliente se resiste al precio.
+    es_combo:    { type: DataTypes.BOOLEAN, defaultValue: false },
+    combo_ids:   { type: DataTypes.STRING(500) },   // ids de los productos que incluye
+    imagen_url:  { type: DataTypes.TEXT },
+
     activo:      { type: DataTypes.BOOLEAN, defaultValue: true },
     orden:       { type: DataTypes.INTEGER, defaultValue: 0 },
     notas:       { type: DataTypes.TEXT },

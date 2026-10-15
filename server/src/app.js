@@ -218,6 +218,13 @@ async function migracionesLicencias() {
     await addCol('licencias', 'notas',          { type: DataTypes.TEXT,           allowNull: true });
     await addCol('pagos', 'referencia_externa', { type: DataTypes.STRING(120),    allowNull: true });
 
+    // Productos digitales: columnas que llegaron con el bot portado del sistema
+    // viejo. Las tablas ya existian, y sync() sin alter no agrega columnas.
+    await addCol('productos_digitales', 'es_combo',   { type: DataTypes.BOOLEAN,     defaultValue: false });
+    await addCol('productos_digitales', 'combo_ids',  { type: DataTypes.STRING(500), allowNull: true });
+    await addCol('productos_digitales', 'imagen_url', { type: DataTypes.TEXT,        allowNull: true });
+    await addCol('ventas_digitales',    'email',      { type: DataTypes.STRING(200), allowNull: true });
+
     // contratos — estructura de pago (anticipo + saldo financiado)
     await addCol('contratos', 'anticipo',      { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });
     await addCol('contratos', 'cuota_mensual', { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 });

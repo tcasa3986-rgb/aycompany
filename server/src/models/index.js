@@ -16,6 +16,7 @@ const Pendiente   = require('./Pendiente');
 const AvisoPospuesto = require('./AvisoPospuesto');
 const ProductoDigital = require('./ProductoDigital');
 const VentaDigital = require('./VentaDigital');
+const Conversacion = require('./Conversacion');
 const Factura  = require('./Factura');
 const EstrategiaMarketing = require('./EstrategiaMarketing');
 const Reunion             = require('./Reunion');
@@ -85,4 +86,4 @@ MovimientoFinanciero.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente
 Cliente.hasMany(Contrato,  { foreignKey: 'cliente_id', as: 'contratos' });
 Contrato.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
 
-module.exports = { Usuario, Empresa, Cliente, Producto, Licencia, Pago, CostoServidor, MovimientoFinanciero, Deuda, AbonoDeuda, Meta, AporteMeta, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento, MensajeSocial, Lead, Ticket, Configuracion, Proyecto, Tarea, Contrato, Habito, HabitoRegistro, Pendiente, AvisoPospuesto, ProductoDigital, VentaDigital };
+module.exports = { Usuario, Empresa, Cliente, Producto, Licencia, Pago, CostoServidor, MovimientoFinanciero, Deuda, AbonoDeuda, Meta, AporteMeta, Factura, EstrategiaMarketing, Reunion, IdeaContenido, MetricaMarketing, MetaMarketing, Evento, MensajeSocial, Lead, Ticket, Configuracion, Proyecto, Tarea, Contrato, Habito, HabitoRegistro, Pendiente, AvisoPospuesto, ProductoDigital, VentaDigital, Conversacion };

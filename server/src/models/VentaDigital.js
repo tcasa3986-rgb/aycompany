@@ -11,6 +11,7 @@ const VentaDigital = sequelize.define('VentaDigital', {
     // Quién
     telefono: { type: DataTypes.STRING(25), allowNull: false },
     nombre:   { type: DataTypes.STRING(120) },
+    email:    { type: DataTypes.STRING(200) },   // a dónde se entrega el producto
 
     // Qué quiere (puede estar vacío al principio de la conversación)
     producto_id: { type: DataTypes.INTEGER, allowNull: true },
