@@ -107,6 +107,10 @@ app.use('/api/hoy',       require('./routes/hoyRoutes'));
 app.use('/api/habitos',   require('./routes/habitosRoutes'));
 app.use('/api/digitales', require('./routes/digitalesRoutes'));
 app.use('/api/whatsapp', require('./routes/whatsappRoutes'));   // publica: Meta no inicia sesion
+// Alias: el sistema viejo de productos digitales usaba /api/webhook y esa es la
+// URL que todavia tiene puesta la app de Meta. Se acepta igual para que cambiar
+// solo el dominio funcione, sin que un detalle de ruta cueste otra tarde.
+app.use('/api', require('./routes/whatsappRoutes'));
 app.use('/api/widget',    require('./routes/widgetRoutes'));   // clave propia, solo lectura
 app.use('/api/pagos',     require('./routes/pagosRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
