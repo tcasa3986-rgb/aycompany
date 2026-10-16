@@ -8,6 +8,7 @@ router.use(auth.requireRol(['admin']));
 router.post('/buscar',        ctrl.buscar);
 router.get('/',               ctrl.listar);
 router.put('/:id',            ctrl.actualizar);
+router.post('/:id/generar',   ctrl.generarDemo);
 router.post('/:id/demo',      ctrl.guardarDemo);
 
 module.exports = router;

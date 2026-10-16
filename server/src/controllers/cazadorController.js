@@ -2,6 +2,7 @@ const { NegocioSinWeb } = require('../models');
 const { cazar } = require('../services/cazadorSinWeb');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
+const { generar } = require('../services/generadorDemo');
 
 /** Un slug corto e imposible de adivinar: la demo no debe ser enumerable. */
 function slug(nombre) {
@@ -100,6 +101,32 @@ exports.guardarDemo = async (req, res) => {
         });
         const base = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
         res.json({ ok: true, msg: 'Demo guardada', enlace: `${base}/demo/${n.demo_slug}`, data: n });
+    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+};
+
+/** Genera la demo de un negocio y devuelve el enlace listo para enviar. */
+exports.generarDemo = async (req, res) => {
+    try {
+        const n = await NegocioSinWeb.findByPk(req.params.id);
+        if (!n) return res.status(404).json({ ok: false, msg: 'No existe' });
+
+        const { html, textos } = await generar(n);
+        await n.update({
+            demo_html: html,
+            demo_slug: n.demo_slug || slug(n.nombre),
+            demo_generada_en: new Date(),
+            estado: n.estado === 'encontrado' ? 'demo_generada' : n.estado,
+        });
+
+        const base = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
+        res.json({
+            ok: true,
+            msg: `Demo de ${n.nombre} lista`,
+            enlace: `${base}/demo/${n.demo_slug}`,
+            titular: textos.titular,
+            servicios: (textos.servicios || []).length,
+            data: n,
+        });
     } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
 };
 
