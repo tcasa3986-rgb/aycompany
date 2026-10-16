@@ -273,11 +273,25 @@ ${servicios ? `<section id="servicios"><div class="wrap">
 </body></html>`;
 }
 
+/**
+ * Elige la plantilla del rubro. Una página de odontología y una de taller no
+ * se parecen en nada, y una plantilla para todos es justo lo que delata el
+ * molde: la primera tanda se rechazó por eso.
+ */
+function plantillaDe(rubro = '') {
+    const r = String(rubro).toLowerCase();
+    if (/odontolog|dentista|ortodon|dental/.test(r)) {
+        return require('./demos/plantillaOdontologia').plantillaOdontologia;
+    }
+    return plantilla;   // la base, mientras se escriben las demás
+}
+
 /** Genera la demo completa de un negocio. */
 async function generar(negocio) {
     const det = await detalle(negocio.place_id);
     const textos = await generarTextos(negocio, det);
-    return { html: plantilla(negocio, textos, det), textos, detalle: det };
+    const hacer = plantillaDe(negocio.rubro || negocio.categoria);
+    return { html: hacer(negocio, textos, det), textos, detalle: det };
 }
 
-module.exports = { generar, plantilla, generarTextos, paleta, detalle };
+module.exports = { generar, plantilla, plantillaDe, generarTextos, paleta, detalle };
