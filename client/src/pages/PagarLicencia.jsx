@@ -72,16 +72,16 @@ export default function PagarLicencia() {
     setProcesando(false);
   }
 
-  if (cargando) return <div style={s.page}><div style={s.card}><p style={{ color: '#aaa' }}>Cargando...</p></div></div>;
-  if (error && !info) return <div style={s.page}><div style={s.card}><h2 style={{ color: '#e74c3c' }}>Error</h2><p style={{ color: '#aaa' }}>{error}</p></div></div>;
+  if (cargando) return <div style={s.page}><div style={s.card}><p style={{ color: '#7b7b86' }}>Cargando…</p></div></div>;
+  if (error && !info) return <div style={s.page}><div style={s.card}><h2 style={{ color: '#A3311F', fontSize: 20 }}>No encontramos esta licencia</h2><p style={{ color: '#55555f', fontSize: 14 }}>{error}</p></div></div>;
 
   const vencida = !info.activo || info.dias_restantes <= 0;
 
   return (
     <div style={s.page}>
       <div style={s.card}>
-        <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large@2x.png"
-          alt="Mercado Pago" style={{ width: 140, marginBottom: 20 }} />
+        <img src="/ai-company.webp" alt="AI Company · Ingeniería de software"
+          style={{ height: 42, width: 'auto', marginBottom: 22 }} />
 
         {/* Alertas de estado */}
         {estado === 'ok'       && <Alert color="green">✅ ¡Pago exitoso! Su licencia fue renovada por {params.get('meses') || 1} mes{(params.get('meses') || 1) > 1 ? 'es' : ''}.</Alert>}
@@ -91,8 +91,8 @@ export default function PagarLicencia() {
         {msg && <Alert color="green">{msg}</Alert>}
         {error && <Alert color="red">{error}</Alert>}
 
-        <h2 style={{ color: '#fff', margin: '0 0 4px', fontSize: 20 }}>{info.producto}</h2>
-        <p style={{ color: '#666', margin: '0 0 20px', fontSize: 13 }}>Licencia de software — {info.cliente}</p>
+        <h2 style={{ color: '#191923', margin: '0 0 4px', fontSize: 21, fontWeight: 700, fontFamily: "'Manrope',system-ui,sans-serif", letterSpacing: '-.015em' }}>{info.producto}</h2>
+        <p style={{ color: '#7b7b86', margin: '0 0 20px', fontSize: 13 }}>Licencia de software — {info.cliente}</p>
 
         {/* Info licencia */}
         <div style={s.infoBox}>
@@ -107,7 +107,7 @@ export default function PagarLicencia() {
         {/* Selector de meses */}
         {!info.suscripcion_activa && estado !== 'suscrito' && (
           <div style={s.mesesBox}>
-            <p style={{ color: '#aaa', fontSize: 12, marginBottom: 10, textAlign: 'center' }}>
+            <p style={{ color: '#55555f', fontSize: 12, marginBottom: 10, textAlign: 'center' }}>
               ¿Cuántos meses desea pagar?
             </p>
             <div style={s.mesesGrid}>
@@ -117,7 +117,7 @@ export default function PagarLicencia() {
                   <button key={m} onClick={() => setMeses(m)}
                     style={{ ...s.mesBtn, ...(meses === m ? s.mesBtnActive : {}) }}>
                     <span style={{ fontSize: 16, fontWeight: 800 }}>{m}</span>
-                    <span style={{ fontSize: 11, color: meses === m ? '#bfdbfe' : '#666' }}>
+                    <span style={{ fontSize: 11, color: meses === m ? '#4C168E' : '#7b7b86' }}>
                       {m === 1 ? 'mes' : 'meses'}
                     </span>
                     {desc > 0 && <span style={{ ...s.tag, background: '#10b981' }}>-{desc}%</span>}
@@ -134,29 +134,29 @@ export default function PagarLicencia() {
           {!info.suscripcion_activa && estado !== 'suscrito' ? (
             <>
               {meses > 1 && (
-                <span style={{ color: '#666', fontSize: 12, marginBottom: 2, textDecoration: 'line-through' }}>
+                <span style={{ color: '#7b7b86', fontSize: 12, marginBottom: 2, textDecoration: 'line-through' }}>
                   ${(Number(info.precio) * meses).toLocaleString('es-CO')} COP
                 </span>
               )}
-              <span style={{ color: '#fff', fontSize: 34, fontWeight: 800 }}>
+              <span style={{ color: '#191923', fontSize: 34, fontWeight: 800, fontFamily: "'Manrope',system-ui,sans-serif" }}>
                 ${precioFinal(Number(info.precio), meses).toLocaleString('es-CO')}
               </span>
-              <span style={{ color: '#aaa', fontSize: 12 }}>{meses === 1 ? 'COP / mes' : 'COP en total'}</span>
+              <span style={{ color: '#55555f', fontSize: 12 }}>{meses === 1 ? 'COP / mes' : 'COP en total'}</span>
               {(DESCUENTOS[meses] || 0) > 0 && (
-                <span style={{ color: '#2ecc71', fontSize: 12, marginTop: 4 }}>
+                <span style={{ color: '#1B7A43', fontSize: 12, marginTop: 4 }}>
                   🎉 Ahorras ${ahorroTotal(Number(info.precio), meses).toLocaleString('es-CO')} COP ({DESCUENTOS[meses]}% off)
                 </span>
               )}
               {meses > 1 && (
-                <span style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+                <span style={{ color: '#7b7b86', fontSize: 11, marginTop: 2 }}>
                   {meses} mes{meses > 1 ? 'es' : ''} × ${Number(info.precio).toLocaleString('es-CO')}
                 </span>
               )}
             </>
           ) : (
             <>
-              <span style={{ color: '#aaa', fontSize: 12, marginBottom: 4 }}>Precio mensual</span>
-              <span style={{ color: '#fff', fontSize: 34, fontWeight: 800 }}>
+              <span style={{ color: '#55555f', fontSize: 12, marginBottom: 4 }}>Precio mensual</span>
+              <span style={{ color: '#191923', fontSize: 34, fontWeight: 800, fontFamily: "'Manrope',system-ui,sans-serif" }}>
                 ${Number(info.precio).toLocaleString('es-CO')}
               </span>
               <span style={{ color: '#aaa', fontSize: 12 }}>COP / mes</span>
@@ -170,12 +170,12 @@ export default function PagarLicencia() {
             <input
               type="email" value={emailMP} onChange={e => setEmailMP(e.target.value)}
               placeholder="Correo de su cuenta MercadoPago (para el cobro automático)"
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #333', background: '#111', color: '#fff', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #E4E2EC', background: '#fff', color: '#191923', fontSize: 14, marginBottom: 10, boxSizing: 'border-box', minHeight: 48 }}
             />
             <button onClick={activarSuscripcion} disabled={procesando} style={s.btnPrimario}>
               {procesando ? 'Procesando...' : '🔄 Activar suscripción automática'}
             </button>
-            <p style={{ color: '#555', fontSize: 12, textAlign: 'center', margin: '8px 0' }}>
+            <p style={{ color: '#7b7b86', fontSize: 12, textAlign: 'center', margin: '8px 0' }}>
               Se cobra ${Number(info.precio).toLocaleString('es-CO')} cada mes automáticamente. Puede cancelar cuando quiera.
             </p>
             <button onClick={pagarUnaVez} disabled={procesando} style={s.btnSecundario}>
@@ -190,7 +190,7 @@ export default function PagarLicencia() {
           </button>
         )}
 
-        <p style={{ color: '#333', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
+        <p style={{ color: '#7b7b86', fontSize: 11, marginTop: 20, textAlign: 'center' }}>
           Pagos seguros procesados por Mercado Pago · Su información está protegida
         </p>
       </div>
@@ -199,31 +199,31 @@ export default function PagarLicencia() {
 }
 
 function Alert({ color, children }) {
-  const colors = { green: ['#0d2e1a','#2ecc71'], red: ['#2e0d0d','#e74c3c'], orange: ['#2e1f0d','#f39c12'] };
+  const colors = { green: ['#E8F7EE','#1B7A43'], red: ['#FDECE8','#A3311F'], orange: ['#FFF4DC','#8A5D00'] };
   const [bg, fg] = colors[color] || colors.green;
   return <div style={{ width:'100%', padding:'12px 16px', borderRadius:8, marginBottom:16, fontSize:13, background:bg, color:fg, border:`1px solid ${fg}` }}>{children}</div>;
 }
 
 function Row({ label, value, color }) {
   return (
-    <div style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid #1e1e1e' }}>
-      <span style={{ color:'#888', fontSize:13 }}>{label}</span>
-      <span style={{ color: color || '#fff', fontWeight:600, fontSize:13 }}>{value}</span>
+    <div style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid #EFEEF3' }}>
+      <span style={{ color:'#7b7b86', fontSize:13 }}>{label}</span>
+      <span style={{ color: color || '#191923', fontWeight:600, fontSize:13 }}>{value}</span>
     </div>
   );
 }
 
 const s = {
-  page:       { minHeight:'100vh', background:'#0a0a0a', display:'flex', alignItems:'center', justifyContent:'center', padding:16 },
-  card:       { background:'#141414', borderRadius:18, padding:36, width:'100%', maxWidth:420, display:'flex', flexDirection:'column', alignItems:'center', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' },
+  page:       { minHeight:'100vh', background:'#F7F8FA', fontFamily:"'Inter',system-ui,-apple-system,'Segoe UI',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', padding:16 },
+  card:       { background:'#FFFFFF', border:'1px solid #E4E2EC', borderRadius:20, padding:36, width:'100%', maxWidth:440, display:'flex', flexDirection:'column', alignItems:'center', boxShadow:'0 18px 44px rgba(25,25,35,.07)' },
   infoBox:    { width:'100%', margin:'0 0 20px' },
-  precioBox:  { width:'100%', background:'#0d0d0d', borderRadius:12, padding:'18px 20px', display:'flex', flexDirection:'column', alignItems:'center', marginBottom:24, border:'1px solid #1e1e1e' },
-  btnPrimario:  { width:'100%', padding:'15px', background:'#009ee3', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:700, cursor:'pointer', marginBottom:0 },
-  btnSecundario:{ width:'100%', padding:'13px', background:'transparent', color:'#009ee3', border:'1px solid #009ee3', borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer', marginTop:10 },
-  btnCancelar:  { width:'100%', padding:'12px', background:'transparent', color:'#e74c3c', border:'1px solid #e74c3c', borderRadius:12, fontSize:13, fontWeight:600, cursor:'pointer', marginTop:8 },
+  precioBox:  { width:'100%', background:'#F7F8FA', borderRadius:14, padding:'18px 20px', display:'flex', flexDirection:'column', alignItems:'center', marginBottom:24, border:'1px solid #E4E2EC' },
+  btnPrimario:  { width:'100%', minHeight:52, padding:'15px', background:'#7024C4', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:600, cursor:'pointer', marginBottom:0 },
+  btnSecundario:{ width:'100%', minHeight:48, padding:'13px', background:'transparent', color:'#4C168E', border:'1px solid #D9CBEC', borderRadius:12, fontSize:14, fontWeight:600, cursor:'pointer', marginTop:10 },
+  btnCancelar:  { width:'100%', minHeight:44, padding:'12px', background:'transparent', color:'#A3311F', border:'1px solid #F3C9BF', borderRadius:12, fontSize:13, fontWeight:600, cursor:'pointer', marginTop:8 },
   mesesBox:     { width:'100%', marginBottom:16 },
   mesesGrid:    { display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6 },
-  mesBtn:       { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'10px 4px', background:'#1e1e1e', border:'1px solid #2a2a2a', borderRadius:10, cursor:'pointer', position:'relative', gap:2 },
-  mesBtnActive: { background:'#0a3a5c', border:'2px solid #009ee3', color:'#fff' },
-  tag:          { position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)', background:'#009ee3', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, whiteSpace:'nowrap' },
+  mesBtn:       { display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'10px 4px', background:'#FFFFFF', border:'1px solid #E4E2EC', borderRadius:10, cursor:'pointer', position:'relative', gap:2, color:'#191923', minHeight:56 },
+  mesBtnActive: { background:'#F0E5FA', border:'2px solid #7024C4', color:'#4C168E' },
+  tag:          { position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)', background:'#7024C4', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:8, whiteSpace:'nowrap' },
 };
