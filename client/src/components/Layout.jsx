@@ -7,7 +7,7 @@ import {
   Target, Landmark, Package, UserCog, BarChart2, Settings, Headphones,
   Calendar, TrendingUp, Lightbulb, MessageCircle, UserPlus, GitBranch,
   FileText, AlertCircle, CreditCard, Brain, LogOut, Plus, MoreHorizontal
-  , Repeat, ShoppingBag
+  , Repeat, ShoppingBag, Radar
 } from 'lucide-react';
 
 // El menú se agrupa por lo que Cristian hace, no por módulos del sistema.
@@ -28,6 +28,7 @@ const GRUPOS = [
   { titulo: 'Clientes', items: [
     { to: '/digitales', icon: ShoppingBag,label: 'Digitales', movil: true },
     { to: '/clientes',  icon: Users,      label: 'Clientes', movil: true },
+    { to: '/cazador',   icon: Radar,      label: 'Sin web', movil: true },
     { to: '/leads',     icon: Handshake,  label: 'Tratos' },
     { to: '/pipeline',  icon: GitBranch,  label: 'Pipeline' },
     { to: '/proyectos', icon: FolderOpen, label: 'Proyectos' },

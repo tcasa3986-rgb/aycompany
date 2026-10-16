@@ -36,6 +36,7 @@ const Reportes       = pantalla(() => import('./pages/Reportes'));
 const Analitica      = pantalla(() => import('./pages/Analitica'));
 const Habitos        = pantalla(() => import('./pages/Habitos'));
 const Digitales      = pantalla(() => import('./pages/Digitales'));
+const Cazador        = pantalla(() => import('./pages/Cazador'));
 
 // Barra fina arriba mientras baja el código de la pantalla. No cubre nada.
 function Cargando() {
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="analitica"      element={<Analitica />} />
           <Route path="habitos"        element={<Habitos />} />
           <Route path="digitales"      element={<Digitales />} />
+          <Route path="cazador"        element={<Cazador />} />
         </Route>
       </Routes>
       </Suspense>
