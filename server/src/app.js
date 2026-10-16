@@ -106,6 +106,11 @@ app.use('/api/finanzas',  require('./routes/finanzasRoutes'));
 app.use('/api/hoy',       require('./routes/hoyRoutes'));
 app.use('/api/habitos',   require('./routes/habitosRoutes'));
 app.use('/api/digitales', require('./routes/digitalesRoutes'));
+app.use('/api/cazador',   require('./routes/cazadorRoutes'));
+
+// La muestra de web, en publico y SIN login: es el enlace que se le manda al
+// negocio. Va antes del comodin del SPA para que no se la trague.
+app.get('/demo/:slug', require('./controllers/cazadorController').verDemo);
 app.use('/api/whatsapp', require('./routes/whatsappRoutes'));   // publica: Meta no inicia sesion
 // Alias: el sistema viejo de productos digitales usaba /api/webhook y esa es la
 // URL que todavia tiene puesta la app de Meta. Se acepta igual para que cambiar
