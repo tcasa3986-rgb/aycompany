@@ -7,6 +7,7 @@ router.use(auth.requireRol(['admin']));
 
 router.post('/buscar',        ctrl.buscar);
 router.get('/',               ctrl.listar);
+router.get('/:id/preview', ctrl.preview);
 router.put('/:id',            ctrl.actualizar);
 router.post('/:id/generar',   ctrl.generarDemo);
 router.post('/:id/demo',      ctrl.guardarDemo);
