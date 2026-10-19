@@ -1,265 +1,53 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { Search, Wand2, Copy, Send, X, Flame, ExternalLink, Phone, Star } from 'lucide-react';
-import { C, Pagina, Cabecera, Tarjeta, Boton, BotonIcono, Campo, Dos, entrada, Pildora, Franja } from '../components/ui';
+import { Search, Wand2, Copy, Send, X, ExternalLink, Check, FileText, Eye } from 'lucide-react';
+import { C, Pagina, Cabecera, Tarjeta, Boton, BotonIcono, Campo, Dos, entrada, Pildora, Franja, Modal } from '../components/ui';
+const PASOS=[['encontrado','Encontrados'],['demo_generada','Con demo'],['enviado','Enviados'],['abrio','Con interacción'],['respondio','Respondieron'],['cliente','Clientes']];
+const RUBROS=['odontología','abogados','veterinaria','estética','taller mecánico','constructora','gimnasio','restaurante','inmobiliaria','óptica'];
+const movil=t=>{const v=String(t||'').replace(/\D/g,'');return /^3\d{9}$/.test(v)?'57'+v:/^573\d{9}$/.test(v)?v:null;};
+const basePublica=()=>new URL(api.defaults.baseURL||'/api',window.location.origin).origin;
+const enlaceDe=(n,tipo='demo')=>`${basePublica()}/${tipo}/${n.demo_slug}`;
+const mensajeDe=n=>`Hola, buen día. Soy Cristian, de AI Company.
 
-// Cazador de negocios sin página web.
-//
-// El orden de la pantalla es el orden en que se trabaja:
-//   1. Quién abrió su demo   ← lo primero, es a quién hay que llamar HOY
-//   2. Buscar más
-//   3. La lista, ordenada por quién puede pagar mejor
-//
-// Un negocio que abrió su página tres veces y no ha contestado vale más que
-// veinte que nunca la abrieron. Por eso van arriba y aparte.
-
-const PASOS = [
-  ['encontrado',    'Encontrados'],
-  ['demo_generada', 'Con demo'],
-  ['enviado',       'Enviados'],
-  ['abrio',         'Abrieron'],
-  ['respondio',     'Respondieron'],
-  ['cliente',       'Clientes'],
-];
-
-const RUBROS = ['odontología', 'abogados', 'veterinaria', 'estética', 'taller mecánico',
-                'constructora', 'gimnasio', 'restaurante', 'inmobiliaria', 'óptica'];
-
-export default function Cazador() {
-  const [data, setData] = useState([]);
-  const [embudo, setEmbudo] = useState({});
-  const [calientes, setCalientes] = useState([]);
-  const [busq, setBusq] = useState({ rubro: 'odontología', ciudad: 'Ibagué' });
-  const [buscando, setBuscando] = useState(false);
-  const [generando, setGenerando] = useState(null);
-  const [filtro, setFiltro] = useState('');
-
-  const cargar = () => api.get('/cazador' + (filtro ? `?estado=${filtro}` : ''))
-    .then(x => { setData(x.data.data); setEmbudo(x.data.embudo); setCalientes(x.data.calientes || []); });
-  useEffect(() => { cargar(); }, [filtro]);
-
-  async function buscar(e) {
-    e?.preventDefault();
-    if (!busq.rubro || !busq.ciudad) return toast.error('Dime el rubro y la ciudad');
-    setBuscando(true);
-    try {
-      const x = await api.post('/cazador/buscar', busq);
-      toast.success(`${x.data.msg} · ${x.data.con_web} ya tenían web`);
-      cargar();
-    } catch (err) { toast.error(err.response?.data?.msg || 'No se pudo buscar'); }
-    setBuscando(false);
-  }
-
-  async function generar(n) {
-    setGenerando(n.id);
-    try {
-      const x = await api.post(`/cazador/${n.id}/generar`);
-      toast.success(x.data.msg);
-      cargar();
-    } catch (err) { toast.error(err.response?.data?.msg || 'No se pudo generar'); }
-    setGenerando(null);
-  }
-
-  async function marcar(n, estado) {
-    const extra = {};
-    if (estado === 'descartado') {
-      const m = prompt('¿Por qué lo descartas?');
-      if (m === null) return;
-      extra.motivo_descarte = m;
-    }
-    try { await api.put(`/cazador/${n.id}`, { estado, ...extra }); cargar(); }
-    catch { toast.error('No se pudo'); }
-  }
-
-  const enlaceDe = n => `${window.location.origin}/demo/${n.demo_slug}`;
-
-  // El mensaje que de verdad se manda. Escrito para que no parezca plantilla:
-  // nombra el negocio, dice de dónde salió y da salida fácil.
-  const mensajeDe = n => `Hola, buen día 👋 Soy Cristian, de AI Company.
-
-Vi que ${n.nombre} tiene ${n.resenas} reseñas en Google con ${n.calificacion} estrellas — muy bueno — pero todavía no tiene página web.
-
-Me tomé el atrevimiento de armarles un boceto para que vean cómo se vería:
+Preparamos una muestra de página para ${n.nombre}, sin ningún compromiso:
 ${enlaceDe(n)}
 
-Si les gusta, hablamos. Y si no les interesa, me dice y no vuelvo a escribir 🙌`;
+Si les gusta, podemos implementarla de forma ágil, con opciones económicas y una estructura técnica pensada para posicionamiento. Aquí pueden conocer la propuesta y contactarnos:
+${enlaceDe(n,'propuesta')}
 
-  function copiar(texto, que = 'Copiado') {
-    navigator.clipboard.writeText(texto).then(() => toast.success(que), () => toast.error('No se pudo copiar'));
-  }
-
-  return (
-    <Pagina>
-      <Cabecera titulo="Negocios sin página web"
-        sub={`${data.length} en la lista · ${embudo.abrio || 0} abrieron su demo`} />
-
-      {/* 1. A quién llamar HOY */}
-      {calientes.length > 0 && (
-        <Tarjeta titulo="Abrieron su demo y no han contestado" acento={C.ambar}>
-          <p style={S.nota}>
-            Estos ya vieron su página. Es la señal de compra más honesta que hay — llámalos.
-          </p>
-          <div style={{ display: 'grid', gap: 9 }}>
-            {calientes.map(n => (
-              <div key={n.id} style={S.caliente}>
-                <Flame size={17} color="#F59E0B" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={S.nombre}>{n.nombre}</div>
-                  <div style={S.sub}>
-                    La abrió <strong>{n.visitas} {n.visitas === 1 ? 'vez' : 'veces'}</strong>
-                    {n.telefono ? ` · ${n.telefono}` : ''}
-                  </div>
-                </div>
-                {n.telefono && (
-                  <a href={`https://wa.me/57${n.telefono.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
-                    <Boton color={C.verde}><Phone size={15} /> Escribir</Boton>
-                  </a>
-                )}
-                <Boton variante="borde" onClick={() => marcar(n, 'respondio')}>Contestó</Boton>
-              </div>
-            ))}
-          </div>
-        </Tarjeta>
-      )}
-
-      {/* 2. Buscar */}
-      <Tarjeta titulo="Buscar negocios" style={{ marginTop: 12 }}>
-        <form onSubmit={buscar}>
-          <Dos>
-            <Campo label="¿Qué rubro?">
-              <input list="rubros" value={busq.rubro}
-                     onChange={e => setBusq(b => ({ ...b, rubro: e.target.value }))} style={entrada} />
-              <datalist id="rubros">{RUBROS.map(r => <option key={r} value={r} />)}</datalist>
-            </Campo>
-            <Campo label="¿En qué ciudad?">
-              <input value={busq.ciudad} onChange={e => setBusq(b => ({ ...b, ciudad: e.target.value }))}
-                     style={entrada} placeholder="Ibagué, Bogotá, Soacha…" />
-            </Campo>
-          </Dos>
-          <Boton type="submit" disabled={buscando}>
-            <Search size={16} /> {buscando ? 'Buscando en Google Maps…' : 'Buscar'}
-          </Boton>
-        </form>
-      </Tarjeta>
-
-      {/* El embudo */}
-      <div style={S.embudo}>
-        {PASOS.map(([k, l]) => (
-          <button key={k} onClick={() => setFiltro(filtro === k ? '' : k)}
-            style={{ ...S.paso, ...(filtro === k ? S.pasoActivo : {}) }}>
-            <div style={S.pasoNum}>{embudo[k] ?? 0}</div>
-            <div style={S.pasoTxt}>{l}</div>
-          </button>
-        ))}
-      </div>
-
-      {filtro && (
-        <div style={{ margin: '12px 0' }}>
-          <Pildora activa onClick={() => setFiltro('')}>Viendo solo: {filtro} · quitar filtro</Pildora>
-        </div>
-      )}
-
-      {/* 3. La lista */}
-      {data.length === 0 ? (
-        <Tarjeta style={{ marginTop: 14 }}>
-          <p style={S.vacio}>
-            Busca un rubro y una ciudad arriba. Google te dice cuáles no tienen página web.
-          </p>
-        </Tarjeta>
-      ) : (
-        <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-          {data.map(n => (
-            <div key={n.id} style={{ ...S.fila, opacity: n.estado === 'descartado' ? .5 : 1 }}>
-              <div style={{ ...S.score, background: n.score >= 80 ? '#DCFCE7' : n.score >= 60 ? '#FEF3C7' : '#F1F5F9',
-                             color: n.score >= 80 ? '#15803D' : n.score >= 60 ? '#92400E' : '#64748B' }}>
-                {n.score}
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={S.nombre}>{n.nombre}</div>
-                <div style={S.sub}>
-                  {Number(n.resenas) > 0 && (
-                    <span><Star size={11} style={{ verticalAlign: -1, color: '#F59E0B' }} /> {n.calificacion} · {n.resenas} reseñas</span>
-                  )}
-                  {n.telefono && <span style={S.punto}>·</span>}
-                  {n.telefono && <span>{n.telefono}</span>}
-                  {n.web_parcial && <><span style={S.punto}>·</span><span style={S.tag}>usa redes como web</span></>}
-                </div>
-                {n.visitas > 0 && (
-                  <div style={S.visitas}>🔥 Abrió su demo {n.visitas} {n.visitas === 1 ? 'vez' : 'veces'}</div>
-                )}
-                {n.motivo_descarte && <div style={S.descarte}>Descartado: {n.motivo_descarte}</div>}
-              </div>
-
-              <div style={S.acciones}>
-                {!n.demo_slug ? (
-                  <Boton onClick={() => generar(n)} disabled={generando === n.id}>
-                    <Wand2 size={15} /> {generando === n.id ? 'Creando…' : 'Crear demo'}
-                  </Boton>
-                ) : (
-                  <>
-                    <a href={enlaceDe(n)} target="_blank" rel="noopener noreferrer">
-                      <BotonIcono color={C.azul} titulo="Ver la demo"><ExternalLink size={15} /></BotonIcono>
-                    </a>
-                    <BotonIcono color={C.verde} titulo="Copiar el mensaje listo"
-                      onClick={() => { copiar(mensajeDe(n), 'Mensaje copiado, pégalo en WhatsApp'); }}>
-                      <Copy size={15} />
-                    </BotonIcono>
-                    {n.telefono && (
-                      <a href={`https://wa.me/57${n.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(mensajeDe(n))}`}
-                         target="_blank" rel="noopener noreferrer"
-                         onClick={() => marcar(n, 'enviado')}>
-                        <BotonIcono color={C.verde} titulo="Abrir WhatsApp con el mensaje"><Send size={15} /></BotonIcono>
-                      </a>
-                    )}
-                  </>
-                )}
-                <BotonIcono color={C.tenue} titulo="Descartar" onClick={() => marcar(n, 'descartado')}>
-                  <X size={15} />
-                </BotonIcono>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Franja color={C.azul}>
-        Manda los mensajes <strong>de a pocos y espaciados</strong>. WhatsApp bloquea los
-        números que mandan muchos mensajes nuevos seguidos, y ese número es tu negocio.
-      </Franja>
-    </Pagina>
-  );
+¿Les gustaría que la adaptemos a su negocio? Si no les interesa, me dicen y no vuelvo a escribir.`;
+export default function Cazador(){
+ const [data,setData]=useState([]),[embudo,setEmbudo]=useState({}),[busq,setBusq]=useState({rubro:'odontología',ciudad:'Ibagué'});
+ const [buscando,setBuscando]=useState(false),[ocupado,setOcupado]=useState(false),[filtro,setFiltro]=useState(''),[generando,setGenerando]=useState(null);
+ const [preview,setPreview]=useState(null),[editor,setEditor]=useState(null),[checks,setChecks]=useState({}),[lote,setLote]=useState(null),[resultado,setResultado]=useState(null),[errorCarga,setErrorCarga]=useState('');
+ async function cargar(){try{const x=await api.get('/cazador'+(filtro?`?estado=${filtro}`:''));setData(x.data.data);setEmbudo(x.data.embudo);setErrorCarga('');}catch{setErrorCarga('No pudimos cargar la lista. Inténtalo de nuevo.');}}
+ useEffect(()=>{cargar();},[filtro]);
+ async function buscar(e){e.preventDefault();if(!busq.rubro.trim()||!busq.ciudad.trim())return toast.error('Dime el rubro y la ciudad');setBuscando(true);try{const x=await api.post('/cazador/buscar',busq);toast.success(x.data.msg);await cargar();}catch(err){toast.error(err.response?.data?.msg||'No se pudo buscar');}finally{setBuscando(false);}}
+ async function generar(n,propuesta){setGenerando(n.id);try{const x=await api.post(`/cazador/${n.id}/generar`,propuesta?{propuesta}:{});toast.success(x.data.msg);await cargar();return true;}catch(err){toast.error(err.response?.data?.msg||'No se pudo preparar');return false;}finally{setGenerando(null);}}
+ async function prepararTodas(){const lista=data.filter(n=>n.estado!=='descartado');setLote(null);setOcupado(true);const r={ok:[],errores:[]};for(let i=0;i<lista.length;i++){const n=lista[i];setResultado({progreso:`Preparando ${i+1} de ${lista.length}: ${n.nombre}`});try{await api.post(`/cazador/${n.id}/generar`);r.ok.push(n.nombre);}catch{r.errores.push(n.nombre);}}setResultado(r);setOcupado(false);await cargar();}
+ async function marcar(n,estado){const extra={};if(estado==='descartado'){const motivo=prompt('¿Por qué lo descartas?');if(motivo===null)return;extra.motivo_descarte=motivo;}try{await api.put(`/cazador/${n.id}`,{estado,...extra});await cargar();}catch(err){toast.error(err.response?.data?.msg||'No se pudo actualizar');}}
+ async function ver(n,tipo='demo'){try{const x=await api.get(`/cazador/${n.id}/preview?tipo=${tipo}`);setPreview({nombre:n.nombre,tipo,html:x.data.html});}catch{toast.error('No se pudo abrir la vista interna');}}
+ function copiar(texto){navigator.clipboard.writeText(texto).then(()=>toast.success('Copiado. El envío se registra por separado.'),()=>toast.error('No se pudo copiar'));}
+ function revisar(n){setEditor({n,propuesta:n.paquete?.propuesta});setChecks({identidad:false,contenido:false,propuesta:false});}
+ async function aprobar(){if(!['identidad','contenido','propuesta'].every(k=>checks[k]))return;const bien=await generar(editor.n,{...editor.propuesta,revisado:true,aprobada:true});if(bien)setEditor(null);}
+ const bloqueado=ocupado||generando!==null;
+ return <Pagina><Cabecera titulo="Demos y propuestas comerciales" sub="Encuentra oportunidades, prepara su muestra y revisa el paquete antes de compartirlo."><Boton onClick={()=>setLote(true)} disabled={bloqueado||!data.length}><Wand2 size={16}/>Preparar todas las visibles</Boton></Cabecera>
+ <Franja color={C.violeta}>Cada negocio tiene una demostración y una propuesta sin compromiso. Opciones económicas, implementación ágil y estructura técnica para posicionamiento. El precio se conversa con el interesado.</Franja>
+ {errorCarga&&<Franja color={C.rojo} accion={<Boton onClick={cargar}>Reintentar</Boton>}>{errorCarga}</Franja>}
+ {resultado&&<Tarjeta titulo={resultado.progreso?'Preparación en curso':'Resultado de la preparación'} style={{marginBottom:16}}>{resultado.progreso||<><p>{resultado.ok.length} paquetes preparados. {resultado.errores.length} pendientes.</p>{resultado.errores.length>0&&<p style={{color:C.rojo}}>Reintentar: {resultado.errores.join(', ')}</p>}<p style={S.nota}>No se enviaron mensajes. Revisa las demos y sus propuestas antes de compartir.</p></>}</Tarjeta>}
+ <details style={S.buscador}><summary style={{cursor:'pointer',fontWeight:700}}>Buscar más negocios en Google Maps</summary><form onSubmit={buscar} style={{marginTop:18}}><Dos><Campo label="Rubro"><input aria-label="Rubro" list="rubros" value={busq.rubro} onChange={e=>setBusq({...busq,rubro:e.target.value})} style={entrada}/><datalist id="rubros">{RUBROS.map(r=><option key={r} value={r}/>)}</datalist></Campo><Campo label="Ciudad"><input aria-label="Ciudad" value={busq.ciudad} onChange={e=>setBusq({...busq,ciudad:e.target.value})} style={entrada}/></Campo></Dos><Boton type="submit" disabled={buscando||bloqueado}><Search size={15}/>{buscando?'Buscando…':'Buscar candidatos'}</Boton><p style={S.nota}>Una ficha sin web enlazada es una oportunidad por verificar; no confirma presupuesto ni ausencia de otra página.</p></form></details>
+ <div style={S.embudo}>{PASOS.map(([k,l])=><button key={k} onClick={()=>setFiltro(filtro===k?'':k)} disabled={bloqueado} style={{...S.paso,...(filtro===k?{borderColor:C.azul,background:'#EFF4FF'}:{})}}><strong style={{fontSize:23}}>{embudo[k]??0}</strong><span style={{fontSize:11}}>{l}</span></button>)}</div>
+ {filtro&&<Pildora activa onClick={()=>setFiltro('')}>Quitar filtro: {filtro}</Pildora>}
+ <div style={{display:'grid',gap:14,marginTop:18}}>{data.map(n=>{const actual=n.paquete?.version===n.version_actual,listo=actual&&n.paquete.propuesta.aprobada;return <Tarjeta key={n.id} style={{opacity:n.estado==='descartado'?.55:1}}><div style={S.cabeceraFila}><div style={{flex:'1 1 260px',minWidth:0}}><h2 style={S.nombre}>{n.nombre}</h2><p style={S.nota}>{n.ciudad} · {n.rubro||n.categoria} · Prioridad {n.score}/100</p>{n.telefono&&<p style={S.nota}>{n.telefono}</p>}</div><span style={{...S.etiqueta,background:listo?'#DCFCE7':'#F3E8FF',color:listo?'#166534':'#6B21A8'}}>{listo?'Paquete revisado':actual?'Pendiente de revisión':'Preparar nueva versión'}</span></div>
+ <div style={S.acciones}><Boton variante="borde" onClick={()=>ver(n)} disabled={bloqueado}><Eye size={15}/>Revisar demo</Boton><Boton variante="borde" onClick={()=>ver(n,'propuesta')} disabled={bloqueado}><FileText size={15}/>Ver propuesta</Boton><Boton variante="suave" onClick={()=>generar(n)} disabled={bloqueado}><Wand2 size={15}/>{generando===n.id?'Preparando…':actual?'Actualizar paquete':'Preparar paquete'}</Boton>{actual&&<Boton color={C.violeta} onClick={()=>revisar(n)} disabled={bloqueado}><Check size={15}/>{listo?'Volver a revisar':'Aprobar para compartir'}</Boton>}</div>
+ {n.demo_slug&&<div style={{...S.acciones,borderTop:`1px solid ${C.borde}`,marginTop:16,paddingTop:16}}><Boton variante="borde" onClick={()=>copiar(mensajeDe(n))} disabled={!listo||bloqueado}><Copy size={15}/>Copiar mensaje y enlaces</Boton>{listo&&movil(n.telefono)&&<a style={S.enlace} href={`https://wa.me/${movil(n.telefono)}?text=${encodeURIComponent(mensajeDe(n))}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/>Abrir borrador en WhatsApp</a>}{listo&&<Boton variante="borde" onClick={()=>marcar(n,'enviado')} disabled={bloqueado}><Send size={14}/>Ya lo envié</Boton>}{['enviado','abrio'].includes(n.estado)&&<Boton variante="borde" onClick={()=>marcar(n,'respondio')} disabled={bloqueado}>Respondió</Boton>}<BotonIcono titulo={`Descartar ${n.nombre}`} color={C.tenue} onClick={()=>marcar(n,'descartado')} disabled={bloqueado}><X size={15}/></BotonIcono></div>}
+ {n.visitas>0&&<p style={S.nota}>{n.visitas} registros acumulados. Pueden incluir vistas de la medición anterior; no prueban intención de compra.</p>}{n.motivo_descarte&&<p style={{...S.nota,color:C.rojo}}>Descartado: {n.motivo_descarte}</p>}</Tarjeta>;})}</div>
+ {!data.length&&!errorCarga&&<Tarjeta><p>No hay negocios en esta vista.</p></Tarjeta>}
+ <div style={{marginTop:22}}><Franja color={C.azul}>Las vistas internas no cuentan. Desde esta actualización, una interacción visible en el enlace público puede sumarse, una vez por navegador cada 30 minutos. Abrir el borrador de WhatsApp no envía ni marca el mensaje como enviado.</Franja></div>
+ {lote&&<Modal titulo="Preparar demos y propuestas" onCerrar={()=>setLote(null)}><p>Se prepararán {data.filter(n=>n.estado!=='descartado').length} negocios de la lista visible, conservando enlaces y respaldando el HTML anterior cuando cambie.</p><p>Las fotografías son referencias con IA. Cada paquete quedará para revisión; no se enviará ningún mensaje.</p><Boton onClick={prepararTodas}>Preparar esta lista</Boton></Modal>}
+ {editor&&<Modal titulo={`Revisión: ${editor.n.nombre}`} onCerrar={()=>setEditor(null)}><p style={S.nota}>Revisa ambas vistas. La propuesta es sin compromiso y no requiere fijar un precio.</p>{[['identidad','Revisé nombre, ubicación y canal de contacto.'],['contenido','Revisé textos e imágenes ilustrativas; no se inventan servicios, instalaciones ni resultados.'],['propuesta','Revisé el alcance comercial y el contacto de AI Company.']].map(([k,l])=><label key={k} style={S.check}><input type="checkbox" checked={!!checks[k]} onChange={e=>setChecks({...checks,[k]:e.target.checked})}/>{l}</label>)}<Boton onClick={aprobar} disabled={bloqueado||!['identidad','contenido','propuesta'].every(k=>checks[k])}>Guardar revisión y habilitar mensaje</Boton></Modal>}
+ {preview&&<Modal titulo={`${preview.tipo==='demo'?'Demostración':'Propuesta comercial'} · ${preview.nombre}`} sub="Vista interna: no suma visitas ni envía mensajes." ancho={1140} onCerrar={()=>setPreview(null)}><iframe title={`${preview.tipo} de ${preview.nombre}`} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals" srcDoc={preview.html.replace('<head>',`<head><base href="${basePublica()}/">`)} style={{border:`1px solid ${C.borde}`,borderRadius:8,width:'100%',height:'68vh',background:'#fff'}}/></Modal>}
+ </Pagina>;
 }
-
-const S = {
-  nota: { fontSize: '.82rem', color: C.tenue, margin: '0 0 12px' },
-  caliente: { display: 'flex', alignItems: 'center', gap: 11, background: '#fff', borderRadius: 12, padding: '11px 13px', flexWrap: 'wrap' },
-
-  fila: { display: 'flex', alignItems: 'center', gap: 12, background: '#fff', borderRadius: 13,
-          padding: '12px 14px', boxShadow: '0 1px 2px rgba(15,23,42,.06)' },
-  score: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center',
-           justifyContent: 'center', fontWeight: 800, fontSize: '.95rem', flexShrink: 0,
-           fontFamily: "'Space Grotesk', system-ui, sans-serif" },
-  nombre: { fontWeight: 700, color: C.tinta, fontSize: '.93rem', overflow: 'hidden',
-            textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  sub: { fontSize: '.78rem', color: C.tenue, display: 'flex', alignItems: 'center', gap: 5,
-         marginTop: 2, flexWrap: 'wrap' },
-  punto: { color: '#CBD5E1' },
-  tag: { fontSize: '.68rem', fontWeight: 700, color: '#1D4ED8', background: '#DBEAFE',
-         padding: '2px 7px', borderRadius: 999 },
-  visitas: { fontSize: '.76rem', color: '#92400E', fontWeight: 700, marginTop: 4 },
-  descarte: { fontSize: '.74rem', color: C.rojo, marginTop: 3 },
-  acciones: { display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 },
-
-  embudo: { display: 'flex', gap: 7, marginTop: 16, overflowX: 'auto', paddingBottom: 4 },
-  paso: { flex: '1 0 92px', background: '#fff', borderRadius: 12, padding: '12px 8px',
-          textAlign: 'center', boxShadow: '0 1px 2px rgba(15,23,42,.06)', border: '1.5px solid transparent',
-          cursor: 'pointer' },
-  pasoActivo: { borderColor: C.azul, background: '#EFF4FF' },
-  pasoNum: { fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: '1.45rem',
-             fontWeight: 800, color: C.tinta, lineHeight: 1 },
-  pasoTxt: { fontSize: '.69rem', color: C.tenue, marginTop: 4 },
-
-  vacio: { textAlign: 'center', color: C.tenue, margin: 0, padding: '22px 0', fontSize: '.88rem' },
-};
+const S={buscador:{padding:20,background:'#fff',border:`1px solid ${C.borde}`,borderRadius:14},embudo:{display:'flex',gap:8,overflowX:'auto',margin:'18px 0'},paso:{display:'flex',flexDirection:'column',gap:5,flex:'1 0 100px',padding:14,border:`1px solid ${C.borde}`,borderRadius:12,background:'#fff',color:C.tinta,cursor:'pointer'},cabeceraFila:{display:'flex',gap:14,justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap'},nombre:{fontSize:18,color:C.tinta,margin:0,overflowWrap:'anywhere'},nota:{fontSize:12,color:'#64748B',lineHeight:1.6,margin:'8px 0'},etiqueta:{padding:'6px 10px',fontSize:11,borderRadius:20,fontWeight:700},acciones:{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:14},enlace:{display:'inline-flex',alignItems:'center',gap:7,padding:'10px 0',fontSize:13,color:C.verde,fontWeight:650},check:{display:'flex',gap:10,alignItems:'flex-start',fontSize:13,color:C.texto,margin:'18px 0'}};

@@ -1,16 +1,7 @@
 /**
- * Genera la página de muestra de un negocio que no tiene web.
- *
- * Dos decisiones que mandan sobre todo lo demás:
- *
- * 1. **No usa fotos del negocio.** Google no las entrega en este plan, y aunque
- *    las entregara, publicar las fotos de alguien en una página que no pidió es
- *    buscarse un problema. Además el hueco de la foto es el mejor gancho de
- *    conversación que hay: "es un boceto, mándame tus fotos y queda mejor".
- *
- * 2. **Una sola llamada a la IA por negocio, y barata.** Lo que cambia entre un
- *    negocio y otro son los textos; la estructura es la misma. Generar la página
- *    entera con IA costaría diez veces más y saldría peor.
+ * Generador de muestras. La entrada `generar` usa el paquete comercial revisado,
+ * con fotos ilustrativas y propuesta sin compromiso; no consume IA ni Places.
+ * Las plantillas anteriores permanecen para conservar referencias de Claude.
  */
 const https = require('https');
 
@@ -58,7 +49,7 @@ async function generarTextos(n, det) {
     const vacio = {
         titular: `${n.nombre}`,
         subtitulo: `Atención profesional en ${n.ciudad}. Pide tu cita hoy mismo.`,
-        sobre: `Somos un equipo con años de experiencia en ${n.ciudad}, reconocido por nuestros clientes.`,
+        sobre: `Conoce ${n.nombre} en ${n.ciudad} y consulta directamente sus opciones de atención.`,
         servicios: [],
     };
 
@@ -82,7 +73,7 @@ Responde SOLO un JSON con esta forma exacta:
 }
 
 Reglas:
-- 6 servicios, los típicos y reales de ese rubro en Colombia.
+- No infieras el catálogo del negocio por su rubro. Devuelve servicios: [] si no se proporcionaron servicios confirmados.
 - Español de Colombia, natural, sin palabras rimbombantes.
 - NO inventes años de experiencia, premios, certificaciones ni cifras que no te di.
 - NO uses "líderes del mercado" ni "excelencia" ni frases de folleto.`;
@@ -287,11 +278,11 @@ function plantillaDe(rubro = '') {
 }
 
 /** Genera la demo completa de un negocio. */
-async function generar(negocio) {
-    const det = await detalle(negocio.place_id);
-    const textos = await generarTextos(negocio, det);
-    const hacer = plantillaDe(negocio.rubro || negocio.categoria);
-    return { html: hacer(negocio, textos, det), textos, detalle: det };
+async function generar(negocio, propuesta) {
+    const { construirDemo, contexto, propuestaBase } = require('./demos/paqueteDemo');
+    const c = contexto(negocio);
+    return { html: construirDemo(negocio, propuesta || propuestaBase()),
+        textos: { titular: c.titular, subtitulo: c.subtitulo, servicios: [] }, detalle: {} };
 }
 
 module.exports = { generar, plantilla, plantillaDe, generarTextos, paleta, detalle };
