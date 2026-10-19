@@ -1,8 +1,11 @@
-const { NegocioSinWeb } = require('../models');
+const { NegocioSinWeb, DemoVersion } = require('../models');
+const sequelize = require('../config/db');
 const { cazar } = require('../services/cazadorSinWeb');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
-const { generar } = require('../services/generadorDemo');
+const { construirDemo, construirPropuesta, validarPropuesta, leerPaquete, propuestaBase, VERSION } = require('../services/demos/paqueteDemo');
+const { persistirPaquete } = require('../services/demos/persistirPaquete');
+const { tokenVisita, tokenValido, nombreCookie, yaContada, conMedicion, TTL } = require('../services/demos/visitasDemo');
 
 /** Un slug corto e imposible de adivinar: la demo no debe ser enumerable. */
 function slug(nombre) {
@@ -70,7 +73,8 @@ exports.listar = async (req, res) => {
             order: [['visitas', 'DESC']], limit: 20,
         });
 
-        res.json({ ok: true, data, embudo: porEstado, calientes });
+        const resumir = n => { const v = n.get({ plain: true }); const paquete = leerPaquete(v.demo_html); delete v.demo_html; return { ...v, paquete, version_actual: VERSION }; };
+        res.json({ ok: true, data: data.map(resumir), embudo: porEstado, calientes: calientes.map(resumir) });
     } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
 };
 
@@ -80,83 +84,98 @@ exports.actualizar = async (req, res) => {
         if (!n) return res.status(404).json({ ok: false, msg: 'No existe' });
         const campos = ['estado', 'motivo_descarte', 'notas', 'telefono', 'contactado_en'];
         const datos = Object.fromEntries(campos.filter(c => c in (req.body || {})).map(c => [c, req.body[c]]));
+        if (datos.estado && !['encontrado','demo_generada','enviado','abrio','respondio','cliente','descartado'].includes(datos.estado))
+            return res.status(400).json({ ok: false, msg: 'Estado inválido' });
+        if (datos.estado === 'enviado' && !leerPaquete(n.demo_html)?.propuesta.aprobada)
+            return res.status(400).json({ ok: false, msg: 'Revisa y aprueba el paquete antes de marcar el envío' });
         if (datos.estado === 'enviado' && !n.contactado_en) datos.contactado_en = new Date();
         await n.update(datos);
         res.json({ ok: true, msg: 'Actualizado', data: n });
     } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
 };
 
-/** Guarda la demo ya generada y devuelve el enlace único para enviársela. */
-exports.guardarDemo = async (req, res) => {
-    try {
-        const n = await NegocioSinWeb.findByPk(req.params.id);
-        if (!n) return res.status(404).json({ ok: false, msg: 'No existe' });
-        if (!req.body?.html) return res.status(400).json({ ok: false, msg: 'Falta el HTML de la demo' });
 
-        await n.update({
-            demo_html: req.body.html,
-            demo_slug: n.demo_slug || slug(n.nombre),
-            demo_generada_en: new Date(),
-            estado: n.estado === 'encontrado' ? 'demo_generada' : n.estado,
-        });
-        const base = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
-        res.json({ ok: true, msg: 'Demo guardada', enlace: `${base}/demo/${n.demo_slug}`, data: n });
-    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
-};
-
-/** Genera la demo de un negocio y devuelve el enlace listo para enviar. */
+// Preparar no envía mensajes ni consulta IA/Places. Conserva el enlace y respalda
+// el HTML anterior en una transacción, antes de reemplazarlo.
 exports.generarDemo = async (req, res) => {
+    let propuesta;
+    try { propuesta = req.body?.propuesta === undefined ? undefined : validarPropuesta(req.body.propuesta); }
+    catch (e) { return res.status(400).json({ ok: false, msg: e.message }); }
+    try {
+        const n = await persistirPaquete({ NegocioSinWeb, DemoVersion, sequelize,
+            id: req.params.id, propuesta, crearSlug: slug });
+        const base = (process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app').replace(/\/$/, '');
+        res.json({ ok: true, msg: `Demo y propuesta de ${n.nombre} preparadas`,
+            enlace: `${base}/demo/${n.demo_slug}`, propuesta: `${base}/propuesta/${n.demo_slug}` });
+    } catch (e) { res.status(e.status || 500).json({ ok: false, msg: e.status ? e.message : 'No se pudo preparar el paquete; la versión anterior se conserva. Inténtalo de nuevo.' }); }
+};
+
+// Se retira la escritura de HTML arbitrario: sólo se guarda el paquete validado.
+exports.guardarDemo = (req, res) => req.body?.html
+    ? res.status(400).json({ ok: false, msg: 'Usa Preparar paquete: el HTML y el respaldo se generan desde datos revisados.' })
+    : exports.generarDemo(req, res);
+
+exports.preview = async (req, res) => {
     try {
         const n = await NegocioSinWeb.findByPk(req.params.id);
         if (!n) return res.status(404).json({ ok: false, msg: 'No existe' });
-
-        const { html, textos } = await generar(n);
-        await n.update({
-            demo_html: html,
-            demo_slug: n.demo_slug || slug(n.nombre),
-            demo_generada_en: new Date(),
-            estado: n.estado === 'encontrado' ? 'demo_generada' : n.estado,
-        });
-
-        const base = process.env.BASE_URL || 'https://mi-plataforma-production.up.railway.app';
-        res.json({
-            ok: true,
-            msg: `Demo de ${n.nombre} lista`,
-            enlace: `${base}/demo/${n.demo_slug}`,
-            titular: textos.titular,
-            servicios: (textos.servicios || []).length,
-            data: n,
-        });
-    } catch (e) { res.status(500).json({ ok: false, msg: e.message }); }
+        const datos = { ...n.get({ plain: true }), demo_slug: n.demo_slug || 'vista-previa' };
+        const p = leerPaquete(n.demo_html)?.propuesta || propuestaBase();
+        const html = req.query.tipo === 'propuesta' ? construirPropuesta(datos, p) : construirDemo(datos, p);
+        res.set('Cache-Control', 'no-store');
+        res.json({ ok: true, html });
+    } catch { res.status(500).json({ ok: false, msg: 'No se pudo abrir la vista previa' }); }
 };
 
-/**
- * La demo, en público. Es la única ruta sin login de este módulo.
- *
- * Dos cosas que no son opcionales:
- *   · `noindex`: la página lleva el logo y las fotos del negocio, que son
- *     suyos. Mostrársela a él es una cosa; dejar que Google la indexe y
- *     compita con su propia ficha es otra muy distinta.
- *   · Contar la visita: saber que abrió la demo tres veces vale más que
- *     cualquier respuesta. Es la señal de compra más honesta que hay.
- */
+function cabeceras(res) {
+    res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    res.set('Cache-Control', 'no-store');
+    res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+}
 exports.verDemo = async (req, res) => {
     try {
         const n = await NegocioSinWeb.findOne({ where: { demo_slug: req.params.slug } });
-        if (!n || !n.demo_html) return res.status(404).send('Esta muestra ya no está disponible.');
-
-        const ahora = new Date();
-        await n.update({
-            visitas: (n.visitas || 0) + 1,
-            primera_visita: n.primera_visita || ahora,
-            ultima_visita: ahora,
-            estado: ['enviado', 'demo_generada'].includes(n.estado) ? 'abrio' : n.estado,
-        });
-
-        res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
-        res.set('Cache-Control', 'no-store');
-        res.type('html').send(n.demo_html);
-    } catch (e) { res.status(500).send('Error'); }
+        if (!n || !n.demo_html) return res.status(404).send('Esta muestra no está disponible.');
+        const p = leerPaquete(n.demo_html)?.propuesta || propuestaBase();
+        // Las demos anteriores también reciben el diseño nuevo; su HTML permanece
+        // conservado hasta preparar explícitamente la nueva versión.
+        const html = construirDemo(n.get({ plain: true }), p);
+        cabeceras(res);
+        res.type('html').send(conMedicion(html, n.demo_slug, tokenVisita(n.demo_slug, process.env.JWT_SECRET)));
+    } catch { res.status(500).send('No pudimos abrir la muestra.'); }
 };
-
+exports.verPropuesta = async (req, res) => {
+    try {
+        const n = await NegocioSinWeb.findOne({ where: { demo_slug: req.params.slug } });
+        if (!n || !n.demo_html) return res.status(404).send('Esta propuesta no está disponible.');
+        cabeceras(res);
+        res.type('html').send(construirPropuesta(n.get({ plain: true }), leerPaquete(n.demo_html)?.propuesta || propuestaBase()));
+    } catch { res.status(500).send('No pudimos abrir la propuesta.'); }
+};
+exports.registrarVisita = async (req, res) => {
+    const negocioSlug = req.params.slug;
+    const secret = process.env.JWT_SECRET;
+    const origin = req.get('origin');
+    // El token se entrega en la página, no es una credencial de administración.
+    // No se guardan IPs, mensajes ni datos personales del visitante.
+    try {
+        if (!origin || new URL(origin).host !== req.get('host') || !tokenValido(req.body?.token, negocioSlug, secret))
+            return res.status(403).json({ ok: false });
+        if (yaContada(req, negocioSlug, secret)) return res.json({ ok: true, contada: false });
+        const existe = await sequelize.transaction(async transaction => {
+            const n = await NegocioSinWeb.findOne({ where: { demo_slug: negocioSlug }, transaction, lock: transaction.LOCK.UPDATE });
+            if (!n || !n.demo_html) return false;
+            await n.increment('visitas', { transaction });
+            const ahora = new Date();
+            await n.update({ primera_visita: n.primera_visita || ahora, ultima_visita: ahora,
+                estado: n.estado === 'enviado' ? 'abrio' : n.estado }, { transaction });
+            return true;
+        });
+        if (!existe) return res.status(404).json({ ok: false });
+        res.cookie(nombreCookie(negocioSlug), tokenVisita(negocioSlug, secret), {
+            maxAge: TTL, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/demo',
+        });
+        res.json({ ok: true, contada: true });
+    } catch { res.status(400).json({ ok: false }); }
+};
 exports.slug = slug;
