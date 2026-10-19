@@ -113,7 +113,12 @@ app.use('/api/cazador',   require('./routes/cazadorRoutes'));
 app.get('/demo/:slug', require('./controllers/cazadorController').verDemo);
 app.get('/propuesta/:slug', require('./controllers/cazadorController').verPropuesta);
 app.post('/demo/:slug/visita', webhookLimiter, require('./controllers/cazadorController').registrarVisita);
-app.use('/demo-assets', express.static(path.join(__dirname, '../public/demo-assets'), { maxAge: '1d', index: false }));
+app.use('/demo-assets', express.static(path.join(__dirname, '../public/demo-assets'), {
+    maxAge: '1d', index: false,
+    // Imágenes públicas de las muestras: también se usan en el iframe aislado
+    // de revisión, cuyo origen es opaco porque no tiene allow-same-origin.
+    setHeaders: res => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
+}));
 app.use('/api/whatsapp', require('./routes/whatsappRoutes'));   // publica: Meta no inicia sesion
 // Alias: el sistema viejo de productos digitales usaba /api/webhook y esa es la
 // URL que todavia tiene puesta la app de Meta. Se acepta igual para que cambiar
