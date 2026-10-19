@@ -4,7 +4,9 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "test:demos": "node --test test/demos.test.js",
+    "preview:demos": "node scripts/preview-demos-local.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
