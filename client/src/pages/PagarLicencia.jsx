@@ -164,9 +164,23 @@ export default function PagarLicencia() {
           )}
         </div>
 
+        {/* Transferencia directa: sin comisión y es como pagan las empresas
+            colombianas. Va ANTES de la tarjeta porque es la vía principal. */}
+        {!info.suscripcion_activa && estado !== 'ok' && estado !== 'suscrito' && (
+          <Transferencia
+            monto={precioFinal(Number(info.precio), meses)}
+            meses={meses}
+            cliente={info.cliente}
+            producto={info.producto}
+          />
+        )}
+
         {/* Botones según estado */}
         {!info.suscripcion_activa && (estado !== 'ok' && estado !== 'suscrito') && (
           <>
+            <p style={{ width:'100%', textAlign:'center', fontSize:11.5, color:'#7b7b86', margin:'0 0 14px' }}>
+              o paga con tarjeta
+            </p>
             <input
               type="email" value={emailMP} onChange={e => setEmailMP(e.target.value)}
               placeholder="Correo de su cuenta MercadoPago (para el cobro automático)"
@@ -197,6 +211,101 @@ export default function PagarLicencia() {
     </div>
   );
 }
+
+// Datos de cobro autorizados por Cristian. No se inventan cuentas ni montos:
+// el monto sale del mismo calculo que usa el pago con tarjeta.
+const COBRO = {
+  nequi: '322 480 7767',
+  nequiPlano: '3224807767',
+  breb: 'cg901376@gmail.com',
+  wa: '573224807767'
+};
+
+function Transferencia({ monto, meses, cliente, producto }) {
+  const [copiado, setCopiado] = useState('');
+
+  async function copiar(texto, cual) {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(cual);
+      setTimeout(() => setCopiado(''), 1800);
+    } catch {
+      // Algunos navegadores lo niegan; el dato queda visible para copiarlo a mano.
+      setCopiado('no');
+      setTimeout(() => setCopiado(''), 2600);
+    }
+  }
+
+  const texto = [
+    `Hola, ya transferí la licencia de ${producto}.`,
+    `Cliente: ${cliente}`,
+    `Meses: ${meses}`,
+    `Monto: $${Number(monto).toLocaleString('es-CO')} COP`,
+    'Adjunto el comprobante.'
+  ].join('\n');
+
+  return (
+    <div style={t.caja}>
+      <p style={t.titulo}>Pagar por transferencia</p>
+      <p style={t.bajada}>Transfiere el monto exacto y avísanos. Reactivamos tu sistema apenas lo confirmemos.</p>
+
+      <div style={t.fila}>
+        <div style={{ minWidth: 0 }}>
+          <span style={t.etiqueta}>Nequi</span>
+          <span style={t.valor}>{COBRO.nequi}</span>
+        </div>
+        <button type="button" onClick={() => copiar(COBRO.nequiPlano, 'nequi')} style={t.copiar}>
+          {copiado === 'nequi' ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
+
+      <div style={t.fila}>
+        <div style={{ minWidth: 0 }}>
+          <span style={t.etiqueta}>Bre-B</span>
+          <span style={{ ...t.valor, fontSize: 13.5, wordBreak: 'break-all' }}>{COBRO.breb}</span>
+        </div>
+        <button type="button" onClick={() => copiar(COBRO.breb, 'breb')} style={t.copiar}>
+          {copiado === 'breb' ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
+
+      <div style={{ ...t.fila, borderBottom: 'none', paddingBottom: 0 }}>
+        <div>
+          <span style={t.etiqueta}>Monto exacto</span>
+          <span style={{ ...t.valor, fontSize: 18, fontWeight: 800 }}>
+            ${Number(monto).toLocaleString('es-CO')} COP
+          </span>
+        </div>
+        <button type="button" onClick={() => copiar(String(monto), 'monto')} style={t.copiar}>
+          {copiado === 'monto' ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
+
+      {copiado === 'no' && (
+        <p style={t.aviso}>Tu navegador no dejó copiar. Selecciona el dato y cópialo a mano.</p>
+      )}
+
+      <a href={`https://wa.me/${COBRO.wa}?text=${encodeURIComponent(texto)}`}
+        target="_blank" rel="noopener noreferrer" style={t.boton}>
+        Ya transferí, enviar comprobante
+      </a>
+      <p style={t.pie}>Se abre WhatsApp con los datos listos. Adjunta la foto de la transferencia.</p>
+    </div>
+  );
+}
+
+const t = {
+  caja:     { width:'100%', background:'#F7F8FA', border:'1px solid #E4E2EC', borderRadius:14, padding:'20px', marginBottom:18, boxSizing:'border-box' },
+  titulo:   { margin:'0 0 4px', fontSize:15, fontWeight:700, color:'#191923', fontFamily:"'Manrope',system-ui,sans-serif" },
+  bajada:   { margin:'0 0 16px', fontSize:12.5, lineHeight:1.55, color:'#7b7b86' },
+  fila:     { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'10px 0', borderBottom:'1px solid #E9E8EF' },
+  etiqueta: { display:'block', fontSize:11, color:'#7b7b86', marginBottom:2 },
+  valor:    { display:'block', fontSize:15, fontWeight:600, color:'#191923', fontVariantNumeric:'tabular-nums' },
+  copiar:   { flex:'none', background:'#FFFFFF', border:'1px solid #D9CBEC', color:'#4C168E', borderRadius:8, padding:'8px 12px', fontSize:12, fontWeight:600, cursor:'pointer', minHeight:36 },
+  boton:    { display:'flex', alignItems:'center', justifyContent:'center', width:'100%', minHeight:48, marginTop:16, background:'#7024C4', color:'#fff', borderRadius:10, textDecoration:'none', fontSize:14.5, fontWeight:600, boxSizing:'border-box' },
+  pie:      { margin:'8px 0 0', fontSize:11.5, lineHeight:1.5, color:'#7b7b86', textAlign:'center' },
+  aviso:    { margin:'10px 0 0', fontSize:11.5, color:'#8A5D00' }
+};
 
 function Alert({ color, children }) {
   const colors = { green: ['#E8F7EE','#1B7A43'], red: ['#FDECE8','#A3311F'], orange: ['#FFF4DC','#8A5D00'] };
