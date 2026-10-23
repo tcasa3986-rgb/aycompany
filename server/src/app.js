@@ -113,6 +113,12 @@ app.use('/api/cazador',   require('./routes/cazadorRoutes'));
 app.get('/demo/:slug', require('./controllers/cazadorController').verDemo);
 app.get('/propuesta/:slug', require('./controllers/cazadorController').verPropuesta);
 app.post('/demo/:slug/visita', webhookLimiter, require('./controllers/cazadorController').registrarVisita);
+// Muestras de diseno para un cliente concreto (las tres propuestas de web que
+// escoge antes de construir). Son ficheros versionados en el repo, no escritos
+// en caliente: el disco de Railway es efimero y lo de ahi se perderia en cada
+// despliegue. Llevan noindex: son para un cliente, no contenido publico.
+app.use('/muestras', express.static(path.join(__dirname, '../public/muestras'), { maxAge: '1d' }));
+
 app.use('/demo-assets', express.static(path.join(__dirname, '../public/demo-assets'), {
     maxAge: '1d', index: false,
     // Imágenes públicas de las muestras: también se usan en el iframe aislado
